@@ -74,3 +74,9 @@ Keep documentation concise and linked rather than duplicated.
 - Task files explain the current work only.
 
 Do not introduce new process or infrastructure unless a real task requires it.
+
+## 开发知识按需接入
+
+先读本项目上下文。遇到方案取舍、重复问题或跨项目经验时，读取 `KNOWLEDGE_WORKFLOW_CONFIG` 指定的路径说明；未设置时查 `~/.config/knowledge-workflow/paths.md`，再从映射的 Obsidian `Wiki/开发知识入口.md` 选相关页，读写规则见 `Wiki/开发协作接入.md`。配置或来源不可用时跳过，不阻塞开发；不默认扫全库。
+
+在规划与收尾 Agent 中使用该约定；CM 调度、执行所有权、任务验收和交付规则仍由本项目定义。只将选定的相关经验与来源带入任务上下文，不向所有 worker 注入全库或自动同步日记。收尾有可复用认识才由一个汇总者修订知识页；无共享文件权限的 worker 将候选留在原任务。知识引用不创建任务或扩大执行权限，普通任务不强制建卡或复测实体环境。

@@ -65,6 +65,11 @@ without loading the whole repository or asking the user to repeat established co
 
 ## Constraints
 
+Development knowledge is an optional planning/closeout input through [AGENTS.md](AGENTS.md).
+Obsidian keeps reusable explanations; SpecMesh project files keep current facts, CapMesh keeps
+capability decisions, and History keeps source evidence. This file-based convention does not
+change runtime ownership, auto-load a vault into workers, or require a knowledge service.
+
 - Python is authoritative for task lifecycle, recovery, provider processes, transports,
   memory writes, workspace mutation, and persisted runtime behavior.
 - JSON Schema under `schemas/controlmesh/v1/` is authoritative for cross-language payload
