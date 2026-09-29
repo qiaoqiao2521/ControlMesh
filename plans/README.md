@@ -103,4 +103,7 @@ If the line is valid but should not continue now:
 
 Do not mix them.
 
-- Planned next direction: [runtime-convergence](runtime-convergence/task_plan.md).
+## Current work (2026-09-29)
+
+- Current direction/status: [Orca bridge candidate](../docs/orca-bridge-status.md). The owner-local candidate is partially implemented; full acceptance and production cutover remain open. This documentation update does not publish its implementation or private server evidence.
+- [Runtime convergence](runtime-convergence/task_plan.md) is retained as historical implementation/evidence, not the current execution queue. Do not automatically resume old next-step lists.
