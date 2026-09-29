@@ -29,8 +29,8 @@ AGY 实施、入口核验与有效工作交付完成。全局共享规范已更�
      - `plans/bounded-delivery/`（已完成的 TS 单卡分批交付计划）
      - 追踪文档与计划更新（`PROJECT.md`、`AGENTS.md`、`docs/ARCHITECTURE.md`、`docs/DECISIONS.md`、`docs/orca-bridge-status.md`、`plans/README.md`、`plans/runtime-convergence/task_plan.md`、`progress.md`、`delegation/README.md`、`plans/terminal-product-v1/task_plan.md`）。
 5. **必要测试与自动加载核验**：
-   - 运行 Orca 桥接与黄金测试集 1084 项：1083 passed, 1 failed（因 umask 0077 导致 journal 权限断言不匹配，属测试环境影响而非产品故障）。
-   - 根 Codex 独立新 AGY 会话规则自动加载核验通过（`autoload.json`，会话 `d0475daf-fb7c-4309-9e9d-50071709f256`，耗时 6.42s，状态 SUCCESS）。
+   - 运行 Orca 桥接与黄金测试集 1084 项：1083 passed, 1 failed（因 umask 0077 导致 journal 权限断言不匹配，表明 fixture 受环境影响，未据此断言产品故障）。
+   - 根 Codex 独立新 AGY 会话规则自动加载核验通过（`autoload.json`，新会话准确识别自动加载规则，状态 SUCCESS）。
 6. **提交与推送验证**：
    - 早期提交：`33af2f6`、`32074f3`。
    - 本次纠正与成熟文档交付提交并推送到 `origin/main` (`https://github.com/qiaoqiao2521/ControlMesh.git`)。
@@ -44,7 +44,7 @@ AGY 实施、入口核验与有效工作交付完成。全局共享规范已更�
    - 真实保留阻碍：
      1) 2026-09-30 用户已确认 CM 改向 Paperclip，Orca 默认优先级已被取代；
      2) 已提交的 `docs/orca-bridge-status.md` 明确约定 detailed candidate implementation 本地保留不发布；
-     3) 测试集中 1 项失败系因 umask 0077 导致 fixture 目录权限实际为 0700，属环境对 fixture 影响而非产品缺陷；本次按指示不修 Orca、不跑 6850 全套。
+     3) 测试集中 1 项失败系因 umask 0077 导致 fixture 目录权限实际为 0700，表明 fixture 受环境影响，未据此断言产品缺陷；本次按指示不修 Orca、不跑 6850 全套。
    - 接续 Owner：根 Codex。
    - 最短验收入口：`./.venv/bin/pytest tests/orca_bridge/ tests/golden/test_orca_*.py`。
 2. **未接受的 Cron Port 提案**：
@@ -54,3 +54,10 @@ AGY 实施、入口核验与有效工作交付完成。全局共享规范已更�
 3. **状态与独立审批边界**：
    - CM 首次状态回写 422 来自 agent-authored in_review 缺少有效 review 路径，非 AGY 失败。
    - 外层只写 durable outcome，由根 Codex 独立进行最终审批与 review 状态修改。
+
+## 根 Codex 最终验收
+
+- 结论：收尾规则与 AGY 实施交付接受；保留项未被当作已验收代码。
+- 独立验证：全局前后 diff/指针、新 AGY 会话自动加载；已交付补丁和测试摘要公开内容检查；变更文档链接按 Git 提交树检查，不以本地未跟踪目录存在冒充远端可访问；交付 diff 空白检查。
+- 已核实 AGY 提交 `15fa17533a0a76ef287b5bfa736670dd74b6f31d` 与 GitHub main 一致。最终文档小修及本验收记录同批提交推送，具体 SHA 以此文件的 Git 历史和 CM QIA-8 结项记录为准。
+- 保留 Orca 候选与未接受 cron 提案；接续 owner 为根 Codex。Cron 最短审查入口是 `plans/runtime-convergence/delegation/README.md` 的历史验收表与 `agy-review-1.md`，先核对未通过项，不自动恢复旧进程。

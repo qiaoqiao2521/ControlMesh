@@ -1,7 +1,7 @@
 # ControlMesh：分批完成 TS 迁移，再验收协作与原生续接
 
-> 2026-09-22：本文件为历史方向与证据，完整 TS 不再是默认投入目标。
-> 当前入口是 [CM × Orca bridge v0](../cm-orca-headless-bridge-v0/task_plan.md)。
+> 2026-09-30：本文件为历史方向与证据，完整 TS 不再是默认投入目标。
+> 当前入口是 [Paperclip-based CM](../paperclip-based-cm/task_plan.md)。
 > 下文日期、状态与 Next Step 是旧快照，不授予恢复旧 worker、提交或切换权限。
 
 日期：2026-09-14。状态：queued，计划已准备，未启动实现。本计划接替 runtime-convergence 的混合执行方式；旧代码、验收 ID 和证据保留。Ops 不在本轮范围，不自动恢复 Goal。

@@ -1,5 +1,7 @@
 # Findings
 
+> 以下是初始 CLI 试验和飞书只读调研的历史记录；后续本机飞书文本闭环已通过，服务器候选试验结束后停驻，见[最新状态](../paperclip-feishu-canary/progress.md)。历史“未安装/未验收”不代表当前状态。
+
 ## 2026-09-30 CLI 实测
 - 版本：本机 Paperclip 2026.916.1。主任务 QIA-2；协调者使用 codex_local 的 CLI engine，三个 worker 使用 process adapter 启动真实 AGY/ZCode/CBC。
 - 首次派发运行结束至审批启动间隔589.998秒（约9分50秒），期间无协调Codex run；AGY/CBC先完成没有提前启动审批。协调者总计三轮：派发、首审、ZCode纠偏后复审。

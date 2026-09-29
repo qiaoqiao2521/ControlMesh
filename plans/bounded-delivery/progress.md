@@ -1,7 +1,7 @@
 # ControlMesh 独立交付状态
 
-> 2026-09-22：历史快照；此队列已被 [bridge v0](../cm-orca-headless-bridge-v0/progress.md)
-> 取代为当前入口。保留未完成项，不转为完成、不自动派发旧卡。
+> 2026-09-30：历史快照；当前入口是 [Paperclip-based CM](../paperclip-based-cm/progress.md)。
+> 保留未完成项，不转为完成、不自动派发旧卡。
 
 更新：2026-09-14。当前：queued。本次交付是计划重组，不是 TS/协作实现完成。
 

@@ -203,10 +203,13 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 ## Current Priority
 
 2026-09-30: follow [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md).
-Record and reuse the demonstrated CLI handoff/wait/review workflow; next select a single
-Feishu task/reply path using verified upstream capabilities and useful existing CM behavior.
-Do not resume Orca integration or full-TS work as the default queue. Local CLI coordination
-and Feishu connector compatibility evidence are documented; production migration remains open.
+Reuse the demonstrated CLI handoff/wait/review workflow and the accepted local Feishu
+text path: existing bot receipt, Agent execution, and one reply to the original thread.
+The greenrise replacement trial has ended with the candidate stopped and disabled;
+production takeover remains blocked by HTTPS, CLI/provider readiness, and cron migration.
+See [canary status](plans/paperclip-feishu-canary/progress.md). Do not repeat the accepted
+local text test or resume Orca/full-TS work as the default queue. Group and recovery
+semantics still need acceptance when selected for a real task.
 
 ### Historical Orca priority (2026-09-26; superseded)
 

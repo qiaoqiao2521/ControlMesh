@@ -11,12 +11,9 @@
 ### 精确变更 Patch
 
 ```diff
---- /home/muqiao/.agents/AGENTS.md (before)
-+++ /home/muqiao/.agents/AGENTS.md (after)
-@@ -70,3 +70,17 @@
- Keeping a skill in the central library does not authorize global installation. Global skill directories are for broadly useful development capabilities. Psychology, history/geography, reading/learning, content operations, and other specialist workflows stay in `~/.skills-manager/skills/` unless needed by an identified project or task.
- 
- For an explicitly named skill or a relevant specialist task, read only the matching central-library `SKILL.md` and necessary supporting files. The withdrawn inventory is in `~/.skills-manager/optional-skills.md`. Do not scan or preload the entire central library, reinstall these entries globally, or treat preservation as authorization for global deployment. Use project-local skill links only for the user's selected project. Existing project-local and plugin-managed skills retain their own scope.
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -72,0 +73,14 @@
 +
 +## 仓库收尾与交付约定
 +
@@ -44,7 +41,7 @@
    - 依据 AGY 内置 Customization Rules 指南，全局配置根位于 `~/.gemini/config/`，支持 `rules/*.md` 及 `AGENTS.md`。此前 `~/.gemini/config/rules/` 不存在。
    - 本次创建软链接：`/home/muqiao/.gemini/config/rules/AGENTS.md -> /home/muqiao/.agents/AGENTS.md`。
    - SHA256 与共享源文件严格一致（`fb1d564d8380a9fa66abf59a121e7f5b63dd336068f26fab0880058f6f6a9166`），无文本重复复制，保持全局唯一权威正文。
-   - **独立加载核验结果**：根 Codex 另起新 AGY 会话（会话 ID `d0475daf-fb7c-4309-9e9d-50071709f256`，记录于 `autoload.json`）完成端到端独立核查：新进程自动成功加载 `/home/muqiao/.gemini/config/rules/AGENTS.md`（§ 仓库收尾与交付约定），读取耗时 6.42 秒，状态 SUCCESS。CM 首次状态回写 422 系 agent-authored in_review 缺少有效 review 路径引起，非 AGY 执行或规则加载失败。
+   - **独立加载核验结果**：根 Codex 另起新 AGY 会话（会话 ID `d0475daf-fb7c-4309-9e9d-50071709f256`，记录于 `autoload.json`）完成端到端独立核查：新进程自动成功加载 `/home/muqiao/.gemini/config/rules/AGENTS.md`（§ 仓库收尾与交付约定），AGY 报告单轮耗时 6.42 秒，外层进程实际用时 150.47 秒，状态 SUCCESS。CM 首次状态回写 422 系 agent-authored in_review 缺少有效 review 路径引起，非 AGY 执行或规则加载失败。
 
 ## 3. GitHub 身份与目标仓库核验
 
@@ -106,3 +103,9 @@ env -u GH_TOKEN -u GITHUB_TOKEN \
 - `plans/runtime-convergence/delegation/`: `agy-cron-batch-1-result.md`、`agy-result.md`、`agy-review-1.md`、`cron-port-spec.md`。
 - **保留阻碍**：属于未审查/未被主 Agent 最终接受的 cron 移植方案，状态明确为 primary acceptance pending，不能称为已验收，原貌保留在本地工作区。
 - 接续 Owner：根 Codex。
+
+## 根 Codex 独立复核
+
+2026-09-30：共享正文只追加用户约定，Codex/Claude 指针保持，独立 AGY 新会话准确回答并指出全局规则来源。首审退回成熟记录被笼统暂缓的问题，AGY 在原会话补交；根 Codex 再修正两处提交树断链及旧飞书待办。采用 Obsidian `Wiki/开发协作接入.md` 的单一收尾责任：worker 提供结果，根 Agent 统筹整合与裁决，不并行写共享知识。
+
+CM QIA-8 首次模型执行成功，wrapper 因缺少有效 review 路径收到 HTTP 422。通过原生 recovery-actions/resolve 提交已核实的停止状态与副作用证据后，复用原 AGY 会话纠正；第二次运行 succeeded。等待由有界进程完成，没有定时模型轮询。原始输出留本机，未提交运行日志。

@@ -31,7 +31,7 @@ The operating rule is:
 
 Current work is selected here; older task files are dated evidence, not competing priorities.
 
-- Current plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — user-confirmed direction; real CLI dispatch/idle/event-wake/review verified. Feishu/product integration and production migration remain open.
+- Current plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified. Reusable product integration, group/recovery semantics and production migration remain open.
 - Canary report: [Feishu + greenrise](paperclip-feishu-canary/task_plan.md), [status](paperclip-feishu-canary/progress.md) — local existing-bot receipt, Agent execution and delivery verified; default progress noise disabled; 4GB deployment/restart measured. Server takeover stopped and disabled pending HTTPS, CLI permissions, and production cron migration.
 - Repository closeout policy: [Closeout policy](repository-closeout-policy/task_plan.md), [status](repository-closeout-policy/progress.md) — routine commit/push default convention landed across shared specifications.
 - Preserved Orca candidate: [Orca bridge candidate status](../docs/orca-bridge-status.md) — superseded as the default direction on 2026-09-30; implementation and canary evidence retained locally, unfinished acceptance is not marked complete.
