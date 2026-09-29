@@ -25,6 +25,10 @@ AGY 实施、入口核验与有效工作交付完成。全局共享规范已更�
    - 明确本次交付范围：`plans/repository-closeout-policy/`。
 5. **必要测试验证**：
    - 运行 Orca 桥接与黄金测试集 1084 项：1083 passed, 1 failed（因 umask 0077 导致 journal 权限断言不匹配，记录为不提交 Orca 代码的依据之一）。
+6. **提交与推送验证**：
+   - 提交 SHA：`33af2f6190b8132e0fdf102dde038e1464bbc335`。
+   - 推送远端：`origin/main` (`https://github.com/qiaoqiao2521/ControlMesh.git`) 成功。
+   - 远端一致性核验：本地 HEAD 与 `origin/main` 严格指向同一 commit。
 
 ## Handover & Retained Legacy (移交根 Codex 独立审批与接续)
 
