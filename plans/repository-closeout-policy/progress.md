@@ -19,34 +19,38 @@ AGY 实施、入口核验与有效工作交付完成。全局共享规范已更�
    - 使用隔离环境 `GH_CONFIG_DIR=/home/muqiao/.config/gh-migration-qiaoqiao2521`。
    - 验证身份为 `qiaoqiao2521` (ID `238822818`)。
    - 验证目标仓库 `qiaoqiao2521/ControlMesh`，所有者为 `qiaoqiao2521`，公开仓库，fetch/push URL 一致。
-4. **ControlMesh 仓库未提交变动全面盘点与分类**：
+4. **ControlMesh 仓库未提交变动全面盘点与成熟文档交付**：
    - 基线 HEAD：`dae4d6cc93fdb0fa5723cd718a5936bbfbbd1626`。
    - 详见 `findings.md` 分类清单。
-   - 明确本次交付范围：`plans/repository-closeout-policy/`。
-5. **必要测试验证**：
-   - 运行 Orca 桥接与黄金测试集 1084 项：1083 passed, 1 failed（因 umask 0077 导致 journal 权限断言不匹配，记录为不提交 Orca 代码的依据之一）。
+   - 经审查交付范围：
+     - `plans/repository-closeout-policy/`（收尾约定与规范落地）
+     - `plans/paperclip-based-cm/`（Paperclip 改进方向与本地 CLI 派发实测）
+     - `plans/paperclip-feishu-canary/`（飞书连接器兼容改造、去噪、greenrise 资源测量报告及 `evidence/` 下审查后的源码补丁与测试摘要；已排除 runtime 日志与凭据）
+     - `plans/bounded-delivery/`（已完成的 TS 单卡分批交付计划）
+     - 追踪文档与计划更新（`PROJECT.md`、`AGENTS.md`、`docs/ARCHITECTURE.md`、`docs/DECISIONS.md`、`docs/orca-bridge-status.md`、`plans/README.md`、`plans/runtime-convergence/task_plan.md`、`progress.md`、`delegation/README.md`、`plans/terminal-product-v1/task_plan.md`）。
+5. **必要测试与自动加载核验**：
+   - 运行 Orca 桥接与黄金测试集 1084 项：1083 passed, 1 failed（因 umask 0077 导致 journal 权限断言不匹配，属测试环境影响而非产品故障）。
+   - 根 Codex 独立新 AGY 会话规则自动加载核验通过（`autoload.json`，会话 `d0475daf-fb7c-4309-9e9d-50071709f256`，耗时 6.42s，状态 SUCCESS）。
 6. **提交与推送验证**：
-   - 提交 SHA：`33af2f6190b8132e0fdf102dde038e1464bbc335`。
-   - 推送远端：`origin/main` (`https://github.com/qiaoqiao2521/ControlMesh.git`) 成功。
-   - 远端一致性核验：本地 HEAD 与 `origin/main` 严格指向同一 commit。
+   - 早期提交：`33af2f6`、`32074f3`。
+   - 本次纠正与成熟文档交付提交并推送到 `origin/main` (`https://github.com/qiaoqiao2521/ControlMesh.git`)。
 
 ## Handover & Retained Legacy (移交根 Codex 独立审批与接续)
 
-以下未提交项目已完整保留在工作区，未被修改、覆盖或删除：
+以下未提交项目已完整保留在本地工作区，未被修改、覆盖或删除：
 
-1. **进行中金丝雀 (WIP)**：`plans/paperclip-feishu-canary/`
-   - 具体阻碍：greenrise 部署与资源测量已完成，但原 CM 仍驻留，Telegram 缺少 HTTPS 反代，CLI 权限尚未修齐，尚未接管旧入口，处于活跃实验中间态。
-   - 接续 Owner：根 Codex。
-   - 最短验收入口：`plans/paperclip-feishu-canary/progress.md`。
-2. **旧大块未审查候选**：Orca 桥接实现与测试
-   - 涉及路径：`controlmesh/orca_bridge/`、`controlmesh/cli_commands/orca.py`、`tests/orca_bridge/`、`scripts/orca_*`、`plans/cm-orca-headless-bridge-v0/`、`controlmesh/__main__.py`、`controlmesh/cli_commands/status.py`。
-   - 具体阻碍：
+1. **旧大块未审查候选**：Orca 桥接实现、测试、探针与 CLI 接线
+   - 涉及路径：`controlmesh/orca_bridge/`、`controlmesh/cli_commands/orca.py`、`tests/orca_bridge/`、`tests/golden/fixtures/orca/`、`tests/golden/runners/`、`tests/golden/test_orca_*`、`scripts/orca_*`、`plans/cm-orca-headless-bridge-v0/`、`controlmesh/__main__.py`、`controlmesh/cli_commands/status.py`。
+   - 真实保留阻碍：
      1) 2026-09-30 用户已确认 CM 改向 Paperclip，Orca 默认优先级已被取代；
-     2) 已提交的 `docs/orca-bridge-status.md` 明确约定 detailed implementation 本地保留不发布；
-     3) 运行 `./.venv/bin/pytest tests/orca_bridge/ tests/golden/test_orca_*.py` 存在 1 项因 umask 导致的测试失败；全仓 6850 项测试未全跑。
+     2) 已提交的 `docs/orca-bridge-status.md` 明确约定 detailed candidate implementation 本地保留不发布；
+     3) 测试集中 1 项失败系因 umask 0077 导致 fixture 目录权限实际为 0700，属环境对 fixture 影响而非产品缺陷；本次按指示不修 Orca、不跑 6850 全套。
    - 接续 Owner：根 Codex。
    - 最短验收入口：`./.venv/bin/pytest tests/orca_bridge/ tests/golden/test_orca_*.py`。
-3. **历史方向与文档同步**：
-   - 涉及路径：`plans/paperclip-based-cm/`、`plans/bounded-delivery/`、`plans/runtime-convergence/delegation/` 以及已暂存的文档更新 (`PROJECT.md`、`AGENTS.md` 等)。
-   - 具体阻碍：与未发布的本地候选计划保持一致，避免独立推送引起文档间相对链接断裂。
+2. **未接受的 Cron Port 提案**：
+   - 涉及路径：`plans/runtime-convergence/delegation/` 下的 `agy-cron-batch-1-result.md`、`agy-result.md`、`agy-review-1.md`、`cron-port-spec.md`。
+   - 真实保留阻碍：属于未审查/未被主 Agent 最终接受的 cron 移植方案，状态明确为 primary acceptance pending，不能称为已验收，原貌保留在本地工作区。
    - 接续 Owner：根 Codex。
+3. **状态与独立审批边界**：
+   - CM 首次状态回写 422 来自 agent-authored in_review 缺少有效 review 路径，非 AGY 失败。
+   - 外层只写 durable outcome，由根 Codex 独立进行最终审批与 review 状态修改。

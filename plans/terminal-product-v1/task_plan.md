@@ -1,5 +1,9 @@
 # Terminal Product v1
 
+> 本文件保留历史 UX 要求与证据；后续执行入口以
+> [Paperclip-based CM](../paperclip-based-cm/task_plan.md) 为准。
+> 下文“先接 TS runtime”的技术路线与授权为旧快照，不再选择本轮工作。
+
 ## Goal
 
 把 `cm` 做成可日常使用的终端 Agent 工作台：启动后能看懂当前项目、模型和会话，

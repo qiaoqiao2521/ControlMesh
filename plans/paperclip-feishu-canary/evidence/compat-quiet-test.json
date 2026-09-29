@@ -1,0 +1,8 @@
+{
+  "passed": 1,
+  "description": "Progress disabled: zero inferred progress sends, one exact final text reply to original thread, duplicate terminal suppressed; strict boolean validated.",
+  "capturedCliCalls": 1,
+  "finalText": "飞书接通了",
+  "realFeishuCalls": 0,
+  "modelCalls": 0
+}

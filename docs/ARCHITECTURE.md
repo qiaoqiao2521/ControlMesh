@@ -2,6 +2,12 @@
 
 ## Overview
 
+Scope note (2026-09-30): the map below describes preserved CM implementations. The next
+product direction is [Paperclip-based CM](../plans/paperclip-based-cm/task_plan.md); its local
+CLI dispatch/idle/event-wake/review and local Feishu text closed-loop are verified.
+Production migration remains open. Preserved Python and historical Orca candidate sections
+must not be read as a Paperclip migration claim.
+
 ControlMesh is a Python-owned local task runtime. Terminal and messaging entry points feed
 an orchestrator and persistent TaskHub, which execute official provider CLIs and store
 runtime state, memory, workspaces, events, and artifacts. A versioned read-only API exposes
@@ -88,6 +94,88 @@ the latest task episode. An identical retry returns the original event; a confli
 or packet identity drift is rejected before JSONL append. Summary promotion loads that
 single current terminal result, admits only `completed`, and rechecks execution, persisted
 review, and summary snapshots in the writer's immediate pre-write hook.
+
+### Historical Orca Bridge Candidate (superseded by Paperclip)
+
+Native graph reuse boundary (source audit: c6a72169 / 1.4.197): Orca owns persisted
+Task/deps and pending-to-ready promotion inside task/worker settlement transactions.
+`parent_id` is hierarchy, deps are execution dependencies, and Dispatch identifies an attempt.
+Supported task-create/task-list/worker-start operations are the integration surface; the
+retired automatic coordinator loop is not a CM library or a current auto-dispatch guarantee.
+Native completed unlocks execution dependencies, not independent controller acceptance.
+CM exposes native task dependencies via `cm orca task-list` and workbench `/tasks`.
+Workbench formal `/question`, `/answer`, `/snapshot`, `/accept` commands use a pure parser
+and the same controller entrypoint as CLI; no second answer/acceptance implementation.
+Only explicit candidate mode selects the pinned patched backend; native controller evidence
+and per-request journal rules remain required. Receipts do not automatically promote slot state.
+The pure `task_view.py` projection validates Run identity and snapshot relationships, strips
+unrelated payloads, and renders bounded text; it never calculates readiness, dispatches or
+consumes the inbox. `/status` remains the local worker-slot view. CLI JSON retains the full
+accepted snapshot (at most 512 tasks); text truncation is explicit.
+This is a reuse map, not proof that the installed 1.4.201 backend or bridge has passed the
+graph/multi-agent workflow. See [Orca bridge candidate status](orca-bridge-status.md).
+
+`controlmesh/orca_bridge/client.py` reads a deliberately selected local Orca 1.4.201
+through its CLI. `cm orca status|worker-show|request-show|task-list` is an opt-in, read-only
+view; it never starts Orca, launches a provider, consumes/ACKs the coordinator inbox,
+or falls back to TaskHub. Initial status discovery is distinct from queries pinned
+to a native runtime incarnation and run/task/dispatch/request identity. Observed
+execution state does not grant independent acceptance or prove user delivery.
+"Read-only" here describes CM's command surface, not zero upstream DB writes:
+Orca workerShow can reconcile an old runtime's starting/stopping worker to unknown.
+That reconciliation remains Orca-owned; CM does not access its database.
+
+`orca_bridge/journal.py` is private CM request/delivery bookkeeping, not an Orca
+database reader or a task lifecycle store. It retains source-scoped bindings and
+original request IDs, rejects conflicting payloads, and admits one outbox send
+claim. Uncertain sends are not automatically replayed. Trusted caller binding and
+remote receipt validation remain ingress responsibilities.
+
+`rpc.py` uses the authenticated bootstrap (not Orca's DB) to pin a Linux Unix socket.
+It checks peer PID/UID, version and runtime on the same connection before mutation;
+it never re-discovers/reconnects mid-call. `dispatch.py` reserves two immutable local
+slots per run before workerStart and only queries the original request on re-entry.
+Only trusted local foreground AGY is admitted; unsupported sources/grants are rejected.
+This does not enforce a global Orca worker limit or provide a consumer-generation CAS.
+
+`inbox.py` is the explicit coordinator consumer, separate from all views. `mailbox.py`
+persists the entire mixed delivery before ACK, including batches returned by ACK itself.
+`feishu_delivery.py` composes the same journal with a single strict original-thread reply;
+it is not connected to production ingress. Timeout or unverifiable receipts stay unknown.
+`cm orca workbench` provides a lightweight terminal UI with injected non-consuming views
+and explicit local dispatch. It does not yet offer the accepted question/review workflow.
+`question_view.py` adds an explicit local history projection to the existing journal handle.
+The workbench `/questions` command does not reconnect, consume, ACK, or answer; a displayed
+candidate has unknown formal question status. Message text is bounded and safely rendered.
+The pinned upstream reply can fall back to an ordinary message when no formal question
+exists and has no formal-only/expected-generation contract. Automatic Q&A stays disabled;
+a pre-read alone would not supply the missing atomic write condition.
+
+An isolated Orca source candidate now adds formal question and immutable Git-object
+acceptance contracts with current-controller attestation and transactional identity fences.
+It is not the installed 1.4.201 backend. CM's internal candidate transport requires the
+new question capability; its default version pin and production entry stay unchanged.
+CM inherits native controller evidence from its parent environment for candidate dispatch,
+wait/ACK and the four controller contracts. These paths share the same connection builder;
+all orchestration frames retain that proof, while status frames never carry it. Explicit
+caller fields must match before sending. Passive CLI views can select the candidate version
+without acquiring controller authority. Explicit candidate CLI actions use the existing journal
+for original-request/payload-digest binding; repeats query historical receipts, and only an
+explicit identical-request retry resends. No launch token or answer text enters that journal.
+Cross-language socket/dispatcher tests cover this wiring with synthetic PTYs, not a live
+coordinator session. Real server deployment additionally proved two CM dispatches and native
+worker completion, but exposed missing Node-only hook-authority wiring: status observations
+alone do not establish controller authority. The candidate reuses desktop attestation and
+retirement callbacks. Agent launchConfig supplies the native launch identity; explicitly
+scoped upstream-generated Claude hooks avoid modifying global provider configuration.
+With those native hooks, explicit coordinator rebinding now passes real strict snapshot/accept
+for two existing completed workers. Independent Git-object checks match both recorded commits;
+Run/dispatch remain unchanged while current controller generation advances. This controlled
+restart test does not prove survival of live workers or close all takeover/ACK race cases.
+Acceptance UI and Feishu delivery remain unqualified. Detailed candidate implementation
+and server evidence remain local and are excluded from publication; see
+[Orca bridge candidate status](orca-bridge-status.md).
+The Python production path and read-only public API remain unchanged.
 
 ### Provider Execution
 

@@ -1,0 +1,18 @@
+{
+  "passed": 11,
+  "cases": [
+    "manifest accepted by installed Paperclip 2026.916.1",
+    "all manifest and actual registered-tool schemas compile with host strict Ajv",
+    "config enum and required profile validation remain enforced",
+    "text event retains sender and source thread",
+    "route is scoped to selected bot and chat",
+    "followup preserves thread session identity",
+    "reply uses original message, bot identity and thread mode",
+    "attachment transfer fails explicitly without calling host or CLI",
+    "disabled attachment capability cannot be enabled by config override",
+    "attachment tool is absent from manifest and registered tools",
+    "inbound quick reply and duplicate suppression do not invoke a model"
+  ],
+  "modelsCalled": 0,
+  "feishuCalls": 0
+}

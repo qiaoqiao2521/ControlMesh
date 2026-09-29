@@ -1,6 +1,6 @@
 # Orca bridge candidate status (2026-09-29)
 
-Current direction is a focused CM CLI/TUI and messaging entry over headless Orca. The former full-TypeScript queue and runtime-convergence next-step lists are historical, not automatic dispatch instructions.
+As confirmed on 2026-09-30, the forward direction is Paperclip-based CM, superseding the headless Orca bridge as the default backend. The Orca candidate records below are preserved historical engineering evidence.
 
 The owner-local, uncommitted candidate has partial task/dependency projection, question/acceptance interfaces and coordinator dispatch/wait/ACK integration. Its recorded two-worker canary includes independent Git-object checks and persisted acceptance receipts. These are dated local engineering observations, not a claim that the bridge implementation is present in this published checkout.
 

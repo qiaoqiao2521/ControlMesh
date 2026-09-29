@@ -1,6 +1,16 @@
 # Runtime convergence progress
 
-## Current
+> Historical snapshot. Superseded as the default direction by
+> [Paperclip-based CM](../paperclip-based-cm/progress.md).
+> Do not resume the old queue or interpret unfinished work as accepted migration.
+
+## Current execution entry — 2026-09-14
+
+The combined run is paused. Use [bounded-delivery/progress.md](../bounded-delivery/progress.md)
+and its single-card queue; no automatic Goal continuation. The records below remain
+historical implementation evidence and do not select current work. Ops is out of scope.
+
+## Last combined execution snapshot
 
 Full TS migration, multi-device coordination and real Agent continuity remain **in
 progress**. No production writer cutover, complete release or default TS installation

@@ -53,10 +53,12 @@ discoveries in task findings; promote only durable knowledge into project docume
 - Do not silently reinterpret or weaken user requirements.
 - Do not rename persisted fields, task statuses, provider names, transport names, or
   relative paths without an explicit migration.
-- Python owns current production runtime behavior. The user has authorized its full
-  TypeScript migration in `plans/runtime-convergence/`; port and verify each owner before
-  switching it. JSON Schema owns cross-language payload shape. TypeScript product layers
-  do not write private runtime files; the gated runtime kernel is a separate owner.
+- Python still owns existing production paths. As confirmed on 2026-09-30, the next CM is
+  based on Paperclip; start at `plans/paperclip-based-cm/`. The Orca bridge and full-TypeScript
+  candidate are retained evidence, not the default execution queue. The local CLI
+  dispatch/idle/event-wake/review path and local Feishu text closed-loop are verified; production migration is not.
+  Reuse upstream lifecycle ownership; do not add a parallel scheduler or migrate tasks from
+  a plan alone. Existing JSON Schema contracts and private-runtime boundaries remain.
 - Do not expose absolute artifact paths or weaken authentication/path containment.
 - Do not commit secrets, credentials, `.env` files, auth profiles, caches, virtual
   environments, runtime logs, dependency directories, or local agent session state.

@@ -2,11 +2,14 @@
 
 ## Why
 
-Official coding CLIs are powerful but usually tied to one foreground terminal session.
-ControlMesh turns them into a local-first, persistent task runtime that can be reached from
-a terminal or chat, continue work in the background, coordinate multiple agents, ask for
-missing information, recover after interruption, and deliver results back to the original
-conversation.
+ControlMesh should be a focused, local-first CLI with lightweight TUI and messaging entry for
+Agent orchestration: dispatch work, answer questions, wait without continuous coordinator
+reasoning, independently accept results, and deliver them to the original conversation.
+On 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
+Paperclip-based improved CM as the next direction. Reuse upstream task execution and event
+wakeups; retain valuable CM CLI, Feishu/group policy and delivery behavior. This supersedes
+Orca as the default future backend. Existing Python production paths and the partial Orca
+candidate remain in place; no migration or production cutover is implied.
 
 Google CLI direction (confirmed 2026-09-13): AGY is the user's forward Google runtime.
 Keep historical Gemini IDs/session formats as explicit compatibility profiles; do not
@@ -23,9 +26,9 @@ remote platform.
 
 The important user outcomes are:
 
-- `cm` must offer a polished terminal workbench comparable in interaction quality to
-  Codex: discoverable commands, editable input, visible execution, interruption and
-  session recovery; a line-oriented chat shell is not an accepted finished product;
+- `cm` must offer a usable CLI with light TUI rendering: discoverable commands, editable
+  input, visible tasks/questions/acceptance and explicit interruption/reconnection;
+  a plain line-oriented chat shell is not enough, but a full desktop IDE is not the goal;
 - official Claude, Codex, AGY, OpenCode, CBC, and configured provider CLIs remain the actual
   execution engines;
 - tasks have stable identities, persistent state, artifacts, interruption, resume, and
@@ -36,6 +39,13 @@ The important user outcomes are:
   distinguish creating/binding an app from choosing native/bridge runtime behavior;
 - multi-agent work is explicit, bounded, inspectable, and coordinated through shared
   runtime primitives;
+- build the next CM on Paperclip's native tasks, dependencies, dispatch and event wakeups;
+  preserve CLI-first operation and avoid a second task engine. SpecMesh records intent,
+  handoff and acceptance; the coordinating Codex independently judges worker results;
+- one coordinating conversation can dispatch multiple workers and block while they work;
+  waiting must not continuously invoke the coordinator model or modify code; no claim of
+  zero total tokens. Completion-triggered revival is verified for the selected local
+  Paperclip CLI workflow, not all crash/recovery or transport paths;
 - project and task knowledge survives a new terminal, a new agent, or a long gap without
   requiring the user to explain everything again;
 - the user spends attention on intent and judgment, while agents handle exploration,
@@ -43,6 +53,12 @@ The important user outcomes are:
 
 ## Non-goals
 
+- Do not resume full CM platform construction or full TypeScript migration as the default
+  investment. Preserve the existing candidate and evidence without treating them as delivered.
+- Do not rebuild a parallel execution core or generic protocol SDK around Paperclip.
+  Choose upstream fixes, adapters or a maintained fork only for demonstrated requirements.
+- Do not remove existing Feishu integrations, group policy, other transports or old task data
+  to make the new scope appear complete. Each selected path needs its own acceptance.
 - Do not replace official provider CLIs with a proprietary model runtime.
 - Do not treat a TypeScript facade or a wrapper around Python as a completed runtime migration.
 - Do not let the Web UI or SDK read or write private ControlMesh files directly.
@@ -70,15 +86,21 @@ Obsidian keeps reusable explanations; SpecMesh project files keep current facts,
 capability decisions, and History keeps source evidence. This file-based convention does not
 change runtime ownership, auto-load a vault into workers, or require a knowledge service.
 
-- Python is authoritative for task lifecycle, recovery, provider processes, transports,
-  memory writes, workspace mutation, and persisted runtime behavior.
+- Python remains authoritative for existing production paths. On a selected Paperclip path,
+  Paperclip owns scheduling and execution; the coordinator owns judgment, with ingress,
+  binding and delivery boundaries explicit. Planning does not switch existing task owners.
+- Electron/Xvfb in the headless backend is acceptable. A pure-Node runtime is optional,
+  not a prerequisite or a second implementation track.
+- Group/bot provenance and execution restrictions must survive the bridge. Unsupported
+  enforcement fails closed; a local backend connection is not permission to run on the host.
 - JSON Schema under `schemas/controlmesh/v1/` is authoritative for cross-language payload
   shape; generated Python and TypeScript models are not edited directly.
 - Public protocol fields use stable snake_case names, allow additive unknown fields where
   forwarding requires it, and never expose absolute artifact paths.
 - Persisted fields, task statuses, provider/transport names, and workspace layouts require
   explicit migrations.
-- TypeScript runtime ownership stays blocked until canonical Python fixtures demonstrate
+- The historical TypeScript candidate remains non-default; any separately approved cutover
+  still requires canonical Python fixtures demonstrating
   create, tell, ask_parent, resume, cancel, provider, recovery, workspace, and artifact
   parity with rollback gates.
 - The Web product remains local-first and binds to `127.0.0.1` by default.
@@ -86,6 +108,30 @@ change runtime ownership, auto-load a vault into workers, or require a knowledge
   build output must remain untracked.
 
 ## Current State
+
+The 2026-09-30 Paperclip 2026.916.1 local experiment dispatched real AGY/ZCode/CBC CLIs,
+ended the coordinating Codex run for 589.998 seconds, then woke it on completed handoffs.
+Independent review accepted AGY/CBC (two new tests; combined 15 passed) and rejected ZCode,
+including after one bounded native-session correction. Three coordinator runs in total:
+dispatch, review, re-review. Feishu, broad recovery and production migration were not tested.
+Evidence and integration boundary: [Paperclip findings](plans/paperclip-based-cm/findings.md).
+
+2026-09-30 live canary: [Feishu and greenrise](plans/paperclip-feishu-canary/progress.md). Existing local Feishu bot receipt, Codex execution and source-thread delivery are verified; default progress-card noise is disabled. Greenrise (4GB) has an isolated Paperclip install with restart/idle-memory evidence, but its old CM Telegram entry remains active: native Telegram needs a new HTTPS route and actual CLI trials exposed Codex balance failure / Claude task-delivery permission failure. The unused canary service is stopped with installation/data preserved; do not read deployment as completed takeover.
+The following describes preserved implementations and dated evidence, not a new rollout.
+
+As of the 2026-09-26 implementation, CM HEAD is `3596526` with preserved uncommitted work.
+The first isolated Orca 1.4.201 AGY launch failed at readiness. A separately authorized
+second attempt completed the task, woke the blocking coordinator wait and passed independent
+file checks; delivery replay/ACK and resource release were observed. The new opt-in path has
+pinned local dispatch/reconciliation, durable coordinator handoff, a CLI/TUI skeleton and a
+strict reply sender. A real CM child-crash/mailbox recovery drill passed with synthetic messages,
+not provider tasks. A later isolated greenrise deployment ran two real Claude workers through
+CM dispatch and preserved both committed results. Formal CLI/TUI operations are wired; a
+Node-only hook-authority gap found during final acceptance was patched using Orca's existing
+callbacks. Those strict acceptance/recovery results remain in the historical Orca plan.
+Formal Q&A/refusal correction, restricted group execution and Feishu product acceptance remain open.
+The following
+records describe the existing CM baseline, not evidence that Orca already preserves it.
 
 Terminal UX remains a basic line-oriented shell. Runtime and read-only Alpha gates do
 not establish terminal product readiness. The user has prioritized an interactive
@@ -114,8 +160,9 @@ contains only supported read operations. CI includes a required isolated-wheel s
 exercises the installed CLI, real HTTP/SDK reads, artifact containment, mutation rejection,
 and wheel-bundled dashboard assets.
 
-Mutation-shaped SDK ideas are not supported product behavior. Real task mutation and all
-transport/provider execution remain Python-owned.
+Mutation-shaped public SDK ideas are not supported product behavior. Production task
+mutation and transport/provider execution remain Python-owned. The isolated TS candidate
+has additional execution capabilities; its scoped evidence is not a default-runtime cutover.
 
 The canonical Python task-lifecycle parity matrix now executes create, tell, ask_parent,
 resume, cancel, recovery, workspace, and artifact ownership paths and records normalized,
@@ -155,6 +202,47 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
+2026-09-30: follow [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md).
+Record and reuse the demonstrated CLI handoff/wait/review workflow; next select a single
+Feishu task/reply path using verified upstream capabilities and useful existing CM behavior.
+Do not resume Orca integration or full-TS work as the default queue. Local CLI coordination
+and Feishu connector compatibility evidence are documented; production migration remains open.
+
+### Historical Orca priority (2026-09-26; superseded)
+
+The dated scope below is retained for continuity and does not authorize a new dispatch:
+
+2026-09-26: [Orca bridge candidate status](docs/orca-bridge-status.md) (historical; superseded)
+with native orchestration reuse. The pinned source has persisted dependencies and readiness
+promotion; its legacy automatic coordinator commands are retired. The read-only native
+task/dependency projection is implemented in CLI/TUI, without a new scheduler or core extraction.
+Formal question/acceptance interaction is now wired through the existing narrow controller
+interfaces. Close the remaining real acceptance/recovery and restricted Feishu cases; do not
+repeat completed implementation or treat the reuse audit as product acceptance.
+CM focuses on CLI/TUI, messaging/group policy and trustworthy delivery; Orca is the selected
+future execution backend. B1 has real single-worker success after an explicitly authorized
+retry; B2 now wires local dispatch, original-request queries and coordinator mailbox recovery.
+Two real CM worker dispatches completed on the isolated server. After repairing native headless
+hook attestation, an explicitly rebound coordinator independently checked both Git commits and
+recorded strict native acceptances; persisted receipts were read back. Full TUI/Feishu integration,
+real rejection/correction and the complete restart matrix remain unaccepted.
+The earlier drill did not authorize further deployment. On 2026-09-26 the user explicitly
+requested remaining implementation and real-server deployment/testing, then allowed existing
+server Codex/Claude and selection of an existing bot. The canary uses greenrise without changing
+its production CM service; preserve data and keep attribution and source enforcement intact.
+
+This supersedes the 2026-09-14 full-TS endpoint as the default queue, not its implementation
+history or safety requirements. Preserve original CM-R/CM-A IDs, unfinished work and evidence.
+The user's current request is to finish this full bridge plan, not stop at a foundation card;
+the latest explicit server-test request supersedes the old offline-only boundary, not identity,
+source-policy or rollback requirements. It does not authorize unrelated fleet work or committing/
+pushing the dirty checkout. SpecMesh and History remain independent projects.
+
+## Historical priorities before the 2026-09-14 split
+
+The following records preserve earlier decisions and evidence; they no longer select the
+next task or override the current Paperclip-based CM plan.
+
 Native OpenCode continuity shipped in v0.42.2: local Viewer discovery, explicit TaskHub
 adoption, model preflight and same-session completion passed real terminal acceptance.
 See `plans/native-session-adoption/`. This does not close A.1 or terminal product readiness.
@@ -193,7 +281,11 @@ acceptance. The following runtime and operational work remains queued:
 - Full documentation catalog → `docs/README.md`
 - TypeScript migration contracts and status → `docs/typescript-migration/`
 - Historical and active work → `plans/`
-- Current active runtime work → `plans/runtime-convergence/`
+- Current plan → [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md)
+- Current status → [Paperclip direction progress](plans/paperclip-based-cm/progress.md)
+- Preserved Orca candidate → [Orca bridge candidate status](docs/orca-bridge-status.md)
+- Historical full-TS queue → [plans/bounded-delivery/](plans/bounded-delivery/task_plan.md)
+- Preserved runtime implementation and evidence → `plans/runtime-convergence/`
 - Terminal product backlog → `plans/terminal-product-v1/`
 - Native continuity delivery (complete) → `plans/native-session-adoption/`
 - Weekly report gaps and queued safety work → `plans/weekly-report-followthrough/`
@@ -208,4 +300,8 @@ Local cron transaction/ownership fixes and an opt-in independent SpecMesh CLI ad
 
 ## Approved next direction
 
-The primary coordinating Agent personally owns cross-project delivery. Full TypeScript runtime migration, multi-device coordination and real Agent continuation are explicitly authorized and in progress in the original local workspace, with direct main pushes after verification. Repository-owned details and current status: [runtime-convergence](plans/runtime-convergence/task_plan.md). The private transactional TS kernel is under implementation; current released behavior retains its existing authority until cutover gates pass.
+CM becomes a Paperclip-based improvement tailored to the user's workflow. Native upstream
+execution/wakeups, real provider CLIs, SpecMesh handoff and coordinator judgment are the
+baseline. Retain useful messaging and delivery capabilities based on evidence. This is a
+confirmed direction with one accepted local orchestration experiment, not a completed CM
+replacement or blanket Feishu/production acceptance. See the current plan before extending it.

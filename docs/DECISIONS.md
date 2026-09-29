@@ -1,5 +1,86 @@
 # Decisions
 
+## 2026-09-30 — Build the next CM on Paperclip
+
+Decision: The user selected CM as a Paperclip-based improved product after the real local
+CLI experiment. Reuse native tasks/dependencies/dispatch/event wakeups, keep provider CLIs,
+SpecMesh handoff and independent Codex judgment, and retain useful Feishu/group/delivery value.
+Why: One coordinating run dispatched AGY/ZCode/CBC then ended; 589.998 seconds later the
+completed handoffs triggered review. AGY/CBC were accepted; ZCode was rejected even after a
+bounded correction. This proves a useful coordination path, not universal product acceptance.
+Supersedes: Orca as the default future backend (2026-09-22/24), not its code, canary history,
+source-policy requirements or existing production ownership. Full-TS construction stays historical.
+Boundary: Current wrappers are task-specific. No new fork, production cutover, Feishu binding,
+deployment, deletion, commit or push follows from this record. Exact fork/adapter/upstream-patch
+layout remains to be chosen from real integration needs; avoid a second generic execution core.
+Revisit when: A concrete task proves a required identity, delivery, recovery or cost constraint
+cannot be satisfied by the selected upstream path. Keep failures and bounded stop decisions.
+Current plan and evidence: [Paperclip-based CM](../plans/paperclip-based-cm/task_plan.md),
+[findings](../plans/paperclip-based-cm/findings.md).
+
+## 2026-09-24 — Reuse native task dependencies, not another graph engine
+
+Decision: Use pinned Orca Task/deps/Dispatch and supported CLI/local RPC; keep CM to
+interaction, source policy, narrow adaptation and delivery. SpecMesh does not execute graphs.
+Why: The user explicitly rejected rebuilding wheels. Source already persists same-Run deps,
+promotes pending tasks when all dependencies complete, and guards dispatch eligibility.
+Boundary: Native completed means execution completion, not independent acceptance. The
+coordinator must explicitly approve acceptance-dependent follow-on work; CM must not invent
+an accepted-dependency scheduler or let a graph view launch tasks.
+Rejected: Copying the retired automatic coordinator loop, a new graph framework/database,
+conflating parent/deps/dispatch, or describing a source audit as deployed integration.
+Implementation and remaining acceptance: see [Orca bridge status](orca-bridge-status.md).
+Revisit when: A supported native contract fails a concrete workflow; record the smallest gap
+before any separately scoped upstream patch. See [Orca bridge status](orca-bridge-status.md).
+
+## 2026-09-22 — Focus CM on CLI/TUI and messaging over headless Orca
+
+Decision: Reuse a pinned headless Orca service through a narrow local adapter. CM owns
+terminal/chat interaction, Feishu group policy, source admission, bindings and delivery;
+Orca owns its workers and task lifecycle. The user accepts Electron/Xvfb behind a CLI/TUI.
+Why: Preserve useful CM features while reducing token/maintenance cost and making the real
+dispatch → wait → independent acceptance → original-thread delivery workflow usable.
+Supersedes: The 2026-09-14 full-TypeScript endpoint and full CM platform build as the default
+investment. Old implementations, evidence and safety invariants remain, not marked complete.
+Rejected: Copying the whole Orca core, dual TaskHub/Orca ownership, dropping Feishu features,
+or calling execution completion acceptance/delivery. Unsupported source restrictions reject.
+Revisit when: A bounded real probe shows the service cannot meet identity, policy, recovery
+or operating-cost needs; stop and review evidence before extracting or replacing its core.
+Execution status: Implementation authorized; B1 single-worker handoff/wait/acceptance succeeded
+on a separately authorized second attempt. Retain both failed and successful evidence.
+B2 exception to CLI-first: pinned 1.4.201 CLI re-discovers before mutations and lacks a target
+pin, so the narrow write path uses the existing authenticated Unix RPC on one connection.
+This is not a general SDK or new lifecycle owner. Full consumer-generation CAS remains unproven.
+No separate safety doctor. The user subsequently authorized an isolated minimal upstream
+contract patch; keep its pinned source, tests and upgrade/rollback instructions separate from
+the installed release. Further model attempts and production cutover need explicit authorization.
+Python remains the existing production owner, no cutover or
+public mutation API approval. See [Orca bridge status](orca-bridge-status.md).
+
+## 2026-09-14 — Independent project delivery with bounded task cards
+
+Historical direction: its full-TS endpoint/priority is superseded by the 2026-09-22 decision
+above; the bounded delivery discipline and original evidence remain useful.
+
+The user replaces the combined Goal execution mode with separate SpecMesh, History and
+CM plans, in that priority order, and excludes Ops for now. CM retains the complete TS
+endpoint; migration, device collaboration and native continuation have separate exit
+gates. The implementation in runtime-convergence is reused, not reset or accepted as a
+whole because of local successes.
+
+One selected card runs through implementation, independent review and at most two repair
+rounds, then records evidence and exits. No automatic next card, recursive model workers
+or quota-probe loop. CBC/AGY remain preferred for routine work when available; unavailable
+or partial-success results do not justify a silent model switch or a completion claim.
+
+The existing primary checkout and direct push authorization remain valid. Isolate work
+only when needed for concurrent ownership or test state. External SpecMesh/History ports
+must not block their independent releases, and an optional Python tool cannot become a
+disguised CM production-core dependency. See [bounded delivery](../plans/bounded-delivery/task_plan.md).
+
+This supersedes earlier task-priority and continuous-execution statements, not the
+recorded runtime invariants, evidence, pending safety gates or final TS requirement.
+
 ## 2026-09-06 — Require terminal interaction acceptance for product readiness
 
 Decision: Treat the current terminal as a basic shell and prioritize Terminal Product v1.

@@ -1,0 +1,29 @@
+{
+  "passed": 12,
+  "cases": [
+    "unconfigured initialization makes no company API call",
+    "configured company starts one listener and scoped completion subscriptions",
+    "quick reply stores deduplication within the selected company",
+    "real host SDK rejects an action invocation from another company",
+    "second-company configuration cannot replace selected identity",
+    "cold restart plus host config replay restores listener",
+    "persisted company-scoped deduplication survives worker restart",
+    "completion event writes final reply state within selected company",
+    "ordinary text reaches SDK session dispatch with host ownership prefix, explicit issue prompt and no-card instructions",
+    "failed dispatch recovery preserves issue and exact source, refuses other messages and already accepted runs",
+    "actual host terminal payload supplies final text; earlier domain event and user source comment cannot consume completion",
+    "host SDK gate enforced; session/model/Feishu transport remain offline fixtures"
+  ],
+  "expectedCrossCompanyDenials": [
+    {
+      "method": "config.get",
+      "message": "Plugin \"fixture-plugin\" is not allowed to perform \"config.get\": requested company \"company-fixture\" but the current invocation is scoped to company \"other-company\""
+    },
+    {
+      "method": "agents.sessions.sendMessage",
+      "message": "fixture dispatch unavailable"
+    }
+  ],
+  "realFeishuCalls": 0,
+  "modelCalls": 0
+}

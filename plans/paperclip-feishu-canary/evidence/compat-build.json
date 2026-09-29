@@ -1,0 +1,19 @@
+{
+  "upstream": "0.3.11-connector-feishu",
+  "version": "0.3.11-connector-feishu.cm-compat.5",
+  "hostSdk": "2026.916.1",
+  "removedFiles": [
+    "dist/manifest.js.map",
+    "dist/worker.js.map",
+    "dist/ui/index.js.map"
+  ],
+  "files": {
+    "CM-COMPAT.md": "6855d458177447e9668227e7bf993b0819ccd94a22249dbddc9780f8300d19e6",
+    "README.md": "0b79ec47a304e3ba2774a40b7beac3d80192dee178926260d06ae709582490ec",
+    "dist/manifest.js": "836a1cd9cd9415ba6b0eff881a6f4ea75a1958d77826817a8af256b98fb3ae75",
+    "dist/ui/index.js": "762c3749acbace331d6098a3a6168f370022181b8fd6a2f1e7eade20945633de",
+    "dist/worker.js": "8fbd9f1faaa39d005adacb7c7ae53278f1ab304841bc642f7e66e641668d3f5b",
+    "migrations/001_feishu_connector.sql": "0116be3a7de8678518413703b4bd4946ec46f147c3647be37ab1bf300c0027f7",
+    "package.json": "0a458440971fdd01a4a9a4ee8b3262b3cd3eb271091fe8197af23a3bb86752d1"
+  }
+}

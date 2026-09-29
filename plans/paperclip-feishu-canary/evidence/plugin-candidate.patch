@@ -1,0 +1,1198 @@
+--- a/CM-COMPAT.md
++++ b/CM-COMPAT.md
+@@ -0,0 +1,73 @@
++# CM compatibility build
++
++Base: `@niubitli/plugin-feishu-connector@0.3.11-connector-feishu` from its npm publisher. Local version: `0.3.11-connector-feishu.cm-compat.5`. Host checked: Paperclip `2026.916.1`, plugin API v1. Manifest key remains `paperclipai.feishu-connector`.
++
++Upstream tarball SHA-256: `dac91409329a4005e12b59c0bf17c357a17fc7c0e7998a093624a1c289850cf3`. The upstream package declares MIT in package.json and includes no separate LICENSE file; its author and license metadata are retained. This is a local compatibility fork, not an upstream release. `private: true` prevents accidental npm publication.
++
++## Scope
++
++- Remove unsupported `issue.attachments.create` from the manifest and bundled capability list. Current host has no matching plugin attachment-create RPC.
++- Remove `feishu.download_attachments` from advertised and registered tools. Its capability is unimplemented and disabled even when config asks to enable it.
++- Incoming attachment metadata remains in source context. Automatic transfer returns an explicit unsupported result without downloading files or uploading to Paperclip. The internal transfer function and bundled createAttachment method also fail closed. No existing attachment content is changed.
++- Preserve text parsing, route selection, message deduplication, source-thread replies, session mapping and message/card tools.
++- Replace only the conflicting built-in sentence that banned project plans and approvals with following project AGENTS.md/SpecMesh and independent coordinator review. For ordinary threads without a sent card, use the compat.4 instructions described below.
++- Remove upstream source maps because they no longer describe the locally modified bundles. The exact source diff is delivered alongside this package as `plugin-candidate.patch`.
++
++## Install and configure
++
++Use `paperclip-local plugin install <absolute-path-to-this-directory> --local --api-base http://127.0.0.1:3100`. Installing this trusted local package starts its worker; its defaults are dryRunCli=true, enableEventSubscriber=false, and no connections/routes.
++
++Then use `paperclip-local plugin config:set paperclipai.feishu-connector -C <company-id> --payload-json '<JSON containing configJson>' --api-base http://127.0.0.1:3100`. The API equivalent is POST `/api/plugins/paperclipai.feishu-connector/config` with `{companyId,configJson}`. Config:test accepts the same body and does not persist.
++
++Start with a selected existing lark-cli profile, a route limited to the selected chat/user, an explicit company/target-agent ID, dryRunCli=true, enableEventSubscriber=false and capabilityDefaultPolicy=conservative. Set larkCliBin to the verified CLI path to avoid silently picking the bundled version. `test-route` with a thread/message reply route uses a quick reply dry run and does not invoke an Agent. The generic `simulate-inbound-message` can create an issue and wake an Agent even while dryRunCli is true.
++
++Only enable the listener on one instance for a given Feishu app. The installed lark-cli 1.0.93 has a single-instance lock; do not bypass it with --force. This compatibility package does not change platform permissions, subscriptions, identities, or existing listener ownership.
++
++## Creation versus reuse
++
++- Existing approved profile: put its name into connections[].profileName. No rebind or secret copy is needed.
++- Existing app without a profile: upstream `bind-profile` takes profileName, appId and appSecretRef (or one-time appSecret). It feeds the secret through stdin to `lark-cli profile add`. It reuses a matching app ID profile if present.
++- New app: upstream `start-guided-bind` takes profileName and brand; it executes `lark-cli config init --new --name ...`. It creates a new app through official interactive approval; it is not an existing-bot picker. `finish-guided-bind` checks the resulting profile.
++- User OAuth is separate and unnecessary for ordinary bot message transport.
++
++## Company-scoped runtime compatibility (compat.2)
++
++The upstream bundle embeds an older SDK that reads global config and does not echo current host invocation scopes. This build uses the installed official `@paperclipai/plugin-sdk@2026.916.1` worker runtime through an exact peer dependency. Install this directory under the Paperclip installation root (for example `local-plugins/`) so its `node_modules/@paperclipai/plugin-sdk` resolves normally. The embedded upstream SDK remains inactive reference code; no host authorization logic is changed.
++
++Setup only registers handlers. The host's existing plugin loader first authorizes configured companies and then replays every persisted config via `configChanged({config,companyId})` after each worker start. The first explicit company binds this worker. A different company's config or route is rejected; the package contains no hardcoded company ID. Config reads, deduplication, entities, secret references and completion subscriptions use that company scope. State formerly described by upstream as instance-local is narrowed to company-local.
++
++Long-lived listeners, deferred card updates and audit persistence run from a module-created AsyncResource so they do not retain an expired short-lived API invocation. Their outgoing company-scoped operations are still checked by the host against the plugin's configured proactive companies. Requests made during actual API invocations retain the official SDK invocation ID, including cross-company denial.
++
++Twelve additional tests launch the actual worker and use the installed SDK's real host capability/scope gate. The subscriber executable is a local inert fixture, not lark-cli. They verify initialization without unscoped calls, selected-company subscriptions, scoped deduplication, cross-company denial, second-company config refusal, cold restart replay restoring the fixture listener, deduplication across restart, completion state writeback, and no unexpected denial/model invocation.
++
++## Verification and remaining boundary
++
++Eleven offline checks exercise installed-host manifest validation, text event/source identity, selected bot/chat routing, thread session continuity, reply arguments, explicit attachment rejection, disabled capability override, actual tool registration, and quick reply/duplicate suppression without model calls. Syntax checks pass. They do not establish live Feishu receipt/reply, authentication, platform scopes, UI behavior, card interaction, or reboot recovery.
++
++Current host webhook dispatch ignores the worker's challenge return and responds with deliveryId/status, so use the single-owner long connection for this rollout. A running worker or CLI dry run is not end-to-end acceptance.
++
++## Strict JSON Schema compatibility (compat.3)
++
++Recursively remove the upstream UI-only `x-order` and `enumNames` annotations from the configuration and tool parameter schema declarations. Defaults, types, enums and required fields are preserved. All exported schemas are compiled by the installed host validateInstanceConfig function (strict Ajv), and invalid enum/required-field values must still be rejected. The host validator and permissions are unchanged.
++
++## Session dispatch and final reply compatibility (compat.4)
++
++The host creates a custom taskKey unchanged, but subsequently requires `plugin:<plugin-key>:session:` ownership on session send/list/close. Both message and card-action session creation now use this required prefix. This fixes the real `Session not found` failure without changing host isolation.
++
++The installed SDK only forwards `sessionId`, `companyId`, `prompt`, and `reason` to sendMessage; upstream `issueId`/`taskId` options are ignored. The prompt includes the exact Paperclip issue UUID for normal checkout/comment/completion operations. This is source context, not native heartbeat issue binding.
++
++The upstream always creates an internal cardSession even with ackOnInbound=false. Prompt selection therefore checks whether an actual active card message ID exists. Ordinary threads permit concise final text and normal Paperclip lifecycle operations, follow AGENTS/SpecMesh and independent coordinator review, and leave the single source-thread reply to the connector. Existing sent-card conversations keep upstream card instructions.
++
++Success replies use the routed Agent's result comment, then the actual host session terminal payload `finalText`/`message`. The installed host's heartbeat-run-status-payload.js derives finalText through buildHeartbeatRunIssueComment; plugin-host-services.js forwards it in both fields. Domain agent.run.finished events contain no finalText, so they cannot consume completion deduplication until an Agent result is available. Human/source/audit comments are not mistaken for an Agent's final response.
++
++For one already-created issue whose dispatch failed, the existing authenticated `simulate-inbound-message` action accepts `params.retryIssueId` alongside the exact original `raw` event and `connectionId`. It requires the bound company, same persisted issue, exact last source message ID, and no accepted lastRunId. It reuses the issue and creates a properly owned Agent session. A concurrent retry, different source, or already accepted run is rejected; normal inbound duplicates remain suppressed. This recovery operation can wake an Agent, so only the deployment owner should invoke it for the confirmed failed source message.
++
++The expanded RPC check exercises ordinary text through issue creation, session ownership and SDK send, a failed-dispatch recovery without a duplicate issue, invalid/second retry rejection, and final reply state from a payload generated by the actual installed host builder. The host SDK gate and payload builder are real; database/heartbeat/Feishu services are inert fixtures. Live model execution and visible Feishu receipt still require separate acceptance.
++
++## Quiet text completion mode (compat.5)
++
++`enableProgressCards` is an explicit boolean with default false in both the manifest and runtime normalization. With it false, automatic live-event progress cards and inbound acknowledgement cards are suppressed, no new hidden cardSession is initialized, the prompt uses ordinary text rules, and terminal fallback sends the exact final text once to the source thread. Inferred labels such as searching/reading/waiting are not user-visible. Failure replies remain visible. A bodyless domain completion event does not send or claim a reply; the actual result-bearing session terminal event supplies it. Successful completion still persists deduplication.
++
++Setting enableProgressCards=true opts into the upstream automated card workflow, including acknowledgements when ackOnInbound=true. Explicit/manual card tools remain present, but their live interaction and callbacks have not been newly accepted by these tests. Existing historical Feishu messages are not edited or deleted by this change.
++
++One additional non-network CLI capture test uses a local executable fixture: three synthetic progress updates produce zero calls; a host-built final payload followed by its duplicate produces exactly one +messages-reply with the unchanged text, original message ID, --reply-in-thread, and no interactive/content argument. The 11 basic and 12 RPC checks also pass. Production single-text receipt is the deployment owner's separate acceptance boundary.
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,7 @@
++# CM 本地兼容版
++
++此目录基于 @niubitli/plugin-feishu-connector 0.3.11-connector-feishu，兼容 Paperclip 2026.916.1。**附件下载/转存已禁用**；上游正文中相关功能和验收项不适用于此构建。安装与差异见 [CM-COMPAT.md](CM-COMPAT.md)。上游 MIT 许可证声明保留于 package.json。
++
+ # Paperclip 飞书连接器
+
+ 这个插件让 Paperclip 智能体可以通过飞书机器人收消息、回消息，并把需求写入飞书多维表格。
+--- a/dist/manifest.js
++++ b/dist/manifest.js
+@@ -1,6 +1,6 @@
+ // src/constants.ts
+ var PLUGIN_ID = "paperclipai.feishu-connector";
+-var PLUGIN_VERSION = "0.3.11-connector-feishu";
++var PLUGIN_VERSION = "0.3.11-connector-feishu.cm-compat.5";
+ var API_ROUTE_KEYS = {
+   simulateInboundMessage: "simulate-inbound-message"
+ };
+@@ -49,6 +49,7 @@
+   eventTypes: REQUIRED_EVENT_TYPES.join(","),
+   eventRequireSignature: false,
+   ackOnInbound: false,
++  enableProgressCards: false,
+   ackMessageTemplate: DEFAULT_ACK_TEMPLATE,
+   completionMessageTemplate: DEFAULT_COMPLETION_TEMPLATE,
+   enableQuickReply: true,
+@@ -72,7 +73,6 @@
+     "issues.create",
+     "issue.comments.read",
+     "issue.comments.create",
+-    "issue.attachments.create",
+     "agents.read",
+     "agents.invoke",
+     "agent.sessions.create",
+@@ -127,16 +127,13 @@
+       capabilityDefaultPolicy: {
+         type: "string",
+         title: "\u98DE\u4E66\u80FD\u529B\u9ED8\u8BA4\u5F00\u653E\u7B56\u7565",
+-        "x-order": 5,
+         description: "\u9ED8\u8BA4\u4F7F\u7528\u201C\u6309\u98DE\u4E66\u5E94\u7528\u6388\u6743\u5F00\u653E\u201D\uFF1A\u63D2\u4EF6\u4E0D\u4F1A\u8BA9\u7528\u6237\u9010\u9879\u786E\u8BA4\u5DF2\u63A5\u5165\u80FD\u529B\uFF0C\u7528\u6237\u53EA\u9700\u8981\u5173\u95ED\u4E0D\u60F3\u7ED9 Agent \u4F7F\u7528\u7684\u80FD\u529B\u3002",
+         enum: ["authorized", "conservative"],
+-        enumNames: ["\u6309\u98DE\u4E66\u5E94\u7528\u6388\u6743\u5F00\u653E", "\u4FDD\u5B88\u6A21\u5F0F\uFF1A\u53EA\u5F00\u542F\u6838\u5FC3\u80FD\u529B"],
+         default: "authorized"
+       },
+       connections: {
+         type: "array",
+         title: "\u7B2C 1 \u6B65\uFF1A\u98DE\u4E66\u673A\u5668\u4EBA\u8D26\u53F7",
+-        "x-order": 10,
+         description: "\u5148\u544A\u8BC9 Paperclip \u7528\u54EA\u4E2A\u98DE\u4E66\u673A\u5668\u4EBA\u6536\u53D1\u6D88\u606F\u3002\u901A\u5E38\u4E00\u4E2A\u673A\u5668\u4EBA\u586B\u4E00\u9879\u3002",
+         items: {
+           type: "object",
+@@ -145,28 +142,24 @@
+             id: {
+               type: "string",
+               title: "\u8FDE\u63A5\u4EE3\u53F7",
+-              "x-order": 10,
+               description: "\u81EA\u5DF1\u8D77\u4E00\u4E2A\u77ED\u540D\u5B57\uFF0C\u540E\u9762\u7684\u63A5\u6536\u89C4\u5219\u4F1A\u5F15\u7528\u5B83\u3002\u5EFA\u8BAE\u7528\u82F1\u6587\u548C\u77ED\u6A2A\u7EBF\uFF0C\u4F8B\u5982 boss-news-bot\u3002",
+               default: "boss-news-bot"
+             },
+             name: {
+               type: "string",
+               title: "\u9875\u9762\u663E\u793A\u540D\u79F0",
+-              "x-order": 20,
+               description: "\u7ED9\u4EBA\u770B\u7684\u540D\u5B57\uFF0C\u4F8B\u5982\u300C\u8001\u677F\u8D44\u8BAF\u673A\u5668\u4EBA\u300D\u3002",
+               default: "\u8001\u677F\u8D44\u8BAF\u673A\u5668\u4EBA"
+             },
+             profileName: {
+               type: "string",
+               title: "lark-cli \u767B\u5F55\u914D\u7F6E\u540D",
+-              "x-order": 30,
+               description: "\u8FD9\u662F\u98DE\u4E66\u5B98\u65B9 lark-cli \u91CC\u5DF2\u7ECF\u767B\u5F55\u597D\u7684 profile \u540D\u3002\u4E0D\u4F1A\u586B\u65F6\u5148\u627E\u5DE5\u7A0B\u5E08\u6267\u884C lark-cli auth login \u521B\u5EFA\u3002",
+               default: "paperclip-news-bot"
+             },
+             botAliases: {
+               type: "array",
+               title: "\u98DE\u4E66 @ \u540D\u79F0/\u522B\u540D",
+-              "x-order": 32,
+               description: "\u5F53\u98DE\u4E66\u6216 lark-cli \u6CA1\u6709\u8FD4\u56DE\u673A\u5668\u4EBA\u663E\u793A\u540D\u65F6\uFF0C\u7528\u8FD9\u91CC\u5224\u65AD\u7528\u6237\u662F\u4E0D\u662F @ \u4E86\u5F53\u524D\u673A\u5668\u4EBA\u3002\u53EF\u586B\u591A\u4E2A\uFF0C\u4F8B\u5982\u300C\u9510\u601D\u300D\u300C\u5C0F\u9510\u300D\u3002",
+               items: { type: "string" },
+               default: []
+@@ -174,13 +167,11 @@
+             appId: {
+               type: "string",
+               title: "\u98DE\u4E66 App ID\uFF08\u53EF\u9009\uFF09",
+-              "x-order": 35,
+               description: "\u53EA\u7528\u4E8E\u9875\u9762\u6838\u5BF9\uFF0C\u4E0D\u4FDD\u5B58 App Secret\u3002App Secret \u7531\u5B98\u65B9 lark-cli profile \u6258\u7BA1\u3002"
+             },
+             enabled: {
+               type: "boolean",
+               title: "\u542F\u7528\u8FD9\u4E2A\u98DE\u4E66\u673A\u5668\u4EBA",
+-              "x-order": 40,
+               default: true
+             }
+           },
+@@ -191,7 +182,6 @@
+       routes: {
+         type: "array",
+         title: "\u7B2C 2 \u6B65\uFF1A\u98DE\u4E66\u6D88\u606F\u4EA4\u7ED9\u54EA\u4E2A\u667A\u80FD\u4F53",
+-        "x-order": 20,
+         description: "\u4E00\u6761\u89C4\u5219\u4EE3\u8868\u4E00\u4E2A\u573A\u666F\uFF1A\u8C01\u5728\u98DE\u4E66\u91CC\u53D1\u6D88\u606F\u3001\u4EA4\u7ED9 Paperclip \u91CC\u7684\u54EA\u4E2A\u667A\u80FD\u4F53\u5904\u7406\u3002",
+         items: {
+           type: "object",
+@@ -200,118 +190,98 @@
+             id: {
+               type: "string",
+               title: "\u89C4\u5219\u4EE3\u53F7",
+-              "x-order": 10,
+               description: "\u81EA\u5DF1\u8D77\u4E00\u4E2A\u77ED\u540D\u5B57\uFF0C\u4F8B\u5982 boss-chat-to-news-agent\u3002",
+               default: "boss-chat-to-news-agent"
+             },
+             connectionId: {
+               type: "string",
+               title: "\u4F7F\u7528\u54EA\u4E2A\u98DE\u4E66\u673A\u5668\u4EBA",
+-              "x-order": 20,
+               description: "\u586B\u5199\u7B2C 1 \u6B65\u91CC\u7684\u300C\u8FDE\u63A5\u4EE3\u53F7\u300D\u3002\u5982\u679C\u53EA\u914D\u7F6E\u4E86\u4E00\u4E2A\u673A\u5668\u4EBA\uFF0C\u4E5F\u5EFA\u8BAE\u586B\u4E0A\uFF0C\u907F\u514D\u4EE5\u540E\u6DF7\u6DC6\u3002",
+               default: "boss-news-bot"
+             },
+             enabled: {
+               type: "boolean",
+               title: "\u542F\u7528\u8FD9\u6761\u89C4\u5219",
+-              "x-order": 30,
+               default: true
+             },
+             matchType: {
+               type: "string",
+               title: "\u76D1\u542C\u65B9\u5F0F",
+-              "x-order": 40,
+               description: "\u6700\u5E38\u7528\u9009\u300C\u6307\u5B9A\u98DE\u4E66\u7FA4/\u4F1A\u8BDD\u300D\u3002\u8001\u677F\u5355\u804A\u673A\u5668\u4EBA\u4E5F\u53EF\u4EE5\u7528\u8FD9\u4E2A\u65B9\u5F0F\uFF0C\u586B\u5BF9\u5E94 chat_id\u3002",
+               enum: ["chat", "user", "keyword", "regex", "default"],
+-              enumNames: ["\u6307\u5B9A\u98DE\u4E66\u7FA4/\u4F1A\u8BDD", "\u6307\u5B9A\u53D1\u6D88\u606F\u7684\u4EBA", "\u6D88\u606F\u5305\u542B\u5173\u952E\u8BCD", "\u9AD8\u7EA7\uFF1A\u6B63\u5219\u5339\u914D", "\u515C\u5E95\uFF1A\u5176\u4ED6\u6D88\u606F\u90FD\u63A5\u6536"],
+               default: "chat"
+             },
+             chatId: {
+               type: "string",
+               title: "\u98DE\u4E66\u7FA4/\u4F1A\u8BDD chat_id",
+-              "x-order": 50,
+               description: "\u76D1\u542C\u65B9\u5F0F\u9009\u300C\u6307\u5B9A\u98DE\u4E66\u7FA4/\u4F1A\u8BDD\u300D\u65F6\u586B\u5199\u3002\u8BBE\u7F6E\u9875\u652F\u6301\u6309\u7FA4\u540D\u641C\u7D22\u540E\u81EA\u52A8\u5E26\u51FA\u3002"
+             },
+             chatName: {
+               type: "string",
+               title: "\u98DE\u4E66\u7FA4/\u4F1A\u8BDD\u540D\u79F0",
+-              "x-order": 55,
+               description: "\u53EA\u7528\u4E8E\u9875\u9762\u663E\u793A\uFF0C\u771F\u6B63\u5339\u914D\u4ECD\u4EE5 chat_id \u4E3A\u51C6\u3002"
+             },
+             userOpenId: {
+               type: "string",
+               title: "\u53D1\u6D88\u606F\u4EBA\u7684 open_id",
+-              "x-order": 60,
+               description: "\u76D1\u542C\u65B9\u5F0F\u9009\u300C\u6307\u5B9A\u53D1\u6D88\u606F\u7684\u4EBA\u300D\u65F6\u586B\u5199\u3002\u8BBE\u7F6E\u9875\u652F\u6301\u6309\u59D3\u540D\u641C\u7D22\u540E\u81EA\u52A8\u5E26\u51FA\u3002"
+             },
+             userName: {
+               type: "string",
+               title: "\u53D1\u6D88\u606F\u4EBA\u59D3\u540D",
+-              "x-order": 65,
+               description: "\u53EA\u7528\u4E8E\u9875\u9762\u663E\u793A\uFF0C\u771F\u6B63\u5339\u914D\u4ECD\u4EE5 open_id \u4E3A\u51C6\u3002"
+             },
+             keyword: {
+               type: "string",
+               title: "\u5173\u952E\u8BCD",
+-              "x-order": 70,
+               description: "\u76D1\u542C\u65B9\u5F0F\u9009\u300C\u6D88\u606F\u5305\u542B\u5173\u952E\u8BCD\u300D\u65F6\u586B\u5199\u3002\u4F8B\u5982\u300C\u8D44\u8BAF\u300D\u300C\u5E2E\u6211\u67E5\u300D\u3002"
+             },
+             regex: {
+               type: "string",
+               title: "\u9AD8\u7EA7\uFF1A\u6B63\u5219\u8868\u8FBE\u5F0F",
+-              "x-order": 80,
+               description: "\u4E00\u822C\u4E0D\u7528\u586B\u3002\u53EA\u6709\u9700\u8981\u590D\u6742\u5339\u914D\u89C4\u5219\u65F6\u7ED9\u5DE5\u7A0B\u5E08\u4F7F\u7528\u3002"
+             },
+             companyRef: {
+               type: "string",
+               title: "Paperclip \u516C\u53F8",
+-              "x-order": 90,
+               description: "\u586B\u516C\u53F8\u540D\u79F0\u6216\u5DE6\u4FA7\u5706\u70B9\u4E0A\u7684\u516C\u53F8\u524D\u7F00\u5373\u53EF\uFF0C\u4F8B\u5982\u300C\u9510\u6377\u7F51\u7EDC\u300D\u6216\u300CCMP\u300D\u3002",
+               default: "CMP"
+             },
+             targetAgentName: {
+               type: "string",
+               title: "\u4EA4\u7ED9\u54EA\u4E2A\u667A\u80FD\u4F53",
+-              "x-order": 100,
+               description: "\u586B\u5DE6\u4FA7\u667A\u80FD\u4F53\u5217\u8868\u91CC\u663E\u793A\u7684\u540D\u5B57\uFF0C\u4F8B\u5982\u300C\u8D44\u8BAF\u6570\u5B57\u4EBA\u300D\u300C\u5218\u603B\u300D\u3002\u63D2\u4EF6\u4F1A\u81EA\u52A8\u627E\u5230\u5BF9\u5E94\u667A\u80FD\u4F53\u3002"
+             },
+             replyMode: {
+               type: "string",
+               title: "\u667A\u80FD\u4F53\u5904\u7406\u540E\u600E\u4E48\u56DE\u590D\u98DE\u4E66",
+-              "x-order": 110,
+               enum: ["none", "message", "thread"],
+-              enumNames: ["\u4E0D\u81EA\u52A8\u56DE\u590D", "\u53D1\u4E00\u6761\u65B0\u6D88\u606F", "\u5728\u539F\u6D88\u606F\u7EBF\u7A0B\u91CC\u56DE\u590D"],
+               default: "thread"
+             },
+             baseSinkId: {
+               type: "string",
+               title: "\u53EF\u9009\uFF1A\u540C\u6B65\u5230\u54EA\u5F20\u591A\u7EF4\u8868\u683C",
+-              "x-order": 120,
+               description: "\u586B\u5199\u7B2C 3 \u6B65\u91CC\u7684\u300C\u591A\u7EF4\u8868\u683C\u89C4\u5219\u4EE3\u53F7\u300D\u3002\u4E0D\u9700\u8981\u5199\u5165\u591A\u7EF4\u8868\u683C\u5C31\u7559\u7A7A\u3002"
+             },
+             priority: {
+               type: "number",
+               title: "\u9AD8\u7EA7\uFF1A\u89C4\u5219\u4F18\u5148\u7EA7",
+-              "x-order": 900,
+               description: "\u591A\u6761\u89C4\u5219\u90FD\u80FD\u5339\u914D\u65F6\uFF0C\u6570\u5B57\u5927\u7684\u5148\u6267\u884C\u3002\u666E\u901A\u7528\u6237\u4FDD\u6301 10 \u5373\u53EF\u3002",
+               default: 10
+             },
+             companyId: {
+               type: "string",
+               title: "\u9AD8\u7EA7\uFF1A\u516C\u53F8 ID",
+-              "x-order": 910,
+               description: "\u666E\u901A\u7528\u6237\u4E0D\u7528\u586B\u3002\u53EA\u6709\u516C\u53F8\u540D\u79F0/\u524D\u7F00\u627E\u4E0D\u5230\u65F6\uFF0C\u624D\u8BA9\u5DE5\u7A0B\u5E08\u590D\u5236\u516C\u53F8 ID\u3002"
+             },
+             projectId: {
+               type: "string",
+               title: "\u9AD8\u7EA7\uFF1A\u9879\u76EE ID",
+-              "x-order": 920,
+               description: "\u9ED8\u8BA4\u4F1A\u521B\u5EFA\u5230\u516C\u53F8\u4EFB\u52A1\u6C60\u3002\u60F3\u56FA\u5B9A\u8FDB\u5165\u67D0\u4E2A\u9879\u76EE\u65F6\u518D\u586B\u9879\u76EE ID\u3002"
+             },
+             targetAgentId: {
+               type: "string",
+               title: "\u9AD8\u7EA7\uFF1A\u667A\u80FD\u4F53 ID",
+-              "x-order": 930,
+               description: "\u666E\u901A\u7528\u6237\u4E0D\u7528\u586B\u3002\u53EA\u6709\u667A\u80FD\u4F53\u540D\u79F0\u627E\u4E0D\u5230\u65F6\uFF0C\u624D\u590D\u5236\u667A\u80FD\u4F53\u9875\u9762 URL \u91CC\u7684 ID\u3002"
+             }
+           },
+@@ -322,7 +292,6 @@
+       baseSinks: {
+         type: "array",
+         title: "\u7B2C 3 \u6B65\uFF08\u53EF\u9009\uFF09\uFF1A\u5199\u5165\u98DE\u4E66\u591A\u7EF4\u8868\u683C",
+-        "x-order": 30,
+         description: "\u5982\u679C\u5E0C\u671B\u628A\u98DE\u4E66\u91CC\u7684\u65B0\u9700\u6C42\u540C\u6B65\u6C89\u6DC0\u5230\u591A\u7EF4\u8868\u683C\uFF0C\u5C31\u5728\u8FD9\u91CC\u6DFB\u52A0\u4E00\u9879\u3002\u4E0D\u9700\u8981\u5C31\u7559\u7A7A\u3002",
+         items: {
+           type: "object",
+@@ -331,54 +300,41 @@
+             id: {
+               type: "string",
+               title: "\u591A\u7EF4\u8868\u683C\u89C4\u5219\u4EE3\u53F7",
+-              "x-order": 10,
+               description: "\u81EA\u5DF1\u8D77\u4E00\u4E2A\u77ED\u540D\u5B57\uFF0C\u63A5\u6536\u89C4\u5219\u91CC\u4F1A\u5F15\u7528\u5B83\u3002\u4F8B\u5982 boss-demand-base\u3002",
+               default: "boss-demand-base"
+             },
+             connectionId: {
+               type: "string",
+               title: "\u4F7F\u7528\u54EA\u4E2A\u98DE\u4E66\u673A\u5668\u4EBA",
+-              "x-order": 20,
+               description: "\u586B\u5199\u7B2C 1 \u6B65\u91CC\u7684\u300C\u8FDE\u63A5\u4EE3\u53F7\u300D\u3002\u7559\u7A7A\u65F6\u9ED8\u8BA4\u4F7F\u7528\u7B2C\u4E00\u4E2A\u673A\u5668\u4EBA\u3002",
+               default: "boss-news-bot"
+             },
+             enabled: {
+               type: "boolean",
+               title: "\u542F\u7528\u5199\u5165\u591A\u7EF4\u8868\u683C",
+-              "x-order": 30,
+               default: true
+             },
+             baseToken: {
+               type: "string",
+               title: "\u591A\u7EF4\u8868\u683C base token",
+-              "x-order": 40,
+               description: "\u98DE\u4E66\u591A\u7EF4\u8868\u683C\u94FE\u63A5\u91CC\u7684 app \u5F00\u5934\u90A3\u6BB5 token\u3002\u4E0D\u4F1A\u627E\u65F6\u628A\u8868\u683C\u94FE\u63A5\u53D1\u7ED9\u5DE5\u7A0B\u5E08\u3002"
+             },
+             tableIdOrName: {
+               type: "string",
+               title: "\u6570\u636E\u8868 ID \u6216\u8868\u540D",
+-              "x-order": 50,
+               description: "\u53EF\u4EE5\u586B\u8868\u540D\uFF0C\u4F8B\u5982\u300C\u9700\u6C42\u6C60\u300D\uFF1B\u66F4\u7A33\u7684\u662F\u586B table_id\u3002"
+             },
+             identity: {
+               type: "string",
+               title: "\u7528\u8C01\u7684\u8EAB\u4EFD\u5199\u8868",
+-              "x-order": 60,
+               enum: ["bot", "user"],
+-              enumNames: ["\u673A\u5668\u4EBA\u8EAB\u4EFD", "\u7528\u6237\u8EAB\u4EFD"],
+               default: "bot"
+             },
+             fieldMap: {
+               type: "object",
+               title: "\u5199\u5165\u54EA\u4E9B\u5B57\u6BB5",
+-              "x-order": 70,
+               description: "\u5DE6\u8FB9\u662F\u98DE\u4E66\u8868\u683C\u5B57\u6BB5\u540D\uFF0C\u53F3\u8FB9\u662F\u8981\u5199\u5165\u7684\u5185\u5BB9\u6A21\u677F\u3002\u9ED8\u8BA4\u5B57\u6BB5\u9002\u5408\u300C\u9700\u6C42\u6C60\u300D\u8868\u3002",
+               properties: {
+-                "\u9700\u6C42\u6807\u9898": { type: "string", title: "\u9700\u6C42\u6807\u9898", "x-order": 10, default: "{{issue_title}}" },
+-                "\u539F\u59CB\u9700\u6C42": { type: "string", title: "\u539F\u59CB\u9700\u6C42", "x-order": 20, default: "{{message.text}}" },
+-                "\u63D0\u51FA\u4EBA": { type: "string", title: "\u63D0\u51FA\u4EBA", "x-order": 30, default: "{{sender.name}}" },
+-                "\u98DE\u4E66\u6D88\u606FID": { type: "string", title: "\u98DE\u4E66\u6D88\u606FID", "x-order": 40, default: "{{message.id}}" },
+-                "Paperclip\u4EFB\u52A1ID": { type: "string", title: "Paperclip\u4EFB\u52A1ID", "x-order": 50, default: "{{issue_id}}" }
+               }
+             }
+           },
+@@ -389,96 +345,88 @@
+       dryRunCli: {
+         type: "boolean",
+         title: "\u6D4B\u8BD5\u6A21\u5F0F\uFF1A\u5148\u4E0D\u771F\u7684\u53D1\u98DE\u4E66\u6D88\u606F",
+-        "x-order": 40,
+         default: DEFAULT_CONFIG.dryRunCli,
+         description: "\u521A\u914D\u7F6E\u65F6\u5EFA\u8BAE\u6253\u5F00\u3002\u786E\u8BA4\u6CA1\u95EE\u9898\u540E\u518D\u5173\u95ED\uFF0C\u5173\u95ED\u540E\u624D\u4F1A\u771F\u7684\u8C03\u7528 lark-cli \u7ED9\u98DE\u4E66\u53D1\u6D88\u606F\u6216\u5199\u8868\u3002"
++      },
++      enableProgressCards: {
++        type: "boolean",
++        title: "自动进度卡片",
++        default: DEFAULT_CONFIG.enableProgressCards,
++        description: "默认关闭：只将一次最终文本回复到原线程。开启后使用上游自动进度卡片及卡片完成回复；受理回执也仅在开启时生效。"
+       },
+       ackOnInbound: {
+         type: "boolean",
+         title: "\u6536\u5230\u9700\u6C42\u540E\u5148\u56DE\u590D\u4E00\u53E5\u300C\u5DF2\u6536\u5230\u300D",
+-        "x-order": 50,
+         default: DEFAULT_CONFIG.ackOnInbound,
+         description: "\u6253\u5F00\u540E\uFF0C\u98DE\u4E66\u6D88\u606F\u8FDB\u6765\u65F6\u4F1A\u5148\u81EA\u52A8\u56DE\u590D\u786E\u8BA4\u3002\u5EFA\u8BAE\u6B63\u5F0F\u4F7F\u7528\u65F6\u6253\u5F00\u3002"
+       },
+       ackMessageTemplate: {
+         type: "string",
+         title: "\u6536\u5230\u9700\u6C42\u65F6\u7684\u786E\u8BA4\u8BDD\u672F",
+-        "x-order": 60,
+         default: DEFAULT_CONFIG.ackMessageTemplate,
+         description: "\u53EF\u4EE5\u4F7F\u7528 {{agent_name}} \u8868\u793A\u667A\u80FD\u4F53\u540D\u79F0\u3002"
+       },
+       enableQuickReply: {
+         type: "boolean",
+         title: "\u6D4B\u8BD5\u53E3\u4EE4\uFF1A\u53EA\u56DE\u590D ok \u65F6\u4E0D\u8DD1\u667A\u80FD\u4F53",
+-        "x-order": 65,
+         default: DEFAULT_CONFIG.enableQuickReply,
+         description: "\u6253\u5F00\u540E\uFF0C\u5728\u98DE\u4E66\u91CC @\u673A\u5668\u4EBA \u53D1\u9001\u300C\u53EA\u56DE\u590D ok\u300D\u4F1A\u76F4\u63A5\u56DE ok\uFF0C\u7528\u6765\u786E\u8BA4\u98DE\u4E66\u6536\u53D1\u94FE\u8DEF\uFF0C\u4E0D\u4F1A\u521B\u5EFA Paperclip \u4EFB\u52A1\u3002"
+       },
+       quickReplyRegex: {
+         type: "string",
+         title: "\u9AD8\u7EA7\uFF1A\u6D4B\u8BD5\u53E3\u4EE4\u5339\u914D\u89C4\u5219",
+-        "x-order": 66,
+         default: DEFAULT_CONFIG.quickReplyRegex,
+         description: "\u666E\u901A\u7528\u6237\u4E0D\u7528\u6539\u3002\u5339\u914D\u5230\u8FD9\u4E2A\u89C4\u5219\u65F6\uFF0C\u4F1A\u76F4\u63A5\u53D1\u9001\u4E0B\u65B9\u7684\u6D4B\u8BD5\u56DE\u590D\u5185\u5BB9\u3002"
+       },
+       quickReplyText: {
+         type: "string",
+         title: "\u6D4B\u8BD5\u56DE\u590D\u5185\u5BB9",
+-        "x-order": 67,
+         default: DEFAULT_CONFIG.quickReplyText,
+         description: "\u6D4B\u8BD5\u53E3\u4EE4\u547D\u4E2D\u540E\uFF0C\u673A\u5668\u4EBA\u76F4\u63A5\u56DE\u590D\u8FD9\u53E5\u8BDD\u3002"
+       },
+       completionMessageTemplate: {
+         type: "string",
+         title: "\u667A\u80FD\u4F53\u5B8C\u6210\u540E\u7684\u56DE\u590D\u8BDD\u672F",
+-        "x-order": 70,
+         default: DEFAULT_CONFIG.completionMessageTemplate,
+         description: "\u9ED8\u8BA4\u4F18\u5148\u4F7F\u7528 Paperclip \u6700\u7EC8\u8BC4\u8BBA\u6B63\u6587\u3002\u81EA\u5B9A\u4E49\u65F6\u53EF\u4F7F\u7528 {{issue_title}}\u3001{{issue_ref}}\u3001{{issue_url}}\u3002"
+       },
+       paperclipBaseUrl: {
+         type: "string",
+         title: "Paperclip \u5185\u90E8\u8BBF\u95EE\u5730\u5740\uFF08\u53EF\u9009\uFF09",
+-        "x-order": 75,
+         default: DEFAULT_CONFIG.paperclipBaseUrl,
+         description: "\u4F8B\u5982 https://paperclip.company.com\u3002\u53EA\u7528\u4E8E\u98DE\u4E66\u91CC\u9644\u5E26\u5185\u90E8\u4EFB\u52A1\u94FE\u63A5\uFF1B\u6CA1\u6709 Paperclip \u8D26\u53F7\u7684\u4EBA\u6253\u4E0D\u5F00\u3002"
+       },
+       enableEventSubscriber: {
+         type: "boolean",
+         title: "\u81EA\u52A8\u76D1\u542C\u98DE\u4E66\u65B0\u6D88\u606F",
+-        "x-order": 80,
+         default: DEFAULT_CONFIG.enableEventSubscriber,
+         description: "\u672C\u5730\u6D4B\u8BD5\u53EF\u4EE5\u6253\u5F00\u3002\u672A\u6765\u90E8\u7F72\u5230\u4E91\u670D\u52A1\u5668\u65F6\uFF0C\u5EFA\u8BAE\u53EA\u5F00\u4E00\u4E2A\u76D1\u542C\u670D\u52A1\uFF0C\u907F\u514D\u540C\u4E00\u6761\u98DE\u4E66\u6D88\u606F\u88AB\u5904\u7406\u591A\u6B21\u3002"
+       },
+       eventTypes: {
+         type: "string",
+         title: "\u9AD8\u7EA7\uFF1A\u76D1\u542C\u7684\u98DE\u4E66\u4E8B\u4EF6\u7C7B\u578B",
+-        "x-order": 90,
+         default: DEFAULT_CONFIG.eventTypes,
+         description: "\u666E\u901A\u7528\u6237\u4E0D\u7528\u6539\u3002\u63D2\u4EF6\u4F1A\u5F3A\u5236\u5305\u542B\u6536\u5230\u6D88\u606F\u4E8B\u4EF6\u548C\u5361\u7247\u6309\u94AE\u56DE\u8C03\u4E8B\u4EF6\uFF0C\u4FDD\u8BC1\u4F1A\u8BDD\u5361\u7247\u6309\u94AE\u53EF\u7528\u3002"
+       },
+       eventVerificationTokenRef: {
+         type: "string",
+         title: "\u4E8B\u4EF6 Verification Token Secret Ref",
+-        "x-order": 92,
+         description: "\u53EF\u9009\u3002\u628A\u98DE\u4E66\u4E8B\u4EF6\u8BA2\u9605\u91CC\u7684 Verification Token \u5B58\u5230 Paperclip Secret/Vault \u540E\uFF0C\u5728\u8FD9\u91CC\u586B\u5199\u5F15\u7528\u540D\u3002\u63D2\u4EF6\u53EA\u4FDD\u5B58\u5F15\u7528\uFF0C\u4E0D\u4FDD\u5B58 token \u660E\u6587\u3002"
+       },
+       eventEncryptKeyRef: {
+         type: "string",
+         title: "\u4E8B\u4EF6 Encrypt Key Secret Ref",
+-        "x-order": 94,
+         description: "\u53EF\u9009\u3002\u628A\u98DE\u4E66\u4E8B\u4EF6\u8BA2\u9605\u91CC\u7684 Encrypt Key \u5B58\u5230 Paperclip Secret/Vault \u540E\uFF0C\u5728\u8FD9\u91CC\u586B\u5199\u5F15\u7528\u540D\u3002\u7528\u4E8E\u89E3\u5BC6\u52A0\u5BC6\u4E8B\u4EF6\uFF0C\u4E5F\u53EF\u7528\u4E8E\u7B7E\u540D\u6821\u9A8C\u3002"
+       },
+       eventRequireSignature: {
+         type: "boolean",
+         title: "\u516C\u7F51\u56DE\u8C03\u5FC5\u987B\u6821\u9A8C\u7B7E\u540D",
+-        "x-order": 96,
+         default: DEFAULT_CONFIG.eventRequireSignature,
+         description: "\u4E91\u7AEF webhook \u5EFA\u8BAE\u5F00\u542F\u3002\u5F00\u542F\u540E\uFF0C\u98DE\u4E66\u56DE\u8C03\u5FC5\u987B\u5E26 x-lark-signature\u3001timestamp \u548C nonce\uFF0C\u5E76\u901A\u8FC7 Encrypt Key \u6821\u9A8C\u3002"
+       },
+       larkCliBin: {
+         type: "string",
+         title: "\u9AD8\u7EA7\uFF1Alark-cli \u547D\u4EE4\u8DEF\u5F84",
+-        "x-order": 100,
+         default: DEFAULT_CONFIG.larkCliBin,
+         description: "\u666E\u901A\u7528\u6237\u4E0D\u7528\u6539\u3002\u4FDD\u6301\u9ED8\u8BA4\u65F6\u63D2\u4EF6\u4F1A\u4F18\u5148\u4F7F\u7528\u5305\u5185\u81EA\u5E26 CLI\uFF1B\u9700\u8981\u5F3A\u5236\u8D70\u670D\u52A1\u5668\u56FA\u5B9A\u8DEF\u5F84\u65F6\u624D\u586B\u5199\u5B8C\u6574\u8DEF\u5F84\u3002"
+       }
+@@ -730,7 +678,6 @@
+             type: "string",
+             title: "\u56DE\u590D\u65B9\u5F0F",
+             enum: ["thread", "message"],
+-            enumNames: ["\u5728\u539F\u6D88\u606F\u7EBF\u7A0B\u91CC\u56DE\u590D", "\u76F4\u63A5\u53D1\u5230\u539F\u98DE\u4E66\u4F1A\u8BDD"],
+             default: "thread"
+           }
+         },
+@@ -757,7 +704,6 @@
+             type: "string",
+             title: "\u56DE\u590D\u65B9\u5F0F",
+             enum: ["thread", "message"],
+-            enumNames: ["\u5728\u539F\u6D88\u606F\u7EBF\u7A0B\u91CC\u56DE\u590D", "\u76F4\u63A5\u53D1\u5230\u539F\u98DE\u4E66\u4F1A\u8BDD"],
+             default: "thread"
+           }
+         },
+@@ -785,21 +731,6 @@
+       }
+     },
+     {
+-      name: TOOL_NAMES.downloadAttachments,
+-      displayName: "\u4E0B\u8F7D\u539F\u98DE\u4E66\u9644\u4EF6",
+-      description: "\u4E0B\u8F7D\u521B\u5EFA\u5F53\u524D Paperclip \u4EFB\u52A1\u7684\u98DE\u4E66\u539F\u6D88\u606F\u9644\u4EF6\uFF0C\u5E76\u6302\u5230 Issue\u3002",
+-      parametersSchema: {
+-        type: "object",
+-        properties: {
+-          issueId: {
+-            type: "string",
+-            title: "Paperclip \u4EFB\u52A1 ID\uFF08\u53EF\u9009\uFF09",
+-            description: "\u4E00\u822C\u4E0D\u7528\u586B\u3002\u53EA\u6709\u5F53\u524D\u8FD0\u884C\u627E\u4E0D\u5230\u98DE\u4E66\u4F1A\u8BDD\u65F6\uFF0C\u624D\u7528\u4EFB\u52A1 ID \u515C\u5E95\u67E5\u627E\u3002"
+-          }
+-        }
+-      }
+-    },
+-    {
+       name: TOOL_NAMES.lookupUser,
+       displayName: "\u67E5\u627E\u98DE\u4E66\u7528\u6237",
+       description: "\u6309\u59D3\u540D\u3001\u5DE5\u53F7\u6216\u5173\u952E\u8BCD\u67E5\u627E\u98DE\u4E66\u8054\u7CFB\u4EBA\uFF0C\u4F9B\u667A\u80FD\u4F53\u5728\u9700\u8981\u786E\u8BA4\u6536\u4EF6\u4EBA\u6216\u63D0\u51FA\u4EBA\u8EAB\u4EFD\u65F6\u4F7F\u7528\u3002",
+@@ -849,7 +780,6 @@
+             type: "string",
+             title: "\u8BBF\u95EE\u8EAB\u4EFD",
+             enum: ["user", "bot"],
+-            enumNames: ["\u7528\u6237\u6388\u6743", "\u673A\u5668\u4EBA\u8EAB\u4EFD"],
+             default: "user"
+           }
+         },
+@@ -939,4 +869,4 @@
+ export {
+   manifest_default as default
+ };
+-//# sourceMappingURL=manifest.js.map
++
+--- a/dist/ui/index.js
++++ b/dist/ui/index.js
+@@ -4050,4 +4050,4 @@
+   FeishuSidebarLink,
+   FeishuSidebarPanel
+ };
+-//# sourceMappingURL=index.js.map
++
+--- a/dist/worker.js
++++ b/dist/worker.js
+@@ -1,3 +1,5 @@
++import { runWorker as runScopedWorker } from "@paperclipai/plugin-sdk";
++import { AsyncResource as CmAsyncResource } from "node:async_hooks";
+ // ../sdk/dist/define-plugin.js
+ function definePlugin(definition) {
+   return Object.freeze({ definition });
+@@ -4414,7 +4416,6 @@
+   "issues.checkout",
+   "issues.wakeup",
+   "issue.comments.create",
+-  "issue.attachments.create",
+   "issue.interactions.create",
+   "issue.documents.write",
+   "projects.managed",
+@@ -8367,18 +8368,8 @@
+         async createComment(issueId, body, companyId, options2) {
+           return callHost("issues.createComment", { issueId, body, companyId, authorAgentId: options2?.authorAgentId });
+         },
+-        async createAttachment(input) {
+-          return callHost("issues.attachments.create", {
+-            issueId: input.issueId,
+-            companyId: input.companyId,
+-            filename: input.filename,
+-            contentType: input.contentType,
+-            bodyBase64: input.bodyBase64,
+-            issueCommentId: input.issueCommentId,
+-            actorAgentId: input.actor?.actorAgentId,
+-            actorUserId: input.actor?.actorUserId,
+-            actorRunId: input.actor?.actorRunId
+-          });
++        async createAttachment() {
++          throw new Error("Attachment creation is unavailable on Paperclip 2026.916.1 (CM compatibility build).");
+         },
+         async createInteraction(issueId, interaction, companyId, options2) {
+           return callHost("issues.createInteraction", {
+@@ -9095,6 +9086,7 @@
+   eventTypes: REQUIRED_EVENT_TYPES.join(","),
+   eventRequireSignature: false,
+   ackOnInbound: false,
++  enableProgressCards: false,
+   ackMessageTemplate: DEFAULT_ACK_TEMPLATE,
+   completionMessageTemplate: DEFAULT_COMPLETION_TEMPLATE,
+   enableQuickReply: true,
+@@ -9132,6 +9124,7 @@
+     eventTypes: normalizeEventTypes(source.eventTypes),
+     eventRequireSignature: source.eventRequireSignature === true,
+     ackOnInbound: source.ackOnInbound === true,
++    enableProgressCards: source.enableProgressCards === true,
+     ackMessageTemplate: typeof source.ackMessageTemplate === "string" ? source.ackMessageTemplate : DEFAULT_CONFIG.ackMessageTemplate,
+     completionMessageTemplate: typeof source.completionMessageTemplate === "string" ? source.completionMessageTemplate : DEFAULT_CONFIG.completionMessageTemplate,
+     enableQuickReply: source.enableQuickReply !== false,
+@@ -9358,9 +9351,9 @@
+     key: "download_attachments",
+     group: "\u6D88\u606F\u4E0E\u7FA4\u804A",
+     title: "\u4E0B\u8F7D\u539F\u6D88\u606F\u9644\u4EF6",
+-    description: "\u4E0B\u8F7D\u98DE\u4E66\u56FE\u7247\u3001\u6587\u4EF6\u3001\u97F3\u9891\u6216\u89C6\u9891\uFF0C\u5E76\u6302\u5230 Paperclip Issue\u3002",
+-    defaultEnabled: true,
+-    implemented: true,
++    description: "当前宿主没有插件附件创建接口；此兼容版不下载或转存飞书附件，原消息信息仍保留。",
++    defaultEnabled: false,
++    implemented: false,
+     toolName: TOOL_NAMES.downloadAttachments,
+     larkCliCommands: ["im +messages-resources-download"],
+     recommendedScopes: ["im:message:readonly", "drive:file:readonly"],
+@@ -10587,8 +10580,8 @@
+   recentRecords.unshift(entry);
+   if (recentRecords.length > 50) recentRecords.length = 50;
+   const ctx = currentContext;
+-  if (ctx) {
+-    void persistRecentRecord(ctx, entry);
++  if (ctx && cmCompanyId) {
++    void cmBackground.runInAsyncScope(() => persistRecentRecord(ctx, entry)).catch((error) => ctx.logger.warn("Feishu audit persistence failed", { error: String(error) }));
+   }
+ }
+ function textPreview(text, maxLength = 120) {
+@@ -11521,7 +11514,7 @@
+   const nextSession = pending.session;
+   if (nextSession.paperclipAgentId) {
+     const agentSessionId = nextSession.paperclipAgentSessionId ?? (await ctx.agents.sessions.create(nextSession.paperclipAgentId, sessionRecord.companyId, {
+-      taskKey: nextSession.sessionKey,
++      taskKey: `plugin:${PLUGIN_ID}:session:${nextSession.sessionKey}`,
+       reason: "feishu_card_action"
+     })).sessionId;
+     const prompt = [
+@@ -11679,8 +11672,47 @@
+   }
+   return config.quickReplyText ?? "ok";
+ }
++let cmCompanyId = null;
++let cmEventsRegistered = false;
++const cmDispatchRetries = new Set();
++// Created outside any short-lived host invocation. Background listeners retain
++// explicit configured-company scope and never reuse an expired invocation id.
++const cmBackground = new CmAsyncResource("cm-feishu-background");
++function cmRequireCompany() {
++  if (!cmCompanyId) throw new Error("Feishu connector requires company-scoped configuration first.");
++  return cmCompanyId;
++}
++function cmScope(input = {}) {
++  const companyId = cmRequireCompany();
++  if (input.scopeKind === "company" && input.scopeId && input.scopeId !== companyId) {
++    throw new Error("Feishu connector refuses cross-company state or entity access.");
++  }
++  return { ...input, scopeKind: "company", scopeId: companyId };
++}
++function cmScopedContext(ctx) {
++  return {
++    ...ctx,
++    state: {
++      get: (input) => ctx.state.get(cmScope(input)),
++      set: (input, value) => ctx.state.set(cmScope(input), value),
++      delete: (input) => ctx.state.delete(cmScope(input))
++    },
++    entities: {
++      list: (input) => ctx.entities.list(cmScope(input)),
++      upsert: (input) => ctx.entities.upsert(cmScope(input))
++    },
++    companies: {
++      list: async () => { const company = await ctx.companies.get(cmRequireCompany()); return company ? [company] : []; },
++      get: (id) => { if (id !== cmRequireCompany()) throw new Error("Cross-company access refused."); return ctx.companies.get(id); }
++    },
++    secrets: {
++      resolve: (ref) => ctx.secrets.resolve(ref, { companyId: cmRequireCompany() })
++    }
++  };
++}
+ async function getConfig(ctx) {
+-  return normalizeConfig(await ctx.config.get());
++  if (!cmCompanyId) return normalizeConfig({});
++  return normalizeConfig(await ctx.config.get(cmCompanyId));
+ }
+ async function listLarkProfiles(config) {
+   const result = await runLarkCli({
+@@ -12536,6 +12568,7 @@
+   return card.activityKind === update.kind && card.activityLabel === update.label;
+ }
+ async function flushLiveCardUpdate(ctx, config, key) {
++  if (config.enableProgressCards !== true) return;
+   const pending = liveCardUpdates.get(key);
+   if (!pending) return;
+   liveCardUpdates.delete(key);
+@@ -12562,6 +12595,7 @@
+   });
+ }
+ function scheduleLiveCardUpdate(ctx, config, session, update) {
++  if (config.enableProgressCards !== true) return;
+   if (!update || shouldSkipLiveCardUpdate(session, update)) return;
+   const key = liveCardUpdateKey(update.companyId, update.sessionKey);
+   const existing = liveCardUpdates.get(key);
+@@ -12573,12 +12607,12 @@
+     LIVE_CARD_UPDATE_DEBOUNCE_MS,
+     elapsed < LIVE_CARD_UPDATE_MIN_INTERVAL_MS ? LIVE_CARD_UPDATE_MIN_INTERVAL_MS - elapsed : 0
+   );
+-  const timer = setTimeout(() => {
++  const timer = cmBackground.runInAsyncScope(() => setTimeout(() => {
+     void flushLiveCardUpdate(ctx, config, key).catch((error) => {
+       ctx.logger.warn("\u98DE\u4E66\u5B9E\u65F6\u72B6\u6001\u5361\u7247\u66F4\u65B0\u5931\u8D25", { sessionKey: update.sessionKey, error: String(error) });
+       record("warning", "\u98DE\u4E66\u5B9E\u65F6\u72B6\u6001\u5361\u7247\u66F4\u65B0\u5931\u8D25", { sessionKey: update.sessionKey, error: String(error) });
+     });
+-  }, delay);
++  }, delay));
+   timer.unref?.();
+   liveCardUpdates.set(key, { timer, latest: update });
+ }
+@@ -12627,90 +12661,15 @@
+   throw new Error("lark-cli \u6CA1\u6709\u751F\u6210\u9644\u4EF6\u6587\u4EF6");
+ }
+ async function attachFeishuResources(ctx, config, connection, message, companyId, issueId, issueCommentId) {
+-  if (message.attachments.length === 0) return [];
+-  const planned = message.attachments.map((attachment, index) => ({
+-    attachment,
+-    filename: safeAttachmentFilename(attachment, index)
++  // Paperclip 2026.916.1 has no plugin attachment-create RPC. Preserve source
++  // metadata without downloading files or pretending they reached the issue.
++  return message.attachments.map((attachment, index) => ({
++    filename: safeAttachmentFilename(attachment, index),
++    resourceKey: attachment.resourceKey,
++    resourceType: attachment.resourceType,
++    unsupported: true,
++    error: "当前 Paperclip 宿主不支持插件创建附件；附件未下载、未转存，请在原飞书消息查看。"
+   }));
+-  if (config.dryRunCli === true) {
+-    const results = planned.map(({ attachment, filename }) => ({
+-      filename,
+-      resourceKey: attachment.resourceKey,
+-      resourceType: attachment.resourceType,
+-      dryRun: true
+-    }));
+-    record("info", "\u98DE\u4E66\u9644\u4EF6\u4E0B\u8F7D\u4E3A\u6A21\u62DF\u6A21\u5F0F\uFF0C\u672A\u771F\u6B63\u4E0A\u4F20\u9644\u4EF6", {
+-      issueId,
+-      attachments: results.map((item) => item.filename)
+-    });
+-    return results;
+-  }
+-  const tempDir = await fs.mkdtemp(path3.join(os2.tmpdir(), "paperclip-feishu-"));
+-  try {
+-    const results = [];
+-    for (const { attachment, filename } of planned) {
+-      try {
+-        const args = buildResourceDownloadArgs({
+-          profileName: connection.profileName,
+-          identity: "bot",
+-          messageId: message.messageId,
+-          fileKey: attachment.resourceKey,
+-          type: attachment.resourceType,
+-          output: filename
+-        });
+-        const download = await runLarkCli({
+-          bin: larkCliBin(config),
+-          args,
+-          timeoutMs: 12e4,
+-          cwd: tempDir
+-        });
+-        if (!download.ok) {
+-          const detail = [download.stderr.trim(), download.stdout.trim()].filter(Boolean).join("\n").slice(0, 1e3);
+-          throw new Error(detail || "lark-cli \u4E0B\u8F7D\u9644\u4EF6\u5931\u8D25");
+-        }
+-        const downloadedPath = await pickDownloadedFile(tempDir, filename);
+-        const body = await fs.readFile(downloadedPath);
+-        const originalFilename = path3.basename(downloadedPath) || filename;
+-        await fs.rm(downloadedPath, { force: true }).catch(() => void 0);
+-        const created = await ctx.issues.createAttachment({
+-          issueId,
+-          companyId,
+-          filename: originalFilename,
+-          contentType: contentTypeForFilename(originalFilename, attachment.resourceType),
+-          bodyBase64: body.toString("base64"),
+-          issueCommentId: issueCommentId ?? null
+-        });
+-        results.push({
+-          filename: originalFilename,
+-          resourceKey: attachment.resourceKey,
+-          resourceType: attachment.resourceType,
+-          attachmentId: created.id,
+-          contentPath: created.contentPath
+-        });
+-        record("info", "\u98DE\u4E66\u9644\u4EF6\u5DF2\u4E0A\u4F20\u5230 Paperclip \u4EFB\u52A1", {
+-          issueId,
+-          filename: originalFilename,
+-          attachmentId: created.id
+-        });
+-      } catch (error) {
+-        const messageText = error instanceof Error ? error.message : String(error);
+-        results.push({
+-          filename,
+-          resourceKey: attachment.resourceKey,
+-          resourceType: attachment.resourceType,
+-          error: messageText
+-        });
+-        record("error", "\u98DE\u4E66\u9644\u4EF6\u4E0A\u4F20\u5931\u8D25", {
+-          issueId,
+-          resourceKey: attachment.resourceKey,
+-          error: messageText
+-        });
+-      }
+-    }
+-    return results;
+-  } finally {
+-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => void 0);
+-  }
+ }
+ function attachmentPromptLines(results) {
+   if (results.length === 0) return [];
+@@ -12718,6 +12677,8 @@
+   for (const result of results) {
+     if (result.attachmentId) {
+       lines.push(`- ${result.filename} \u5DF2\u4F5C\u4E3A Paperclip \u9644\u4EF6\u4E0A\u4F20\uFF08${result.attachmentId}\uFF09`);
++    } else if (result.unsupported) {
++      lines.push(`- ${result.filename}：${result.error}`);
+     } else if (result.dryRun) {
+       lines.push(`- ${result.filename}\uFF1A\u6A21\u62DF\u6A21\u5F0F\uFF0C\u672A\u771F\u6B63\u4E0B\u8F7D\u4E0A\u4F20`);
+     } else {
+@@ -13262,7 +13223,7 @@
+ }
+ async function replyOnAgentSessionTerminal(ctx, config, connection, route, message, session, issueTitle, event) {
+   if ((route.replyMode ?? "thread") === "none") return;
+-  if (event.eventType === "done" && session.activeReplyMessageId && session.lastAgentCardRunId === event.runId) {
++  if (config.enableProgressCards === true && event.eventType === "done" && session.activeReplyMessageId && session.lastAgentCardRunId === event.runId) {
+     const patched = await patchSession(ctx, route.companyId, session, {
+       lastRunId: event.runId,
+       lastRunStatus: event.eventType,
+@@ -13284,6 +13245,15 @@
+     });
+     return;
+   }
++  const issue = await ctx.issues.get(session.paperclipIssueId, route.companyId).catch(() => null);
++  const resolvedIssueTitle = issue?.title ?? session.paperclipIssueTitle ?? issueTitle;
++  const comments = await ctx.issues.listComments(session.paperclipIssueId, route.companyId).catch(() => []);
++  const finalComment = latestFinalComment(comments, session, route);
++  const finalBody = (isAgentAuthoredComment(finalComment, session, route) ? normalizeCommentBody(finalComment.body) : null)
++    ?? normalizeCommentBody(asRecord2(event.payload)?.finalText ?? (event.eventType === "done" ? event.message : null));
++  // Domain completion events do not carry finalText. Do not consume deduplication
++  // before the SDK session terminal event or a real agent result comment arrives.
++  if (event.eventType === "done" && !finalBody) return;
+   const replyKey = event.eventType === "done" ? larkIdempotencyKey("complete", session.paperclipIssueId) : larkIdempotencyKey("terminal", event.runId, event.eventType);
+   if (!await claimTerminalReply(ctx, replyKey, event)) {
+     record("info", "\u5DF2\u8DF3\u8FC7\u91CD\u590D\u7684\u98DE\u4E66\u5B8C\u6210\u56DE\u590D", {
+@@ -13293,16 +13263,11 @@
+     });
+     return;
+   }
+-  const issue = await ctx.issues.get(session.paperclipIssueId, route.companyId).catch(() => null);
+-  const resolvedIssueTitle = issue?.title ?? session.paperclipIssueTitle ?? issueTitle;
+-  const comments = await ctx.issues.listComments(session.paperclipIssueId, route.companyId).catch(() => []);
+-  const finalComment = latestFinalComment(comments, session, route);
+   const issueUrl = session.paperclipIssueUrl ?? buildPaperclipIssueUrl(config, route, issue?.identifier ?? session.paperclipIssueIdentifier ?? null);
+   let cardTitle;
+   let cardSummary;
+   let cardTemplate;
+   if (event.eventType === "done") {
+-    const finalBody = normalizeCommentBody(finalComment?.body ?? null);
+     cardTitle = resolvedIssueTitle;
+     cardTemplate = DEFAULT_COMPLETION_CARD_TEMPLATE;
+     cardSummary = finalBody ? finalBody.length <= 900 ? finalBody : `${finalBody.slice(0, 900)}...` : "\u4EFB\u52A1\u5DF2\u5B8C\u6210\u3002";
+@@ -13315,7 +13280,13 @@
+     cardTemplate = issue?.status === "blocked" ? DEFAULT_BLOCKED_CARD_TEMPLATE : DEFAULT_PROGRESS_CARD_TEMPLATE;
+     cardSummary = issue?.status === "blocked" ? "\u5DF2\u8F6C\u7ED9\u76F8\u5173\u667A\u80FD\u4F53\u5904\u7406\uFF0C\u8BF7\u7A0D\u5019..." : `**\u5F53\u524D\u72B6\u6001**\uFF1A${issueStatusLabel(issue?.status ?? "in_progress")}`;
+   }
+-  const cardResult = await sendOrUpdateSessionCard(
++  const cardResult = config.enableProgressCards !== true ? {
++    session,
++    result: await replyToFeishu(ctx, config, connection, message,
++      event.eventType === "done" ? finalBody : cardSummary, replyKey,
++      (route.replyMode ?? "thread") === "thread",
++      { routeId: route.id, issueId: session.paperclipIssueId, reason: "最终文本回复失败" })
++  } : await sendOrUpdateSessionCard(
+     ctx,
+     config,
+     connection,
+@@ -13337,7 +13308,7 @@
+       namespace: "feishu-run-replies",
+       stateKey: replyKey
+     });
+-  } else {
++  } else if (config.enableProgressCards === true) {
+     await auditFinalCardState(ctx, { companyId: route.companyId, data: cardResult.session }, {
+       status: event.eventType === "done" ? "done" : event.eventType === "error" ? "failed" : void 0,
+       title: resolvedIssueTitle,
+@@ -13368,7 +13339,7 @@
+   });
+ }
+ function scheduleTerminalFallbackReply(ctx, config, connection, route, message, session, issueTitle, event) {
+-  const timer = setTimeout(() => {
++  const timer = cmBackground.runInAsyncScope(() => setTimeout(() => {
+     void replyOnAgentSessionTerminal(
+       ctx,
+       config,
+@@ -13390,7 +13361,7 @@
+         error: String(error)
+       });
+     });
+-  }, RUN_FALLBACK_DELAY_MS);
++  }, RUN_FALLBACK_DELAY_MS));
+   timer.unref?.();
+ }
+ async function handleInboundMessage(ctx, raw, options = {}) {
+@@ -13480,7 +13451,17 @@
+   }
+   const sessionKey = buildSessionKey(message, connection.id);
+   const existingBySessionKey = await findSessionByKey(ctx, sessionKey);
+-  if (sessionAlreadyHandledMessage(existingBySessionKey?.data, message)) {
++  const retryIssueId = options.retryIssueId;
++  const retryingDispatch = typeof retryIssueId === "string" && retryIssueId.length > 0;
++  if (retryingDispatch) {
++    const prior = existingBySessionKey?.data;
++    if (!prior || existingBySessionKey.companyId !== cmCompanyId ||
++        prior.paperclipIssueId !== retryIssueId || prior.lastRunId ||
++        prior.lastMessageId !== message.messageId || !sessionAlreadyHandledMessage(prior, message)) {
++      throw new Error("Retry requires the same persisted source message and issue with no accepted run.");
++    }
++  }
++  if (!retryingDispatch && sessionAlreadyHandledMessage(existingBySessionKey?.data, message)) {
+     await markDeduped(ctx, message, connection.id);
+     record("info", "\u5DF2\u901A\u8FC7\u6301\u4E45\u6D88\u606F\u6620\u5C04\u5FFD\u7565\u91CD\u590D\u7684\u98DE\u4E66\u6D88\u606F", inboundMessageDiagnostics(message, connection, {
+       issueId: existingBySessionKey?.data.paperclipIssueId,
+@@ -13496,7 +13477,7 @@
+     };
+   }
+   const duplicate = await markDeduped(ctx, message, connection.id);
+-  if (duplicate) {
++  if (duplicate && !retryingDispatch) {
+     record("info", "\u5DF2\u5FFD\u7565\u91CD\u590D\u7684\u98DE\u4E66\u6D88\u606F", inboundMessageDiagnostics(message, connection));
+     return { ok: true, duplicate: true, messageId: message.messageId };
+   }
+@@ -13612,7 +13593,7 @@
+     paperclipIssueTitle: existingSession?.paperclipIssueTitle ?? issueTitle,
+     paperclipIssueUrl: paperclipIssueUrl ?? void 0,
+     paperclipAgentId: route.targetAgentId,
+-    paperclipAgentSessionId: existingSession?.paperclipAgentSessionId,
++    paperclipAgentSessionId: retryingDispatch ? void 0 : existingSession?.paperclipAgentSessionId,
+     activeReplyMessageId: existingSession?.activeReplyMessageId,
+     lastAgentCardRunId: void 0,
+     replyMode: route.replyMode ?? "thread",
+@@ -13622,15 +13603,15 @@
+     processedMessageIds: mergeProcessedMessageIds(existingSession, message.messageId),
+     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+   };
+-  session.cardSession = existingSession?.cardSession ?? createInitialCardSession({
++  session.cardSession = config.enableProgressCards === true ? existingSession?.cardSession ?? createInitialCardSession({
+     companyId: route.companyId,
+     route,
+     session,
+     message
+-  });
++  }) : void 0;
+   await upsertSession(ctx, route.companyId, session);
+   let ackResult = null;
+-  if (config.ackOnInbound && (route.replyMode ?? "thread") !== "none") {
++  if (config.enableProgressCards === true && config.ackOnInbound && (route.replyMode ?? "thread") !== "none") {
+     const ackCard = buildAckCard({
+       userMessage: message.text,
+       session: session.cardSession
+@@ -13692,7 +13673,7 @@
+   if (route.targetAgentId) {
+     if (!session.paperclipAgentSessionId) {
+       const agentSession = await ctx.agents.sessions.create(route.targetAgentId, route.companyId, {
+-        taskKey: sessionKey,
++        taskKey: `plugin:${PLUGIN_ID}:session:${sessionKey}`,
+         reason: "feishu_message"
+       });
+       session.paperclipAgentSessionId = agentSession.sessionId;
+@@ -13700,6 +13681,7 @@
+     const prompt = [
+       "\u6536\u5230\u4E00\u6761\u65B0\u7684\u98DE\u4E66\u9700\u6C42\u3002\u8BF7\u5728 Paperclip \u5185\u5904\u7406\u8FD9\u6761\u9700\u6C42\u3002",
+       "",
++      ...(config.enableProgressCards === true && (session.activeReplyMessageId || session.cardSession?.activeCardMessageId) ? [
+       "\u5BF9\u5916\u6C9F\u901A\u89C4\u5219\uFF08\u4E25\u683C\u9075\u5FAA\uFF09\uFF1A",
+       "- \u98DE\u4E66\u6765\u6E90\u4EFB\u52A1\u53EA\u6709\u4E00\u5F20 JSON 2.0 \u4F1A\u8BDD\u5361\u7247\uFF1B\u6240\u6709\u7528\u6237\u53EF\u89C1\u8FDB\u5C55\u3001\u7ED3\u679C\u3001\u9519\u8BEF\u3001\u9009\u62E9\u90FD\u5FC5\u987B\u66F4\u65B0\u8FD9\u5F20\u5361\u7247",
+       "- \u4F60\u4E0D\u9700\u8981\u3001\u4E5F\u4E0D\u5141\u8BB8\u81EA\u5DF1\u62FC\u98DE\u4E66\u5361\u7247 JSON\uFF1B\u53EA\u901A\u8FC7 feishu.update_card / feishu.set_card_waiting / feishu.finish_card \u63D0\u4EA4 title\u3001markdown\u3001status\u3001actions",
+@@ -13708,21 +13690,28 @@
+       "- \u5361\u7247 markdown \u662F\u5F53\u524D\u72B6\u6001\u5FEB\u7167\uFF0C\u4E0D\u8981\u65E0\u9650\u8FFD\u52A0\u5386\u53F2\uFF1B\u5173\u952E\u8FDB\u5C55\u7531\u63D2\u4EF6\u7EF4\u62A4\u4E3A\u5361\u7247\u65F6\u95F4\u7EBF",
+       "- \u9700\u8981\u7528\u6237\u9009\u62E9\u65F6\uFF0C\u5728 actions \u4E2D\u63D0\u4EA4 callback \u6309\u94AE\uFF1B\u6309\u94AE value \u653E\u4E1A\u52A1\u8F7D\u8377\uFF0C\u63D2\u4EF6\u53EA\u8D1F\u8D23\u8F6C\u53D1\u7ED9\u4F60\uFF0C\u4E0D\u7406\u89E3\u4E1A\u52A1\u542B\u4E49",
+       "- \u4E0D\u8981\u8F93\u51FA\u5185\u90E8\u65E5\u5FD7\u3001\u8C03\u8BD5\u4FE1\u606F\u6216\u6267\u884C\u8FC7\u7A0B\u63CF\u8FF0\uFF0C\u53EA\u8F93\u51FA\u7528\u6237\u53EF\u89C1\u7684\u7ED3\u679C",
+-      "- \u4E0D\u8981\u521B\u5EFA\u8BA1\u5212\u6587\u6863\u3001\u5BA1\u6279\u8BF7\u6C42\u6216\u6218\u7565\u6846\u67B6\uFF0C\u76F4\u63A5\u6267\u884C\u4EFB\u52A1\u5E76\u8FD4\u56DE\u7ED3\u679C",
++      "- 遵循当前项目 AGENTS.md 和 SpecMesh 交接约定；多 Agent 任务的交付由主 Agent 独立审批判断，已有授权内直接推进。",
+       "- \u7528\u6237\u8BF4\u300C\u521B\u5EFA\u4EFB\u52A1 / \u6D4B\u8BD5\u4EFB\u52A1 / Paperclip \u4EFB\u52A1\u300D\u65F6\uFF0C\u9ED8\u8BA4\u6307 Paperclip \u4EFB\u52A1\uFF0C\u4E0D\u662F\u98DE\u4E66\u5F85\u529E\u3002",
+       "- \u53EA\u6709\u7528\u6237\u660E\u786E\u8BF4\u300C\u521B\u5EFA\u98DE\u4E66\u5F85\u529E / \u98DE\u4E66\u4EFB\u52A1 / \u98DE\u4E66 ToDo\u300D\u65F6\uFF0C\u624D\u53EF\u4EE5\u521B\u5EFA\u98DE\u4E66\u5F85\u529E\u3002",
+       "- \u9700\u8981\u6C89\u6DC0\u5904\u7406\u7ED3\u679C\u65F6\uFF0C\u8BF7\u5199\u5165\u5F53\u524D Paperclip \u4EFB\u52A1\u8BC4\u8BBA\u6216\u66F4\u65B0\u4EFB\u52A1\u72B6\u6001\u3002",
+       "- \u5728 Paperclip \u4EFB\u52A1\u91CC\u6C47\u62A5\u98DE\u4E66\u6765\u6E90\u65F6\uFF0C\u4F18\u5148\u5199\u7FA4\u540D/\u5165\u53E3\u540D\uFF1B\u4E0D\u8981\u53EA\u5199 oc_ \u6216 om_ \u8FD9\u7C7B\u5185\u90E8 ID\uFF0CID \u53EA\u4F5C\u4E3A\u8FFD\u6EAF\u4FE1\u606F\u9644\u5E26\u3002",
++      ] : [
++        "遵循用户请求、当前项目 AGENTS.md 和 SpecMesh；多 Agent 交付由主 Agent 独立审批。",
++        "在已有授权内直接推进；简单问答直接给简短最终文本，正常 Paperclip checkout、评论和完成任务操作允许。",
++        "连接器会将最终文本或当前 Agent 的结果评论交回原飞书线程；不要另外发送飞书消息或重复回复。",
++        "仅为用户明确要求的工作使用工具，不要为了生成回复而扩展任务。"
++      ]),
+       "",
+       "\u7528\u6237\u539F\u8BDD\uFF1A",
+       message.text,
+       ...attachmentPromptLines(attachedResources),
+       "",
+       `Paperclip \u4EFB\u52A1\uFF1A${issueRef}`,
++      `Paperclip issueId: ${issueId}`,
+       `\u98DE\u4E66\u6765\u6E90\uFF1A${describeFeishuConversationForDisplay(message, route)}`,
+       `\u98DE\u4E66\u5165\u53E3\uFF1A${describeRouteEntry(route)}`,
+       `\u53EF\u7528\u98DE\u4E66\u5DE5\u5177\uFF1A${enabledAgentFacingFeishuToolNames(config, { connectionId: connection.id, routeId: route.id, agentId: route.targetAgentId }).join(", ") || "\u65E0"}`,
+-      "\u98DE\u4E66\u6D88\u606F\uFF1A\u5DF2\u8BB0\u5F55\uFF1B\u5F53\u524D\u4F1A\u8BDD\u5361\u7247\u7531\u63D2\u4EF6\u7EF4\u62A4\uFF0C\u66F4\u65B0\u65F6\u4E0D\u8981\u6307\u5B9A chatId",
++      config.enableProgressCards === true && (session.activeReplyMessageId || session.cardSession?.activeCardMessageId) ? "\u98DE\u4E66\u6D88\u606F\uFF1A\u5DF2\u8BB0\u5F55\uFF1B\u5F53\u524D\u4F1A\u8BDD\u5361\u7247\u7531\u63D2\u4EF6\u7EF4\u62A4\uFF0C\u66F4\u65B0\u65F6\u4E0D\u8981\u6307\u5B9A chatId" : "飞书来源与线程已记录；最终结果由连接器回写原线程。",
+       message.rootMessageId && message.rootMessageId !== message.messageId ? "\u98DE\u4E66\u8BDD\u9898\uFF1A\u5DF2\u8BB0\u5F55" : null
+     ].filter(Boolean).join("\n");
+     let terminalReplyStarted = false;
+@@ -14571,10 +14560,20 @@
+     );
+   });
+   ctx.actions.register(ACTION_KEYS.simulateInboundMessage, async (params) => {
+-    return await handleInboundMessage(ctx, params.raw ?? params, {
+-      connectionId: typeof params.connectionId === "string" ? params.connectionId : void 0,
+-      connectionIds: Array.isArray(params.connectionIds) ? params.connectionIds.filter((value) => typeof value === "string" && value.length > 0) : void 0
+-    });
++    // Operator-only recovery on the existing authenticated action. Normal Feishu
++    // callbacks never supply retryIssueId and retain their duplicate protection.
++    const retryIssueId = typeof params.retryIssueId === "string" ? params.retryIssueId : void 0;
++    if (retryIssueId && cmDispatchRetries.has(retryIssueId)) throw new Error("Dispatch retry already in progress.");
++    if (retryIssueId) cmDispatchRetries.add(retryIssueId);
++    try {
++      return await handleInboundMessage(ctx, params.raw ?? params, {
++        connectionId: typeof params.connectionId === "string" ? params.connectionId : void 0,
++        connectionIds: Array.isArray(params.connectionIds) ? params.connectionIds.filter((value) => typeof value === "string" && value.length > 0) : void 0,
++        retryIssueId
++      });
++    } finally {
++      if (retryIssueId) cmDispatchRetries.delete(retryIssueId);
++    }
+   });
+   ctx.actions.register(ACTION_KEYS.sendMessage, async (params) => {
+     const config = await getConfig(ctx);
+@@ -14697,50 +14696,10 @@
+ async function findSessionForTool(ctx, runId, issueId) {
+   return await findSessionByRunId(ctx, runId) ?? (issueId ? await findSessionByIssueId(ctx, issueId) : null);
+ }
+-async function downloadFeishuAttachmentsFromTool(ctx, runId, payload) {
+-  const issueId = typeof payload.issueId === "string" ? payload.issueId : void 0;
+-  const sessionRecord = await findSessionForTool(ctx, runId, issueId);
+-  if (!sessionRecord) {
+-    return {
+-      error: "\u6CA1\u6709\u627E\u5230\u5F53\u524D\u8FD0\u884C\u5BF9\u5E94\u7684\u98DE\u4E66\u539F\u4F1A\u8BDD\u3002\u53EA\u6709\u4ECE\u98DE\u4E66\u5165\u53E3\u521B\u5EFA\u7684 Paperclip \u4EFB\u52A1\uFF0C\u624D\u80FD\u4E0B\u8F7D\u539F\u6D88\u606F\u9644\u4EF6\u3002"
+-    };
+-  }
+-  const config = await getConfig(ctx);
+-  const connection = resolveConnection(config, sessionRecord.data.connectionId);
+-  if (!connection) return { error: "\u6CA1\u6709\u627E\u5230\u5F53\u524D\u98DE\u4E66\u4F1A\u8BDD\u5BF9\u5E94\u7684\u673A\u5668\u4EBA\u8FDE\u63A5\u3002" };
+-  const disabled = disabledFeishuCapabilityResult(config, "download_attachments", {
+-    connectionId: connection.id,
+-    routeId: sessionRecord.data.routeId,
+-    agentId: sessionRecord.data.paperclipAgentId
+-  });
+-  if (disabled) return disabled;
+-  const message = messageFromSession(sessionRecord.data);
+-  if (message.attachments.length === 0) {
+-    return {
+-      content: "\u539F\u98DE\u4E66\u6D88\u606F\u6CA1\u6709\u53EF\u4E0B\u8F7D\u9644\u4EF6\u3002",
+-      data: { attachments: [] }
+-    };
+-  }
+-  const results = await attachFeishuResources(
+-    ctx,
+-    config,
+-    connection,
+-    message,
+-    sessionRecord.companyId,
+-    sessionRecord.data.paperclipIssueId
+-  );
+-  const failedCount = results.filter((item) => item.error).length;
+-  record(failedCount > 0 ? "warning" : "info", "Agent \u5DE5\u5177\u5DF2\u5904\u7406\u539F\u98DE\u4E66\u9644\u4EF6", {
+-    runId,
+-    issueId: sessionRecord.data.paperclipIssueId,
+-    attachmentCount: results.length,
+-    failedCount
+-  });
+-  return {
+-    content: failedCount > 0 ? `\u5DF2\u5904\u7406 ${results.length} \u4E2A\u98DE\u4E66\u9644\u4EF6\uFF0C\u5176\u4E2D ${failedCount} \u4E2A\u5931\u8D25\u3002` : `\u5DF2\u5904\u7406 ${results.length} \u4E2A\u98DE\u4E66\u9644\u4EF6\u3002`,
+-    data: { attachments: results }
+-  };
+-}
++async function downloadFeishuAttachmentsFromTool() {
++  return { error: "附件转存已禁用：当前 Paperclip 宿主没有插件附件创建接口。" };
++}
++
+ function readStringArray(value) {
+   return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()) : [];
+ }
+@@ -15569,23 +15528,6 @@
+     }
+   );
+   ctx.tools.register(
+-    TOOL_NAMES.downloadAttachments,
+-    {
+-      displayName: "\u4E0B\u8F7D\u539F\u98DE\u4E66\u9644\u4EF6",
+-      description: "\u4E0B\u8F7D\u521B\u5EFA\u5F53\u524D Paperclip \u4EFB\u52A1\u7684\u98DE\u4E66\u539F\u6D88\u606F\u9644\u4EF6\uFF0C\u5E76\u6302\u5230 Issue\u3002",
+-      parametersSchema: {
+-        type: "object",
+-        properties: {
+-          issueId: { type: "string", title: "Paperclip \u4EFB\u52A1 ID\uFF08\u53EF\u9009\uFF09" }
+-        }
+-      }
+-    },
+-    async (params, runCtx) => {
+-      const payload = params;
+-      return await downloadFeishuAttachmentsFromTool(ctx, runCtx.runId, payload);
+-    }
+-  );
+-  ctx.tools.register(
+     TOOL_NAMES.lookupUser,
+     {
+       displayName: "\u67E5\u627E\u98DE\u4E66\u7528\u6237",
+@@ -15859,25 +15801,22 @@
+     });
+     await handleIssueCompletionEvent(ctx, event);
+   };
+-  ctx.events.on("agent.run.finished", onRunDone);
+-  ctx.events.on("agent.run.failed", onRunDone);
+-  ctx.events.on("agent.run.cancelled", onRunDone);
+-  ctx.events.on("issue.updated", onIssueDone);
+-  ctx.events.on("issue.comment.created", onIssueDone);
++  ctx.events.on("agent.run.finished", { companyId: cmRequireCompany() }, onRunDone);
++  ctx.events.on("agent.run.failed", { companyId: cmRequireCompany() }, onRunDone);
++  ctx.events.on("agent.run.cancelled", { companyId: cmRequireCompany() }, onRunDone);
++  ctx.events.on("issue.updated", { companyId: cmRequireCompany() }, onIssueDone);
++  ctx.events.on("issue.comment.created", { companyId: cmRequireCompany() }, onIssueDone);
+ }
+ var plugin = definePlugin({
+-  async setup(ctx) {
++  async setup(rawContext) {
++    const ctx = cmScopedContext(rawContext);
+     currentContext = ctx;
+     installProcessShutdownHandlers();
+-    const config = await getConfig(ctx);
+-    await syncConfigToDatabase(ctx, config);
+     await registerDataHandlers(ctx);
+     await registerActionHandlers(ctx);
+     await registerToolHandlers(ctx);
+-    await registerEventHandlers(ctx);
+-    await startConfiguredSubscribers(ctx, config);
+-    startSubscriberWatchdog(ctx);
+-    record("info", "\u98DE\u4E66\u8FDE\u63A5\u5668\u5DF2\u542F\u52A8", { pluginId: PLUGIN_ID });
++    // The host replays persisted company configs after setup on every restart.
++    // No unscoped config read, listener or event subscription happens here.
+   },
+   async onHealth() {
+     const ctx = currentContext;
+@@ -15909,13 +15848,32 @@
+       }
+     };
+   },
+-  async onConfigChanged(newConfig) {
++  async onConfigChanged(newConfig, context) {
++    const incomingCompanyId = context?.companyId;
++    if (typeof incomingCompanyId !== "string" || !incomingCompanyId.trim()) {
++      throw new Error("Company scope is required to configure the Feishu connector.");
++    }
++    if (cmCompanyId && cmCompanyId !== incomingCompanyId) {
++      throw new Error("This Feishu connector worker is bound to one company; a second company is refused.");
++    }
++    const config = normalizeConfig(newConfig);
++    if ((config.routes ?? []).some((route) => route.companyId && route.companyId !== incomingCompanyId)) {
++      throw new Error("Feishu route targets a company outside the configured scope.");
++    }
++    cmCompanyId = incomingCompanyId;
+     const ctx = currentContext;
+     if (!ctx) return;
+-    const config = normalizeConfig(newConfig);
+     await syncConfigToDatabase(ctx, config);
+-    await startConfiguredSubscribers(ctx, config);
+-    record("info", "\u98DE\u4E66\u8FDE\u63A5\u5668\u914D\u7F6E\u5DF2\u66F4\u65B0", {
++    if (!cmEventsRegistered) {
++      await registerEventHandlers(ctx);
++      cmEventsRegistered = true;
++    }
++    await cmBackground.runInAsyncScope(async () => {
++      await startConfiguredSubscribers(ctx, config);
++      startSubscriberWatchdog(ctx);
++    });
++    record("info", "Feishu connector company configuration applied", {
++      companyId: cmCompanyId,
+       enabledConnections: getEnabledConnections(config).length,
+       subscribers: subscribers.size
+     });
+@@ -16076,8 +16034,8 @@
+   }
+ });
+ var worker_default = plugin;
+-runWorker(plugin, import.meta.url);
++runScopedWorker(plugin, import.meta.url);
+ export {
+   worker_default as default
+ };
+-//# sourceMappingURL=worker.js.map
++
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@niubitli/plugin-feishu-connector",
+-  "version": "0.3.11-connector-feishu",
++  "version": "0.3.11-connector-feishu.cm-compat.5",
+   "description": "Feishu/Lark connector for Paperclip agents powered by official lark-cli",
+   "type": "module",
+   "author": "Paperclip",
+@@ -23,6 +23,11 @@
+   "files": [
+     "dist",
+     "migrations",
+-    "README.md"
+-  ]
++    "README.md",
++    "CM-COMPAT.md"
++  ],
++  "private": true,
++  "peerDependencies": {
++    "@paperclipai/plugin-sdk": "2026.916.1"
++  }
+ }

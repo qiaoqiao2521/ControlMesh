@@ -1,6 +1,18 @@
 # Runtime convergence: full TypeScript migration and multi-device Agent execution
 
-## Status and ownership
+> Historical implementation/evidence only. Superseded as the default direction by
+> [Paperclip-based CM](../paperclip-based-cm/task_plan.md); full TS is no longer
+> the default investment. All execution authorizations/statuses below are dated snapshots.
+
+## Execution handoff — 2026-09-14
+
+The mixed Goal execution is paused/superseded by [bounded-delivery](../bounded-delivery/task_plan.md).
+Retain this plan's CM-R/CM-A IDs, requirements and historical evidence; do not run its old
+next-step queue automatically. CM is currently queued after standalone SpecMesh and
+History. Migration, device collaboration and native continuation are separate tracks;
+Ops is excluded from this batch. The following status is the prior execution snapshot.
+
+## Historical status and ownership
 
 Status: in_progress; full implementation explicitly authorized on 2026-09-11. Owner: CM maintainers/primary coordinating Agent. User authorizes this direction; existing Python ownership remains factual until each migration gate passes. Do not interpret the old read-only-first roadmap as a permanent ban on the approved runtime port.
 

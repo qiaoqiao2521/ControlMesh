@@ -1,5 +1,14 @@
 # Delegated execution — 2026-09-13
 
+> Historical worker records, not a current dispatch instruction.
+> Superseded as the default direction by [Paperclip-based CM](../../paperclip-based-cm/task_plan.md).
+> No old handle, full-TS objective or past push permission is reactivated by this file.
+
+2026-09-14 execution handoff: the parent mixed run is paused. The historical worker
+records and native IDs below remain evidence, not dispatch instructions. Current
+selection is [bounded-delivery](../../bounded-delivery/task_plan.md); no worker resume,
+new Goal, periodic model wake-up or next-card dispatch is authorized by this file alone.
+
 User instruction: conserve primary Codex tokens. Use installed terminal cbc and agy for
 verification and simple implementation; primary owns dispatch, integration and acceptance.
 Full objective remains TS runtime migration, multi-device coordination and real native

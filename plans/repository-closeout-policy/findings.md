@@ -44,7 +44,7 @@
    - 依据 AGY 内置 Customization Rules 指南，全局配置根位于 `~/.gemini/config/`，支持 `rules/*.md` 及 `AGENTS.md`。此前 `~/.gemini/config/rules/` 不存在。
    - 本次创建软链接：`/home/muqiao/.gemini/config/rules/AGENTS.md -> /home/muqiao/.agents/AGENTS.md`。
    - SHA256 与共享源文件严格一致（`fb1d564d8380a9fa66abf59a121e7f5b63dd336068f26fab0880058f6f6a9166`），无文本重复复制，保持全局唯一权威正文。
-   - 遵照用户要求，不主动在此会话内使用当前模型开子会话伪装外部加载，交由根 Codex 在轻量新 AGY 会话中进行独立端到端读取验证。
+   - **独立加载核验结果**：根 Codex 另起新 AGY 会话（会话 ID `d0475daf-fb7c-4309-9e9d-50071709f256`，记录于 `autoload.json`）完成端到端独立核查：新进程自动成功加载 `/home/muqiao/.gemini/config/rules/AGENTS.md`（§ 仓库收尾与交付约定），读取耗时 6.42 秒，状态 SUCCESS。CM 首次状态回写 422 系 agent-authored in_review 缺少有效 review 路径引起，非 AGY 执行或规则加载失败。
 
 ## 3. GitHub 身份与目标仓库核验
 
@@ -62,7 +62,7 @@ env -u GH_TOKEN -u GITHUB_TOKEN \
 - **仓库归属**: `owner.login = qiaoqiao2521`, `visibility = PUBLIC`, `isFork = false`
 - **提交作者**: 使用明确配置 `qiaoqiao2521 <238822818+qiaoqiao2521@users.noreply.github.com>`，不产生未授权账户变更。
 
-## 4. ControlMesh 仓库积累修改分类盘点
+## 4. ControlMesh 仓库积累修改分类盘点与纠正
 
 基线状态记录：
 - **基线 HEAD**: `dae4d6cc93fdb0fa5723cd718a5936bbfbbd1626`
@@ -70,36 +70,39 @@ env -u GH_TOKEN -u GITHUB_TOKEN \
 
 逐项审查与分类：
 
-### 分类 A：有效并本次交付 (Effective & Delivered)
-- `plans/repository-closeout-policy/`:
-  - `task_plan.md`、`findings.md`、`progress.md`
-  - 范围：全局收尾约定落地、补丁记录、各 CLI 指针验证、全仓累积变动分类盘点及交接。
-  - 验证：文档完整、精确 patch 校验、指针软链可解析。
+### 分类 A：成熟文档与有效成果交付 (Delivered Documents & Specifications)
+1. `plans/repository-closeout-policy/`:
+   - `task_plan.md`、`findings.md`、`progress.md`
+   - 全局收尾约定落地、补丁记录、各 CLI 指针验证、全仓累积变动分类盘点及交接。
+2. `plans/paperclip-based-cm/`:
+   - `task_plan.md`、`findings.md`、`progress.md`
+   - 2026-09-30 确认 CM 后续基于 Paperclip 改进的方向决议，以及真实的 CLI 协调（AGY/CBC/ZCode 派发、事件唤醒与审批）实测数据。
+3. `plans/paperclip-feishu-canary/`:
+   - `task_plan.md`、`findings.md`、`progress.md` 及 `evidence/`（`CM-COMPAT.md`、`compat-build.json`、`compat-quiet-test.json`、`compat-rpc-tests.json`、`compat-tests.json`、`plugin-candidate.patch`）。
+   - **审查说明**：已逐项审查公开内容，排除 runtime 日志、本地会话状态与凭据；补丁为可发布源代码，JSON 为测试与构建摘要。
+   - **状态纠正**：实验已明确结束，活动运行数为 0，候选服务已 stop + disable，旧 CM 一直正常运行。后续接管所需的公网 HTTPS 反代、CLI 权限与 12 项 cron 迁移属于未来生产接管的前提条件，不构成已完成的本地飞书兼容改造与服务器资源测量实验报告入库的阻碍。只读证据充足，无须重开服务器实验。
+4. `plans/bounded-delivery/`:
+   - `task_plan.md`、`findings.md`、`progress.md`
+   - 2026-09-14 历史单卡分批交付计划与出口设计，完整成熟文档。
+5. **已审阅的追踪文档与计划更新**：
+   - `PROJECT.md`（修正 Current Priority 过时的不提交描述，链接更新）、`AGENTS.md`（明确本地飞书文本闭环通过、生产迁移未通过）、`docs/ARCHITECTURE.md`（修正架构开头与 Orca 为历史候选）、`docs/DECISIONS.md`（链接修正）、`docs/orca-bridge-status.md`（确认 Orca 已被 Paperclip 取代）、`plans/README.md`（更新当前工作索引与金丝雀报告）、`plans/runtime-convergence/task_plan.md`、`progress.md`、`delegation/README.md`、`plans/terminal-product-v1/task_plan.md`。
+   - 所有文档链接已定向至已发布文档或本地代码路径，避免依赖未发布计划；`git diff --check` 全部通过。
 
-### 分类 B：仍在进行中的工作 (In Progress / Active Canary)
-- `plans/paperclip-feishu-canary/`:
-  - 包含 `task_plan.md`、`findings.md`、`progress.md` 及 `evidence/`（兼容版补丁与测试 JSON）。
-  - 实际状态：2026-09-30 开展的 Paperclip 飞书连接器兼容改造及 greenrise 服务器替换金丝雀测试。
-  - 保留原因：其自身 `progress.md` 明确记录“尚未接管旧CM入口，原CM保留... 试验结束后候选服务停止并禁用自启... 无提交或推送... 先修正选定服务器CLI的实际非交互工具权限/提供商可用性，再重放一条真实交付”。属于活跃在测的 WIP 阶段，不可武断猜测为废弃，亦未达到独立封板交付条件。
-  - 接续 Owner：根 Codex。
-
-### 分类 C：证据不足 / 待完整审查的旧大块候选项 (Legacy Uncommitted Candidate)
-- **无头 Orca 桥接候选实现与测试**：
+### 分类 B：证据不足 / 待完整审查的旧大块候选项 (Legacy Candidates Retained Locally)
+- **无头 Orca 桥接实现与测试**：
   - 源码：`controlmesh/cli_commands/orca.py`、`controlmesh/orca_bridge/` (15 个 Python 模块)
-  - 追踪修改：`controlmesh/__main__.py`（添加 orca 子命令）、`controlmesh/cli_commands/status.py`（添加帮助提示）
+  - 追踪修改：`controlmesh/__main__.py`、`controlmesh/cli_commands/status.py`
   - 测试：`tests/orca_bridge/` (19 个模块)、`tests/golden/fixtures/orca/` (6 个文件)、`tests/golden/runners/`、`tests/golden/test_orca_*`
   - 脚本与规划：`scripts/orca_*` (5 个探针/启动脚本)、`plans/cm-orca-headless-bridge-v0/` (5 个文档)
-  - 实际验证结果：使用 `./.venv/bin/pytest tests/orca_bridge/ tests/golden/test_orca_*.py` 运行 1084 项测试，结果 **1083 passed, 1 failed**（`tests/orca_bridge/test_journal.py::test_reject_nonprivate_or_nondedicated_directory_without_chmod` 因环境 umask 0077 导致 mkdir 0755 实际权限为 0700 未抛出 ValueError 失败）。全仓 6850 项完整测试未跑。
-  - 架构与决策状态：2026-09-30 用户已确认 CM 后续基于 Paperclip 改进，Orca 已被取代不再是默认未来底座；且已提交的 `docs/orca-bridge-status.md` 明确约定“Detailed candidate implementation and server evidence remain local and are excluded from this documentation-only publication”。
-  - 保留原因：属于典型的“旧大块暂时无法完整审查”内容。保留原貌，不修改、不删除、不强行盲加。
+  - **真实保留阻碍**：
+    1) 2026-09-30 用户已确认 CM 改向 Paperclip，Orca 默认优先级已被取代；
+    2) 已提交的 `docs/orca-bridge-status.md` 明确约定 detailed candidate implementation 本地保留不发布；
+    3) 测试集中 1 项失败（`test_reject_nonprivate_or_nondedicated_directory_without_chmod`）系因执行环境 umask 0077 导致 fixture 创建目录实际为 0700，属测试 fixture 受环境影响而非产品故障；本次遵照指示不修 Orca、不跑 6850 全套。
+  - 处理方式：完整保留原貌，不修改、不删除、不入库。
   - 接续 Owner：根 Codex。
   - 最短验收入口：`./.venv/bin/pytest tests/orca_bridge/ tests/golden/test_orca_*.py`。
 
-### 分类 D：历史方向记录与任务存档 (Historical Records & Planning)
-- `plans/paperclip-based-cm/`: 2026-09-30 记录用户确认 CM 基于 Paperclip 改进的决议与 CLI 派发实测数据。
-- `plans/bounded-delivery/`: 2026-09-14 历史 TS 分批交付卡片。
-- `plans/runtime-convergence/delegation/`: 2026-09-13 历史 AGY cron 规范派发记录（4 个 md 文件）。
-- 追踪文档修改：`AGENTS.md`、`PROJECT.md`、`docs/ARCHITECTURE.md`、`docs/DECISIONS.md`、`plans/README.md`、`plans/runtime-convergence/...`、`plans/terminal-product-v1/...`。
-  - 经 `git diff --check` 校验全部合规。
-  - 保留原因：这些修改与 `plans/README.md` 中指向的 owner-local 计划目录（如 `paperclip-feishu-canary`、`cm-orca-headless-bridge-v0`）存在链接关联；在相关计划完成收尾与发布边界裁定前，保持工作区一致，避免发布断链。
-  - 接续 Owner：根 Codex。
+### 分类 C：未审查提议保留 (Unreviewed Proposals Retained Locally)
+- `plans/runtime-convergence/delegation/`: `agy-cron-batch-1-result.md`、`agy-result.md`、`agy-review-1.md`、`cron-port-spec.md`。
+- **保留阻碍**：属于未审查/未被主 Agent 最终接受的 cron 移植方案，状态明确为 primary acceptance pending，不能称为已验收，原貌保留在本地工作区。
+- 接续 Owner：根 Codex。
