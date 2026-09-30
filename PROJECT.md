@@ -122,6 +122,8 @@ change runtime ownership, auto-load a vault into workers, or require a knowledge
 
 ## Current State
 
+2026-10-01 用户确认公众号协作与网站已有真实产出，要求复盘迁移摩擦并准备 10 月 2 日批量接续。当前执行入口见[迁移复盘](plans/436-paperclip-feishu/migration-review-20261001.md)：逐机保留身份与有效 cron，先交付一件真实任务，再复制到下一台。本轮仅回写计划，不增加新部署；业务可用与文章 QA、特定消息验收分开记录。
+
 436 的当前入口与限制见 [运行说明](docs/paperclip-436.md) 和 [验收进度](plans/436-paperclip-feishu/progress.md)。
 2026-10-01 已切换默认命令与消费者；首次真实 post 消息暴露空正文问题，修复后待复测。
 以下实验与实现描述保留其原日期，不覆盖这份主机级状态。
@@ -228,9 +230,11 @@ See [canary status](plans/paperclip-feishu-canary/progress.md). Do not repeat th
 local text test or resume Orca/full-TS work as the default queue. Group and recovery
 semantics still need acceptance when selected for a real task.
 
-2026-10-01: finish the [436 real-message retest](plans/436-paperclip-feishu/progress.md)
-after its CLI/listener cutover, then migrate other selected hosts with their own bot and cron
-inventory. The user uses only Feishu on 436; no Telegram HTTPS deployment is required there.
+2026-10-01: prepare the [2026-10-02 batch handoff](plans/436-paperclip-feishu/migration-review-20261001.md),
+starting with one additional host and a real task before copying onward. Preserve each host's
+bot, model configuration and cron inventory. The [436 post-path retest](plans/436-paperclip-feishu/progress.md)
+remains open and resumes when a new user message is available; do not keep invoking models
+while waiting. The user uses only Feishu on 436; no Telegram HTTPS deployment is required there.
 
 ### Historical Orca priority (2026-09-26; superseded)
 

@@ -27,15 +27,16 @@ The operating rule is:
 - review evidence before promotion
 - update canonical state only after adjudication
 
-## Current work (2026-09-30)
+## Current work (2026-10-01)
 
 Current work is selected here; older task files are dated evidence, not competing priorities.
 
 - Selected server (2026-10-01): [436 Paperclip migration](436-paperclip-feishu/task_plan.md), [status](436-paperclip-feishu/progress.md), [commands](../docs/paperclip-436.md) — default CLI/listener switched; post-body repair deployed, real-message retest pending. Telegram stopped with identity/config retained; independent cron preserved.
+- Migration review and next batch: [TraceMesh review / 2026-10-02 handoff](436-paperclip-feishu/migration-review-20261001.md) — real publication/website outcomes, concrete handoff friction, per-host preservation and one real task before copying onward; documentation only this turn.
 
 - Cross-repository closeout: [CLI](../docs/closeout.md), [status](cli-closeout/progress.md) — one CLI, check/sync, no runtime Agent; declared committed-state references only.
 
-- Current plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified. Reusable product integration, group/recovery semantics and production migration remain open.
+- Current plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified; 436 thin integration and default-entry cutover landed. The repaired post path, fleet rollout, group/recovery semantics retain their own acceptance boundaries.
 - Canary report: [Feishu + greenrise](paperclip-feishu-canary/task_plan.md), [status](paperclip-feishu-canary/progress.md) — local existing-bot receipt, Agent execution and delivery verified; default progress noise disabled; 4GB deployment/restart measured. Server takeover stopped and disabled pending HTTPS, CLI permissions, and production cron migration.
 - Repository closeout policy: [Closeout policy](repository-closeout-policy/task_plan.md), [status](repository-closeout-policy/progress.md) — routine commit/push default convention landed across shared specifications.
 - Preserved Orca candidate: [Orca bridge candidate status](../docs/orca-bridge-status.md) — superseded as the default direction on 2026-09-30; implementation and canary evidence retained locally, unfinished acceptance is not marked complete.

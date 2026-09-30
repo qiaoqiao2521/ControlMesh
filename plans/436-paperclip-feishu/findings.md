@@ -1,5 +1,7 @@
 # Findings
 
+- 2026-10-01 TraceMesh 复盘：实际业务产出与迁移摩擦、主机/模型边界和历史缺口见[迁移复盘](migration-review-20261001.md)。重点是同一轮成果的位置/回执、实际远端版本的 QA，以及逐机当前入口；不以问题数下降或临时模型 ping 充当验收。本轮未操作服务器。
+
 - 436 实际为 8GB；运行底座是 agent436 用户的 system `paperclip-436.service`，Paperclip 2026.916.1 / Node 24.21.0。此前 `/opt/paperclip` user-service bootstrap 假设已过时，原脚本本地保留，不作为部署入口。
 - 新 Paperclip 进程虽已运行，检查时公司、Agent 与插件为空；不能把安装成功等同接管。已原地建立独立公司/Agent、注册 compat.5，并复用原 436 飞书身份。
 - `/opt/paperclip` 原目录为 root 0700；没有放宽该目录权限。官方 lark CLI 安装到独立程序目录，agent436 仅取得当前模型所需配置与自身飞书 profile，未复制整套本机凭据。
