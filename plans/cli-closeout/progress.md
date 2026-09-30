@@ -1,7 +1,7 @@
 # Progress
 
 ## Current
-2026-09-30（Asia/Shanghai）：首版实现、本机安装和 CM → CapMesh 同步已通过；提交推送收尾中。
+2026-09-30（Asia/Shanghai）：首版实现、本机安装和 CM → CapMesh 同步已通过，两个仓库成果已提交并推送。
 
 ## Done
 - `cm-closeout check/sync`，独立标准库入口；不导入 CM provider/runtime，不启动 Agent 或后台任务。
@@ -9,6 +9,8 @@
 - 24 项临时 Git 仓库测试通过，包含只读（含 Git index）、幂等、人工/并发变更、路径与来源边界；ruff 通过。`python3 -S` 子进程测试证明禁用第三方包仍可执行。
 - 独立只读审查发现并发写入窗口与 Markdown 标题边界，已添加替换前复核和围栏/一级标题测试。普通编辑器仍需遵循单个收尾者约定，不声称通用文件 CAS。
 - 本机真实 check → sync → check 分别退出 1/0/0；来源 f637709，保留本机通过与生产未接管事实。未复测服务器或机器人。
+- 交付提交：CM `267063b53158bb7e47571f76550807ba7e8a23ce`；CapMesh `cf98a7b692f4e86646b058d07ecd7fb25e88eccc`。普通推送后通过 GitHub refs API 独立回读两仓 main 一致；本记录随后同批文档收尾。
+- 原 CM 64 份、CapMesh 89 份已有变动逐文件 SHA-256 与开始快照相同。CapMesh 整合工作区提交后干净，CM 只保留已记录遗留；没有 force push、清理或部署操作。
 
 ## Local entry
 本机 `~/.local/bin/cm-closeout` 指向本仓标准库文件；配置在 `~/.config/controlmesh/closeout.json`，不含凭据。
