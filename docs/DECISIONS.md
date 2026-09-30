@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-09-30 — Preserve upstream Paperclip; defer direction-review orchestration
+
+Decision: Reuse or clone Paperclip without changing its upstream source. At most add a thin
+CM-owned orchestration layer over supported interfaces. The user asked to record the real
+pre-execution direction-review need, and explicitly accepts leaving it unimplemented if the
+integration cannot stay small and clear.
+Reason: In the user's quoted 436 deployment recap, an Agent repaired the old Python CM entry
+despite the selected Paperclip + compatible Feishu plugin direction. Local success did not
+establish progress toward that direction. This is a reported incident, not a new server audit.
+Candidate: carry selected direction/evidence/remaining work/preserved assets into a short
+proposal; the coordinating Agent reviews its exact revision, then releases implementation
+through native tasks/events. Waiting does not continuously invoke the coordinator.
+Supersedes: the earlier open choice of a maintained Paperclip fork/upstream-source patch for
+CM-specific behavior. Existing Feishu community-plugin compatibility work remains historical
+and separate; this decision does not remove or expand it.
+Boundary: record only, no clone, runtime change, deployment or mandatory new phase now.
+This is runtime orchestration, separate from `cm-closeout check/sync`. Do not build another
+scheduler or treat planning prompts as filesystem enforcement. See the
+[recorded requirement](../plans/paperclip-based-cm/task_plan.md#执行前方向核对已记录待选用).
+
 ## 2026-09-30 — Build the next CM on Paperclip
 
 Decision: The user selected CM as a Paperclip-based improved product after the real local

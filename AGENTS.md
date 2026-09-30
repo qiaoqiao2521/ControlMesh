@@ -59,6 +59,9 @@ discoveries in task findings; promote only durable knowledge into project docume
   dispatch/idle/event-wake/review path and local Feishu text closed-loop are verified; production migration is not.
   Reuse upstream lifecycle ownership; do not add a parallel scheduler or migrate tasks from
   a plan alone. Existing JSON Schema contracts and private-runtime boundaries remain.
+  Keep Paperclip upstream source unmodified; CM-specific behavior belongs in a thin external
+  orchestration layer using supported interfaces. The pre-execution direction review in the
+  current plan is a recorded need, not an implementation queue or a closeout-CLI feature.
 - Do not expose absolute artifact paths or weaken authentication/path containment.
 - Do not commit secrets, credentials, `.env` files, auth profiles, caches, virtual
   environments, runtime logs, dependency directories, or local agent session state.

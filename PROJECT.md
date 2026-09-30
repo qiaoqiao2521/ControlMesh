@@ -56,7 +56,9 @@ The important user outcomes are:
 - Do not resume full CM platform construction or full TypeScript migration as the default
   investment. Preserve the existing candidate and evidence without treating them as delivered.
 - Do not rebuild a parallel execution core or generic protocol SDK around Paperclip.
-  Choose upstream fixes, adapters or a maintained fork only for demonstrated requirements.
+  Reuse or clone Paperclip with its upstream source unmodified. Keep CM-specific behavior in
+  a thin external orchestration layer over supported interfaces; decline an addition if it
+  requires invasive changes or a second scheduler. This supersedes the earlier fork option.
 - Do not remove existing Feishu integrations, group policy, other transports or old task data
   to make the new scope appear complete. Each selected path needs its own acceptance.
 - Do not replace official provider CLIs with a proprietary model runtime.
@@ -308,3 +310,7 @@ execution/wakeups, real provider CLIs, SpecMesh handoff and coordinator judgment
 baseline. Retain useful messaging and delivery capabilities based on evidence. This is a
 confirmed direction with one accepted local orchestration experiment, not a completed CM
 replacement or blanket Feishu/production acceptance. See the current plan before extending it.
+
+2026-09-30 clarification: preserve upstream Paperclip source; only consider thin external
+orchestration. Pre-execution direction review is a real recorded need, currently deferred;
+see [scope and acceptance](plans/paperclip-based-cm/task_plan.md#执行前方向核对已记录待选用).

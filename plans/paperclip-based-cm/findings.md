@@ -1,5 +1,14 @@
 # Findings
 
+## 2026-09-30 执行前方向核对调研
+
+- 用户提供 436 跑偏复盘：修复旧 Python CM 与 `/status`，没有推进已选 Paperclip 接管；作为需求案例记录，未据此复测服务器、模型登录或定时任务。
+- 本机安装的 Paperclip 2026.916.1 有指定 Agent 审查、批准/退回、计划版本确认和事件唤醒零件。直接调用 `@paperclipai/server/dist/services/issue-execution-policy.js` 的纯状态转换，转交审查、自批拒绝、指定审查者批准、退回修改四项通过；未调用数据库或真实 Agent。
+- 原生审查阶段从 `done/in_review` 请求进入，不自动等于写入前关卡；`services/issues.js` 的 accepted-plan decomposition 校验指定计划版本存在已接受确认，但不据此断言任意 CLI 的写权限已受控。
+- 已验收实验的 owner-local `work/paperclip-wechat-20260930/bridge.py` 直接放行子任务，独立审批在结果交付之后。飞书兼容插件 `dist/worker.js` 将消息交给目标 Agent 并提示遵循 SpecMesh，尚未接入此执行前审查。
+- 旧 Python CM 的 ask_parent 是异步交接；host-job 有显式步骤批准关卡，但不是这条新方案的通用方向核对。保留可复用语义，不回到旧入口继续建设。
+- 按最新用户边界，仅记录薄外部编排候选，不改 Paperclip 源码。采用既有经验：运行完成、状态审批、实际行为验收分开（Obsidian `Wiki/自动化开发范式与智能体协作.md`）；项目方向与状态保留在本计划，不建立第二份运行时事实库。
+
 > 以下是初始 CLI 试验和飞书只读调研的历史记录；后续本机飞书文本闭环已通过，服务器候选试验结束后停驻，见[最新状态](../paperclip-feishu-canary/progress.md)。历史“未安装/未验收”不代表当前状态。
 
 ## 2026-09-30 CLI 实测

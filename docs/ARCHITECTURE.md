@@ -8,6 +8,10 @@ CLI dispatch/idle/event-wake/review and local Feishu text closed-loop are verifi
 Production migration remains open. Preserved Python and historical Orca candidate sections
 must not be read as a Paperclip migration claim.
 
+Selected boundary: upstream Paperclip source stays unmodified. CM may supply a thin external
+orchestration layer through supported interfaces. Pre-execution direction review is recorded
+in the current plan but is not implemented or part of the repository closeout CLI.
+
 ControlMesh is a Python-owned local task runtime. Terminal and messaging entry points feed
 an orchestrator and persistent TaskHub, which execute official provider CLIs and store
 runtime state, memory, workspaces, events, and artifacts. A versioned read-only API exposes
