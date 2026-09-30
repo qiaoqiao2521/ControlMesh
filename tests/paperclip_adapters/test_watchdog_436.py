@@ -102,6 +102,194 @@ class WatchdogChecks(unittest.TestCase):
             state = json.loads((self.w.STATE / "artifact_output.json").read_text())
             self.assertEqual(state["last_alert_date"], "2026-10-01")
 
+    def native_setup(self, enabled=False, variables=None):
+        context = self.home / ".paperclip/context.json"
+        context.parent.mkdir(parents=True, exist_ok=True)
+        context.write_text(json.dumps({"profiles": {"cm-other": {
+            "companyId": "offline-company", "apiBase": "http://127.0.0.1:3100"}}}))
+        clock = {"bin": "/offline/paperclip", "context": str(context), "profile": "cm-other",
+                 "company_id": "offline-company", "expected_job_ids": ["job"],
+                 "activated_at": "2026-10-01T09:00:00+00:00"}
+        self.w.NOTIFICATION_CONFIG.write_text(json.dumps({"native_clock": clock}))
+        self.w.REGISTRY.write_text(json.dumps({"jobs": [{"id": "job", "enabled": True,
+            "schedule": "0 */1 * * *", "last_run_at": "2026-09-01T00:00:00+00:00",
+            "last_run_status": "error"}]}))
+        routine = {"id": "routine-id", "companyId": "offline-company", "status": "active",
+                   "title": "job", "variables": variables if variables is not None else [
+                       {"name": "cmJobId", "defaultValue": "job"}],
+                   "triggers": [{"id": "trigger-id", "kind": "schedule", "enabled": enabled}]}
+        return clock, routine
+
+    def test_other_host_requires_and_uses_explicit_lark_route(self):
+        self.native_setup()
+        config = json.loads(self.w.NOTIFICATION_CONFIG.read_text())
+        config["chat_id"] = "oc_other_host"
+        self.w.NOTIFICATION_CONFIG.write_text(json.dumps(config))
+        with patch.object(self.w.subprocess, "run") as cli:
+            self.assertFalse(self.w.notify_alert("offline", "job"))
+            cli.assert_not_called()
+        config["lark"] = {"user": "root", "home": "/root", "path": "/offline/bin:/usr/bin",
+                          "cli": "/offline/lark-cli", "profile": "cm-other"}
+        self.w.NOTIFICATION_CONFIG.write_text(json.dumps(config))
+        with patch.object(self.w.subprocess, "run", return_value=types.SimpleNamespace(
+                returncode=0, stdout='{"data":{"message_id":"om_other"}}')) as cli:
+            self.assertTrue(self.w.notify_alert("offline", "job"))
+            argv = cli.call_args.args[0]
+            self.assertEqual(argv[argv.index("-u") + 1], "root")
+            self.assertIn("HOME=/root", argv)
+            self.assertIn("PATH=/offline/bin:/usr/bin", argv)
+            self.assertIn("/offline/lark-cli", argv)
+            self.assertEqual(argv[argv.index("--profile") + 1], "cm-other")
+            self.assertNotIn("agent436", argv)
+
+    def test_native_paused_skips_old_failures_but_checks_artifacts(self):
+        _, routine = self.native_setup()
+        self.w.save_state("job", {"enabled_since": "2026-09-01T00:00:00+00:00",
+                                  "consecutive_failures": 9})
+        before = self.w.REGISTRY.read_bytes()
+        self.w.ARTIFACTS.write_text(json.dumps({"independent": {"path": str(self.home / "missing")}}))
+        with patch.object(self.w, "native_cli", return_value=[routine]) as snapshot, \
+                patch.object(self.w, "judge_job") as judge, \
+                patch.object(self.w, "notify_alert", return_value=False) as notify, \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.w.run_once(False)
+        snapshot.assert_called_once()
+        judge.assert_not_called()
+        notify.assert_called_once()
+        self.assertIn("0 active, 1 paused", output.getvalue())
+        self.assertIn("[artifact]", output.getvalue())
+        self.assertEqual(self.w.REGISTRY.read_bytes(), before)
+        state = json.loads((self.w.STATE / "job.json").read_text())
+        self.assertEqual(state["consecutive_failures"], 9)
+        self.assertEqual(state["enabled_since"], "2026-09-01T00:00:00+00:00")
+        self.assertEqual(state["native_paused_at"], FIXED.isoformat())
+
+    def test_native_unknown_never_falls_back_or_reports_clean(self):
+        _, routine = self.native_setup(variables=[])
+        for payload in [ValueError("offline API error"), [routine]]:
+            with self.subTest(payload=type(payload).__name__):
+                effect = {"side_effect": payload} if isinstance(payload, Exception) else {"return_value": payload}
+                with patch.object(self.w, "native_cli", **effect), \
+                        patch.object(self.w, "judge_job") as judge, \
+                        contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.w.run_once(False)
+                judge.assert_not_called()
+                self.assertIn("native clock unknown", output.getvalue())
+                self.assertNotIn("pass clean", output.getvalue())
+
+    def test_corrupt_declared_configuration_is_unknown_not_legacy(self):
+        self.native_setup()
+        for body in ["not-json", "[]", "null"]:
+            self.w.NOTIFICATION_CONFIG.write_text(body)
+            with patch.object(self.w, "judge_job") as judge, \
+                    contextlib.redirect_stdout(io.StringIO()) as output:
+                self.w.run_once(False)
+            judge.assert_not_called()
+            self.assertIn("native clock unknown", output.getvalue())
+            self.assertNotIn("pass clean", output.getvalue())
+
+    def test_native_cutover_uses_only_new_manual_receipts_and_skip_is_not_failure(self):
+        clock, routine = self.native_setup(enabled=True)
+        data = json.loads(self.w.REGISTRY.read_text())
+        self.w.save_state("job", {"enabled_since": "2026-09-01T00:00:00+00:00", "consecutive_failures": 9})
+        with patch.object(self.w, "native_cli", return_value=[routine]):
+            jobs, _ = self.w.observed_jobs(data)
+        with patch.object(self.w, "notify_alert") as notify:
+            self.assertEqual(self.w.judge_job(jobs[0], False)[0][0], "stalled")
+        # The stall reflects the declared three-hour native expectation, not nine old failures.
+        state = json.loads((self.w.STATE / "job.json").read_text())
+        self.assertEqual(state["consecutive_failures"], 0)
+        self.assertEqual(state["enabled_since"], clock["activated_at"])
+        for status in ("skipped_quiet_hours", "quiet_skipped"):
+            with self.subTest(status=status):
+                data["jobs"][0].update(manual_run_at="2026-10-01T11:30:00+00:00", manual_run_status=status)
+                with patch.object(self.w, "native_cli", return_value=[routine]):
+                    jobs, observation = self.w.observed_jobs(data)
+                self.assertNotIn("unknown", observation)
+                with patch.object(self.w, "notify_alert") as notify:
+                    self.assertEqual(self.w.judge_job(jobs[0], False), [])
+                    notify.assert_not_called()
+                self.assertEqual(json.loads((self.w.STATE / "job.json").read_text())["consecutive_failures"], 0)
+
+    def test_native_pause_verifies_real_trigger_and_preserves_old_registry(self):
+        clock, routine = self.native_setup(enabled=True)
+        data = json.loads(self.w.REGISTRY.read_text())
+        with patch.object(self.w, "native_cli", return_value=[routine]):
+            job = self.w.observed_jobs(data)[0][0]
+        paused = dict(routine, triggers=[{"id": "trigger-id", "kind": "schedule", "enabled": False}])
+        before = self.w.REGISTRY.read_bytes()
+        results = [types.SimpleNamespace(returncode=0, stdout='{}'),
+                   types.SimpleNamespace(returncode=0, stdout=json.dumps([paused]))]
+        with patch.object(self.w.subprocess, "run", side_effect=results) as cli:
+            self.assertTrue(self.w.registry_pause("job", job))
+        argv = cli.call_args_list[0].args[0]
+        self.assertEqual(argv[:4], [clock["bin"], "routine", "trigger:update", "trigger-id"])
+        self.assertNotIn("routine-id", argv)
+        self.assertEqual(self.w.REGISTRY.read_bytes(), before)
+        for result in [types.SimpleNamespace(returncode=1, stdout=''),
+                       types.SimpleNamespace(returncode=0, stdout='{}')]:
+            with patch.object(self.w.subprocess, "run", return_value=result):
+                self.assertFalse(self.w.registry_pause("job", job))
+
+    def test_native_activation_grace_rejects_pre_cutover_manual_watermark(self):
+        clock, routine = self.native_setup(enabled=True)
+        clock["activated_at"] = "2026-10-01T11:50:00+00:00"
+        self.w.NOTIFICATION_CONFIG.write_text(json.dumps({"native_clock": clock}))
+        data = json.loads(self.w.REGISTRY.read_text())
+        data["jobs"][0].update(manual_run_at="2026-10-01T10:00:00+00:00", manual_run_status="error")
+        self.w.save_state("job", {"enabled_since": "2026-09-01T00:00:00+00:00", "consecutive_failures": 9})
+        with patch.object(self.w, "native_cli", return_value=[routine]):
+            job = self.w.observed_jobs(data)[0][0]
+        self.assertIsNone(job["last_run_at"])
+        with patch.object(self.w, "notify_alert") as notify:
+            self.assertEqual(self.w.judge_job(job, False), [])
+            notify.assert_not_called()
+        self.assertEqual(json.loads((self.w.STATE / "job.json").read_text())["consecutive_failures"], 0)
+
+    def test_native_pause_failure_cannot_claim_auto_paused(self):
+        clock, routine = self.native_setup(enabled=True)
+        data = json.loads(self.w.REGISTRY.read_text())
+        data["jobs"][0].update(manual_run_at="2026-10-01T11:30:00+00:00", manual_run_status="error")
+        with patch.object(self.w, "native_cli", return_value=[routine]):
+            job = self.w.observed_jobs(data)[0][0]
+        self.w.save_state("job", {"native_clock_epoch": clock["activated_at"],
+                                  "enabled_since": clock["activated_at"], "consecutive_failures": 1,
+                                  "seen_last_run_at": "2026-10-01T10:30:00+00:00"})
+        with patch.object(self.w.subprocess, "run", return_value=types.SimpleNamespace(returncode=1, stdout='')), \
+                patch.object(self.w, "notify_alert", return_value=False):
+            actions = self.w.judge_job(job, False)
+        self.assertEqual(actions[0][0], "pause_failed")
+        self.assertNotIn("paused_by", json.loads((self.w.STATE / "job.json").read_text()))
+
+    def test_native_resume_excludes_pause_time_and_old_manual_receipt(self):
+        clock, routine = self.native_setup()
+        data = json.loads(self.w.REGISTRY.read_text())
+        data["jobs"][0].update(manual_run_at="2026-10-01T11:30:00+00:00", manual_run_status="error")
+        self.w.save_state("job", {"native_clock_epoch": clock["activated_at"],
+                                  "enabled_since": clock["activated_at"], "consecutive_failures": 9})
+        with patch.object(self.w, "native_cli", return_value=[routine]):
+            self.w.observed_jobs(data)
+        routine["triggers"][0]["enabled"] = True
+        self.w.now = lambda: datetime(2026, 10, 1, 12, 5, tzinfo=timezone.utc)
+        with patch.object(self.w, "native_cli", return_value=[routine]):
+            job = self.w.observed_jobs(data)[0][0]
+        with patch.object(self.w, "notify_alert") as notify:
+            self.assertEqual(self.w.judge_job(job, False), [])
+            notify.assert_not_called()
+        state = json.loads((self.w.STATE / "job.json").read_text())
+        self.assertEqual(state["enabled_since"], FIXED.isoformat())
+        self.assertEqual(state["consecutive_failures"], 0)
+
+    def test_native_daily_is_local_even_with_old_failure_state(self):
+        _, routine = self.native_setup()
+        self.w.save_state("job", {"consecutive_failures": 9})
+        with patch.object(self.w, "native_cli", return_value=[routine]), \
+                patch.object(self.w, "notify_alert") as notify, contextlib.redirect_stdout(io.StringIO()) as output:
+            self.w.run_daily(False)
+        notify.assert_not_called()
+        self.assertIn("0/1 enabled", output.getvalue())
+        self.assertNotIn("cf=9", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

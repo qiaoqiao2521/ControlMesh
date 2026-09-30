@@ -1,0 +1,740 @@
+#!/usr/bin/env python3
+"""cm-process-runner: thin process adapter for Paperclip native heartbeat runs.
+
+Executes native routines / issues by bridging to the host-local ControlMesh one-shot
+runner (`controlmesh cron run <JOB_ID> --json --no-notify`) or running explicit controlled trial.
+Updates issue status through the Paperclip API. One invocation per native run;
+never starts a scheduler or daemon.
+"""
+
+from __future__ import annotations
+
+import argparse
+import ctypes
+from datetime import datetime, UTC
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from zoneinfo import ZoneInfo
+from typing import Any
+from collections.abc import Callable
+
+
+MAX_REGISTRY_BYTES = 16 * 1024 * 1024
+
+
+class LockedJsonJobs:
+    """Safe locked JSON jobs file updater with flock, 0600 mode, and atomic rename."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path).resolve()
+        self.lock_path = self.path.with_name(self.path.name + ".lock")
+
+    def _lock(self):
+        import fcntl
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(self.lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        return fd
+
+    def _unlock(self, fd: int):
+        import fcntl
+
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+    def _read(self) -> dict[str, Any]:
+        try:
+            with open(self.path, "rb") as f:
+                raw = f.read(MAX_REGISTRY_BYTES + 1)
+        except FileNotFoundError:
+            return {"jobs": []}
+        if len(raw) > MAX_REGISTRY_BYTES:
+            raise ValueError("registry_too_large")
+        data = json.loads(raw.decode("utf-8"))
+        if not isinstance(data, dict) or not isinstance(data.get("jobs"), list):
+            raise ValueError("expected object containing jobs array")
+        return data
+
+    def mutate(self, operation: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
+        fd = self._lock()
+        try:
+            data = self._read()
+            operation(data)
+            payload = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+            tf = tempfile.NamedTemporaryFile(
+                dir=self.path.parent, prefix="." + self.path.name + ".", delete=False
+            )
+            try:
+                os.chmod(tf.name, 0o600)
+                tf.write(payload)
+                tf.flush()
+                os.fsync(tf.fileno())
+                tf.close()
+                os.replace(tf.name, self.path)
+            finally:
+                if os.path.exists(tf.name):
+                    try:
+                        os.unlink(tf.name)
+                    except OSError:
+                        pass
+            return data
+        finally:
+            self._unlock(fd)
+
+
+def get_api_base() -> str:
+    raw = (
+        os.environ.get("PAPERCLIP_API_URL")
+        or os.environ.get("PAPERCLIP_RUNTIME_API_URL")
+        or "http://127.0.0.1:3100"
+    )
+    return raw.rstrip("/")
+
+
+def api_call(
+    method: str,
+    path: str,
+    payload: dict | list | None = None,
+    api_base: str | None = None,
+    token: str | None = None,
+    run_id: str | None = None,
+) -> dict | list | None:
+    base = (api_base or get_api_base()).rstrip("/")
+    url = f"{base}{path}"
+    headers = {"Content-Type": "application/json"}
+    auth = token or os.environ.get("PAPERCLIP_API_KEY")
+    if auth:
+        headers["Authorization"] = f"Bearer {auth}"
+    effective_run_id = run_id or os.environ.get("PAPERCLIP_RUN_ID")
+    if effective_run_id:
+        headers["X-Paperclip-Run-Id"] = effective_run_id
+
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            content = resp.read()
+            if not content:
+                return None
+            return json.loads(content.decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        # Response bodies may contain credentials or provider output.
+        raise RuntimeError(f"api_http_{e.code}") from None
+
+
+def is_in_quiet_hours(
+    now_dt: datetime,
+    quiet_start: int | None,
+    quiet_end: int | None,
+    tz_name: str | None,
+) -> bool:
+    if quiet_start is None or quiet_end is None:
+        return False
+    if quiet_start == 0 and quiet_end == 0:
+        return False
+
+    tz = ZoneInfo(tz_name or "Asia/Shanghai")
+    local_time = now_dt.astimezone(tz)
+    hour = local_time.hour
+
+    if quiet_start < quiet_end:
+        return quiet_start <= hour < quiet_end
+    if quiet_start > quiet_end:
+        return hour >= quiet_start or hour < quiet_end
+    return False
+
+
+def update_cron_registry_watermark(
+    registry_path: Path, job_id: str, status: str, dt_iso: str
+) -> None:
+    if not registry_path.is_file():
+        return
+
+    def _mutate(data: dict[str, Any]) -> None:
+        for j in data.get("jobs", []):
+            if j.get("id") == job_id:
+                j["last_run_at"] = dt_iso
+                j["last_run_status"] = status
+                j["manual_run_at"] = dt_iso
+                j["manual_run_status"] = status
+                break
+
+    try:
+        LockedJsonJobs(registry_path).mutate(_mutate)
+    except Exception:
+        print("registry_watermark_failed", file=sys.stderr)
+
+
+def finish_issue(
+    issue_id: str | None,
+    run_id: str | None,
+    status: str,
+    code: str,
+    api_base: str,
+    token: str | None,
+) -> bool:
+    """Comment and terminal write are independent; never upload model output."""
+    if not issue_id:
+        return True
+    try:
+        api_call(
+            "POST",
+            f"/api/issues/{issue_id}/comments",
+            {"body": code},
+            api_base=api_base,
+            token=token,
+            run_id=run_id,
+        )
+    except Exception:
+        print("issue_comment_failed", file=sys.stderr)
+    try:
+        api_call(
+            "PATCH",
+            f"/api/issues/{issue_id}",
+            {"status": status},
+            api_base=api_base,
+            token=token,
+            run_id=run_id,
+        )
+        return True
+    except Exception:
+        print("issue_terminal_write_failed", file=sys.stderr)
+        if status != "blocked":
+            try:
+                api_call(
+                    "PATCH",
+                    f"/api/issues/{issue_id}",
+                    {"status": "blocked"},
+                    api_base=api_base,
+                    token=token,
+                    run_id=run_id,
+                )
+            except Exception:
+                pass
+        return False
+
+
+def fail_issue(code: str, issue_id, run_id, api_base, token) -> int:
+    print(code, file=sys.stderr)
+    finish_issue(issue_id, run_id, "blocked", code, api_base, token)
+    return 1
+
+
+def mark_started(issue_id, run_id, api_base, token) -> bool:
+    if not issue_id:
+        return True
+    try:
+        api_call(
+            "PATCH",
+            f"/api/issues/{issue_id}",
+            {"status": "in_progress"},
+            api_base=api_base,
+            token=token,
+            run_id=run_id,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def proc_identity(pid: int) -> tuple[int, int, str] | None:
+    """Return parent PID, birth tick, state. Birth ticks guard against PID reuse."""
+    try:
+        parts = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+        return int(parts[1]), int(parts[19]), parts[0]
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def collect_owned(root_pid: int, owned: dict[int, int], owner_marker: bytes) -> None:
+    # Existing owned entries retain escaped sessions even after reparenting.
+    snapshot = {}
+    for path in Path("/proc").iterdir():
+        if path.name.isdecimal():
+            pid = int(path.name)
+            identity = proc_identity(pid)
+            if identity:
+                snapshot[pid] = identity
+    if root_pid not in owned:
+        raise RuntimeError("process_identity_missing")
+    # A subreaper retains double-forked children. The private per-child marker
+    # distinguishes our adoptees from unrelated children of this same process.
+    for pid, (ppid, born, _) in snapshot.items():
+        if ppid == os.getpid() and pid not in owned and pid > 1:
+            try:
+                environ = Path(f"/proc/{pid}/environ").read_bytes()
+                if owner_marker in environ.split(b"\0"):
+                    owned[pid] = born
+            except OSError:
+                pass
+    parents = {pid for pid, born in owned.items() if pid in snapshot and snapshot[pid][1] == born}
+    while parents:
+        children = {
+            pid
+            for pid, (ppid, _, _) in snapshot.items()
+            if ppid in parents and pid not in owned and pid > 1 and pid != os.getpid()
+        }
+        for pid in children:
+            owned[pid] = snapshot[pid][1]
+        parents = children
+
+
+def kill_owned(root_pid: int, owned: dict[int, int], owner_marker: bytes) -> None:
+    """Capture the subtree before signaling; signal only verified owned PIDs."""
+    collect_owned(root_pid, owned, owner_marker)
+    for sig, grace in ((signal.SIGTERM, 0.25), (signal.SIGKILL, 1.0)):
+        deadline = time.monotonic() + grace
+        sent = set()
+        while True:
+            collect_owned(root_pid, owned, owner_marker)
+            alive = False
+            # Children first; no killpg of a shared or provider-created session.
+            for pid, born in reversed(tuple(owned.items())):
+                current = proc_identity(pid)
+                if (
+                    pid > 1
+                    and pid not in (os.getpid(), os.getppid())
+                    and current
+                    and current[1] == born
+                    and current[2] != "Z"
+                ):
+                    alive = True
+                    if (pid, born) not in sent:
+                        try:
+                            os.kill(pid, sig)
+                            sent.add((pid, born))
+                        except ProcessLookupError:
+                            pass
+            if not alive:
+                break
+            if time.monotonic() >= deadline:
+                if sig == signal.SIGKILL:
+                    raise RuntimeError("process_cleanup_incomplete")
+                break
+            # Rescan after killing: a TERM handler can fork an escaped child.
+            time.sleep(0.02)
+
+
+def run_owned_process(
+    cmd: list[str], timeout_seconds: float = 600
+) -> tuple[str | None, int | None]:
+    """Bounded synchronous child wait; no daemon, shared group, or raw output."""
+    proc = None
+    owned: dict[int, int] = {}
+    marker = "CM_PROCESS_RUNNER_OWNER=" + os.urandom(16).hex()
+    interrupted = None
+    previous = {}
+    libc = ctypes.CDLL(None, use_errno=True)
+    was_subreaper = ctypes.c_int()
+    # Linux's child subreaper closes the ancestry gap when a CLI exits before
+    # an escaped provider. This affects only descendants, never a shared daemon.
+    if libc.prctl(37, ctypes.byref(was_subreaper), 0, 0, 0) != 0 or libc.prctl(36, 1, 0, 0, 0) != 0:
+        return "process_subreaper_unavailable", None
+
+    def on_signal(signum, _frame):
+        nonlocal interrupted
+        interrupted = signum
+
+    try:
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            previous[sig] = signal.getsignal(sig)
+            signal.signal(sig, on_signal)
+        try:
+            child_env = dict(os.environ)
+            child_env["CM_PROCESS_RUNNER_OWNER"] = marker.split("=", 1)[1]
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+                env=child_env,
+            )
+        except OSError:
+            return "process_spawn_failed", None
+        identity = proc_identity(proc.pid)
+        if not identity:
+            # Popen retains its direct child's identity even after a fast exit.
+            proc.wait(timeout=1)
+            return "process_identity_missing", proc.returncode
+        owned[proc.pid] = identity[1]
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            collect_owned(proc.pid, owned, marker.encode())
+            if interrupted:
+                return "process_interrupted", None
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return "process_timeout", None
+            try:
+                rc = proc.wait(timeout=min(0.02, remaining))
+                return (None if rc == 0 else "process_exit_nonzero"), rc
+            except subprocess.TimeoutExpired:
+                continue
+    finally:
+        try:
+            if proc is not None and owned:
+                kill_owned(proc.pid, owned, marker.encode())
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
+                for pid in owned:
+                    if pid != proc.pid:
+                        try:
+                            os.waitpid(pid, os.WNOHANG)
+                        except ChildProcessError:
+                            pass
+        finally:
+            libc.prctl(36, was_subreaper.value, 0, 0, 0)
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
+
+
+def write_private_json(path: Path, payload: dict) -> str:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    raw = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
+    # Per-run artifacts are immutable: a conflicting retry cannot overwrite evidence.
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as out:
+        out.write(raw)
+        out.flush()
+        os.fsync(out.fileno())
+    return hashlib.sha256(raw).hexdigest()
+
+
+def execute_controlled_trial(
+    target_job, issue_id, run_id, company_id, cm_home, api_base, token
+) -> int:
+    if not mark_started(issue_id, run_id, api_base, token):
+        return fail_issue("issue_start_failed", issue_id, run_id, api_base, token)
+    try:
+        # This is a real, explicitly admitted host measurement, not a receipt-only task.
+        load_1m = float(Path("/proc/loadavg").read_text().split()[0])
+        uptime = float(Path("/proc/uptime").read_text().split()[0])
+        disk = os.statvfs(cm_home)
+        artifact = cm_home / "workspace" / "output" / f"trial-{issue_id}-{run_id}.json"
+        payload = {
+            "trial": target_job,
+            "issue_id": issue_id,
+            "run_id": run_id,
+            "company_id": company_id,
+            "executed_at": datetime.now(UTC).isoformat(),
+            "host": os.uname().nodename,
+            "metrics": {
+                "uptime_sec": uptime,
+                "load_1m": load_1m,
+                "disk_free_bytes": disk.f_bavail * disk.f_frsize,
+            },
+        }
+        digest = write_private_json(artifact, payload)
+    except Exception:
+        return fail_issue("trial_artifact_failed", issue_id, run_id, api_base, token)
+    return (
+        0
+        if finish_issue(
+            issue_id, run_id, "done", f"controlled_trial_completed sha256={digest}", api_base, token
+        )
+        else 1
+    )
+
+
+def load_job(cm_home: Path, job_id: str) -> tuple[dict, Path]:
+    data = json.loads((cm_home / "cron_jobs.json").read_text())
+    if not isinstance(data, dict) or not isinstance(data.get("jobs"), list):
+        raise ValueError("registry_invalid")
+    matches = [j for j in data["jobs"] if isinstance(j, dict) and j.get("id") == job_id]
+    if len(matches) != 1:
+        raise ValueError("job_binding_invalid")
+    job = matches[0]
+    base = (cm_home / "workspace" / "cron_tasks").resolve()
+    folder = job.get("task_folder") or job_id
+    if not isinstance(folder, str) or not folder:
+        raise ValueError("task_folder_invalid")
+    task_dir = (base / folder).resolve()
+    if task_dir == base or not task_dir.is_relative_to(base):
+        raise ValueError("task_folder_invalid")
+    return job, task_dir
+
+
+def delivery_policy(task_dir: Path) -> str:
+    """Use explicit sidecar decisions; titles/output text never classify a job."""
+    raw = json.loads((task_dir / "task.config.json").read_text())
+    if not isinstance(raw, dict):
+        raise ValueError("delivery_policy_unknown")
+    delivery, publish = raw.get("delivery"), raw.get("publish")
+    if not isinstance(delivery, dict) or not isinstance(publish, dict):
+        raise ValueError("delivery_policy_unknown")
+    notify = delivery.get("notify_when")
+    if notify not in ("anomaly", "always", "never") or not isinstance(publish.get("enabled"), bool):
+        raise ValueError("delivery_policy_unknown")
+    # An existing direct-result policy authorizes generation; actual chat delivery
+    # stays pending. Other external publishing/review modes need their own handoff.
+    if publish["enabled"]:
+        if publish.get("mode") == "direct_result" and publish.get("require_review") is False:
+            return "business_pending"
+        raise ValueError("publish_handoff_required")
+    return "business_pending" if notify == "always" else "ops"
+
+
+def execute_cron_job(job_id, issue_id, run_id, cm_home, uv_bin, api_base, token) -> int:
+    def fail(code):
+        return fail_issue(code, issue_id, run_id, api_base, token)
+
+    try:
+        job, task_dir = load_job(cm_home, job_id)
+        # Quiet evaluation precedes policy checks and any model launch.
+        tz = job.get("timezone") or job.get("effective_timezone") or "Asia/Shanghai"
+        quiet = is_in_quiet_hours(
+            datetime.now(UTC), job.get("quiet_start"), job.get("quiet_end"), tz
+        )
+    except Exception:
+        return fail("job_config_invalid")
+    if quiet:
+        update_cron_registry_watermark(
+            cm_home / "cron_jobs.json", job_id, "skipped_quiet_hours", datetime.now(UTC).isoformat()
+        )
+        return (
+            0
+            if finish_issue(issue_id, run_id, "done", "quiet_hours_skipped", api_base, token)
+            else 1
+        )
+    try:
+        policy = delivery_policy(task_dir)
+    except ValueError as exc:
+        code = str(exc)
+        return fail(
+            code
+            if code in ("delivery_policy_unknown", "publish_handoff_required")
+            else "delivery_policy_unknown"
+        )
+    except Exception:
+        return fail("delivery_policy_unknown")
+    if not mark_started(issue_id, run_id, api_base, token):
+        return fail("issue_start_failed")
+
+    last_run = task_dir / "output" / "last_run.json"
+    try:
+        old_bytes = last_run.read_bytes() if last_run.is_file() else None
+    except OSError:
+        return fail("artifact_previous_read_failed")
+    start_dt = datetime.now(UTC)
+    try:
+        error, _ = run_owned_process([str(uv_bin), "cron", "run", job_id, "--json", "--no-notify"])
+    except Exception:
+        return fail("process_cleanup_failed")
+    end_dt = datetime.now(UTC)
+    try:
+        raw_bytes = last_run.read_bytes()
+        data = json.loads(raw_bytes)
+        if not isinstance(data, dict):
+            return fail(error or "artifact_invalid")
+        written_at = datetime.fromisoformat(data["written_at"])
+        if (
+            written_at.tzinfo is None
+            or not (start_dt <= written_at <= end_dt)
+            or raw_bytes == old_bytes
+        ):
+            return fail(error or "artifact_stale_or_future")
+        artifact_id = run_id or f"local-{time.time_ns()}"
+        # Runtime IDs are identifiers, never paths.
+        if not all(ch.isalnum() or ch in "-_" for ch in artifact_id):
+            return fail("run_id_invalid")
+        copy = task_dir / "output" / "paperclip-runs" / f"{artifact_id}.json"
+        digest = write_private_json(
+            copy,
+            {
+                "job_id": job_id,
+                "issue_id": issue_id,
+                "run_id": run_id,
+                "started_at": start_dt.isoformat(),
+                "finished_at": end_dt.isoformat(),
+                "source_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+                "artifact": data,
+            },
+        )
+    except Exception:
+        return fail(error or "artifact_missing_invalid_or_copy_failed")
+
+    # Preserve fresh failure evidence too; saving it never upgrades the outcome.
+    if error:
+        return fail(error)
+    if data.get("status") != "success" or data.get("dry_run"):
+        return fail("artifact_non_success")
+    if not isinstance(data.get("result_text"), str) or not data["result_text"].strip():
+        return fail("artifact_empty_result")
+    if not all(isinstance(data.get(k), str) and data[k].strip() for k in ("provider", "model")):
+        return fail("artifact_provider_missing")
+
+    update_cron_registry_watermark(
+        cm_home / "cron_jobs.json", job_id, "success", data["written_at"]
+    )
+    if policy == "business_pending":
+        return fail("business_delivery_pending")
+    # Done attests native execution and fresh output, not autonomous anomaly judgment.
+    code = f"ops_execution_completed risk_judgment_unverified sha256={digest}"
+    return 0 if finish_issue(issue_id, run_id, "done", code, api_base, token) else 1
+
+
+def resolve_native_issue(run_id, company_id, agent_id, api_base, token) -> dict:
+    if not all(isinstance(v, str) and v for v in (run_id, company_id, agent_id)):
+        raise ValueError("runtime_identity_missing")
+    run = api_call(
+        "GET", f"/api/heartbeat-runs/{run_id}", api_base=api_base, token=token, run_id=run_id
+    )
+    if not isinstance(run, dict) or (run.get("id"), run.get("companyId"), run.get("agentId")) != (
+        run_id,
+        company_id,
+        agent_id,
+    ):
+        raise ValueError("run_identity_invalid")
+    ctx = run.get("contextSnapshot")
+    if ctx is not None and not isinstance(ctx, dict):
+        raise ValueError("run_context_invalid")
+    context_issue = (ctx or {}).get("issueId")
+    if context_issue is not None and (not isinstance(context_issue, str) or not context_issue):
+        raise ValueError("run_context_invalid")
+    links = api_call(
+        "GET", f"/api/heartbeat-runs/{run_id}/issues", api_base=api_base, token=token, run_id=run_id
+    )
+    if not isinstance(links, list) or any(
+        not isinstance(x, dict) or not isinstance(x.get("issueId"), str) or not x["issueId"]
+        for x in links
+    ):
+        raise ValueError("run_associations_invalid")
+    ids = {x["issueId"] for x in links}
+    if context_issue:
+        if context_issue not in ids:
+            raise ValueError("run_association_mismatch")
+        issue_id = context_issue
+    elif len(ids) == 1:
+        issue_id = next(iter(ids))
+    else:
+        raise ValueError("run_issue_ambiguous_or_missing")
+    issue = api_call(
+        "GET", f"/api/issues/{issue_id}", api_base=api_base, token=token, run_id=run_id
+    )
+    if not isinstance(issue, dict) or (
+        issue.get("id"),
+        issue.get("companyId"),
+        issue.get("assigneeAgentId"),
+    ) != (issue_id, company_id, agent_id):
+        raise ValueError("issue_identity_invalid")
+    return issue
+
+
+def resolve_routine_job(issue, company_id, agent_id, run_id, api_base, token) -> str:
+    if (
+        issue.get("originKind") != "routine_execution"
+        or not isinstance(issue.get("originId"), str)
+        or not issue["originId"]
+    ):
+        raise ValueError("routine_origin_missing")
+    routine = api_call(
+        "GET", f"/api/routines/{issue['originId']}", api_base=api_base, token=token, run_id=run_id
+    )
+    if not isinstance(routine, dict) or (
+        routine.get("id"),
+        routine.get("companyId"),
+        routine.get("assigneeAgentId"),
+    ) != (issue["originId"], company_id, agent_id):
+        raise ValueError("routine_identity_invalid")
+    variables = routine.get("variables")
+    if not isinstance(variables, list):
+        raise ValueError("routine_job_mapping_missing")
+    bindings = [
+        v.get("defaultValue")
+        for v in variables
+        if isinstance(v, dict) and v.get("name") == "cmJobId"
+    ]
+    if len(bindings) != 1 or not isinstance(bindings[0], str) or not bindings[0].strip():
+        raise ValueError("routine_job_mapping_invalid")
+    return bindings[0]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="CM Paperclip Process Runner")
+    parser.add_argument("--job", help="Manual job ID, or assertion of native routine binding")
+    parser.add_argument("--check-quiet", action="store_true", help="Only check quiet hours for job")
+    parser.add_argument("--api-base", help="Paperclip API base URL")
+    args = parser.parse_args()
+    cm_home = Path(os.environ.get("CONTROLMESH_HOME") or Path.home() / ".controlmesh")
+    uv_bin = Path(
+        os.environ.get("CM_UV_BIN")
+        or Path.home() / ".local/share/uv/tools/controlmesh/bin/controlmesh"
+    )
+    api_base = (args.api_base or get_api_base()).rstrip("/")
+    token = os.environ.get("PAPERCLIP_API_KEY")
+    run_id, company_id, agent_id = (
+        os.environ.get(k)
+        for k in ("PAPERCLIP_RUN_ID", "PAPERCLIP_COMPANY_ID", "PAPERCLIP_AGENT_ID")
+    )
+    if args.check_quiet:
+        if not args.job:
+            return 2
+        try:
+            job, _ = load_job(cm_home, args.job)
+            tz = job.get("timezone") or job.get("effective_timezone") or "Asia/Shanghai"
+            quiet = is_in_quiet_hours(
+                datetime.now(UTC), job.get("quiet_start"), job.get("quiet_end"), tz
+            )
+            print(json.dumps({"job": args.job, "in_quiet_hours": quiet, "timezone": tz}))
+            return 0
+        except Exception:
+            print("quiet_check_invalid", file=sys.stderr)
+            return 1
+
+    issue_id = None
+    if run_id:
+        try:
+            issue = resolve_native_issue(run_id, company_id, agent_id, api_base, token)
+        except Exception:
+            # Do not mutate an issue whose identity/association was never established.
+            print("native_issue_binding_rejected", file=sys.stderr)
+            return 1
+        issue_id = issue["id"]
+        # An exact per-host environment permit authorizes only the real bounded trial.
+        trial_title = os.environ.get("CM_CONTROLLED_TRIAL_TITLE")
+        if (
+            trial_title
+            and issue.get("title") == trial_title
+            and issue.get("originKind") != "routine_execution"
+        ):
+            if args.job and args.job != trial_title:
+                return fail_issue(
+                    "explicit_job_binding_mismatch", issue_id, run_id, api_base, token
+                )
+            return execute_controlled_trial(
+                trial_title, issue_id, run_id, company_id, cm_home, api_base, token
+            )
+        try:
+            target_job = resolve_routine_job(issue, company_id, agent_id, run_id, api_base, token)
+        except Exception:
+            return fail_issue(
+                "native_routine_job_binding_rejected", issue_id, run_id, api_base, token
+            )
+        if args.job and args.job != target_job:
+            return fail_issue("explicit_job_binding_mismatch", issue_id, run_id, api_base, token)
+    else:
+        # Agent context without its native run must not silently become a manual call.
+        if company_id or agent_id or token or not args.job:
+            print("native_run_or_manual_job_missing", file=sys.stderr)
+            return 1
+        target_job = args.job
+    return execute_cron_job(target_job, issue_id, run_id, cm_home, uv_bin, api_base, token)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

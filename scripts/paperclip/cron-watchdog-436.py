@@ -17,6 +17,7 @@ import os
 import re
 import socket
 import subprocess
+from urllib.parse import urlsplit
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -62,14 +63,26 @@ def notify_alert(text, event_key):
     if not isinstance(chat_id, str) or not chat_id.startswith("oc_"):
         log_event("NOTIFY_FAILED feishu missing_or_invalid_chat_id")
         return False
-    key = hashlib.sha256(f"{HOST}:{iso(now())[:10]}:{event_key}".encode()).hexdigest()[:32]
+    lark = config.get("lark")
+    if lark is None and "native_clock" not in config:
+        lark = {"user": "agent436", "home": "/var/lib/agent436",
+                "path": "/opt/agent-tools/node-v24.21.0-linux-x64/bin:/usr/local/bin:/usr/bin:/bin",
+                "cli": "/opt/cm-tools/node_modules/.bin/lark-cli", "profile": "cm436"}
+    if (not isinstance(lark, dict)
+            or not all(isinstance(lark.get(k), str) and lark[k] for k in ("user", "home", "path", "cli", "profile"))
+            or not re.fullmatch(r"[A-Za-z0-9_.-]+", lark["user"])
+            or not re.fullmatch(r"[A-Za-z0-9_.-]+", lark["profile"])
+            or not Path(lark["home"]).is_absolute() or not Path(lark["cli"]).is_absolute()
+            or not all(Path(p).is_absolute() for p in lark["path"].split(":"))):
+        log_event("NOTIFY_FAILED feishu missing_or_invalid_lark_route")
+        return False
+    key = hashlib.sha256(f"{HOST}:{lark['profile']}:{iso(now())[:10]}:{event_key}".encode()).hexdigest()[:32]
     command = [
-        "/usr/sbin/runuser", "-u", "agent436", "--", "/usr/bin/env", "-i",
-        "HOME=/var/lib/agent436",
-        "PATH=/opt/agent-tools/node-v24.21.0-linux-x64/bin:/usr/local/bin:/usr/bin:/bin",
-        "/opt/cm-tools/node_modules/.bin/lark-cli", "--profile", "cm436",
+        "/usr/sbin/runuser", "-u", lark["user"], "--", "/usr/bin/env", "-i",
+        "HOME=" + lark["home"], "PATH=" + lark["path"],
+        lark["cli"], "--profile", lark["profile"],
         "im", "+messages-send", "--as", "bot", "--chat-id", chat_id,
-        "--text", text[:3500], "--idempotency-key", "cm436-" + key,
+        "--text", text[:3500], "--idempotency-key", lark["profile"][:17] + "-" + key,
     ]
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=30)
@@ -123,11 +136,114 @@ def parse_ts(s):
         return None
 
 
+def native_cli(clock, *args):
+    result = subprocess.run([clock["bin"], *args, "--context", clock["context"],
+                             "--profile", clock["profile"], "--json"],
+                            capture_output=True, text=True, timeout=15)
+    if result.returncode != 0:
+        raise ValueError("native_cli_failed")
+    payload = json.loads(result.stdout)
+    if isinstance(payload, dict) and "data" in payload:
+        if payload.get("ok") is False or payload.get("code", 0) not in (0, "0"):
+            raise ValueError("native_cli_rejected")
+        payload = payload["data"]
+    return payload
+
+
+def observed_jobs(data):
+    """Use the declared native clock; an unknown snapshot never falls back to legacy."""
+    config = load_json(NOTIFICATION_CONFIG, None)
+    legacy = data.get("jobs", [])
+    if NOTIFICATION_CONFIG.exists() and not isinstance(config, dict):
+        log_event("NATIVE_CLOCK_UNKNOWN invalid_notification_config")
+        return [], "native clock unknown: invalid notification configuration"
+    if config is None or "native_clock" not in config:
+        return legacy, None
+    try:
+        clock = config["native_clock"]
+        if not isinstance(clock, dict):
+            raise ValueError("invalid_clock")
+        for key in ("bin", "context", "profile", "company_id", "activated_at"):
+            if not isinstance(clock.get(key), str) or not clock[key]:
+                raise ValueError("invalid_clock")
+        if not all(Path(clock[key]).is_absolute() for key in ("bin", "context")):
+            raise ValueError("invalid_clock")
+        activated = parse_ts(clock["activated_at"])
+        expected = clock.get("expected_job_ids")
+        if (not activated or activated.tzinfo is None or activated > now()
+                or not isinstance(expected, list) or not expected
+                or not all(isinstance(jid, str) and jid for jid in expected)
+                or len(set(expected)) != len(expected)):
+            raise ValueError("invalid_clock")
+        context = load_json(clock["context"], {})
+        profile = context.get("profiles", {}).get(clock["profile"], {})
+        endpoint = urlsplit(profile.get("apiBase", ""))
+        if (profile.get("companyId") != clock["company_id"] or endpoint.scheme != "http"
+                or endpoint.hostname not in ("127.0.0.1", "localhost", "::1")):
+            raise ValueError("context_company_mismatch")
+        routines = native_cli(clock, "routine", "list", "-C", clock["company_id"])
+        if not isinstance(routines, list):
+            raise ValueError("invalid_snapshot")
+        registry = {j.get("id"): j for j in legacy if isinstance(j, dict)}
+        mapped = {}
+        for routine in routines:
+            variables = routine.get("variables") if isinstance(routine, dict) else None
+            bindings = [v.get("defaultValue") for v in variables or []
+                        if isinstance(v, dict) and v.get("name") == "cmJobId"]
+            if not any(jid in expected for jid in bindings if isinstance(jid, str)):
+                continue
+            if (len(bindings) != 1 or bindings[0] in mapped
+                    or routine.get("companyId") != clock["company_id"]):
+                raise ValueError("invalid_mapping")
+            jid = bindings[0]
+            if jid not in registry or not routine.get("id"):
+                raise ValueError("missing_registry_mapping")
+            triggers = [t for t in routine.get("triggers", [])
+                        if isinstance(t, dict) and t.get("kind") == "schedule"]
+            if (not triggers or routine.get("status") not in ("active", "paused")
+                    or any(not t.get("id") or not isinstance(t.get("enabled"), bool) for t in triggers)):
+                raise ValueError("invalid_schedule")
+            job = dict(registry[jid])
+            job.update(enabled=routine["status"] == "active" and any(t["enabled"] for t in triggers),
+                       last_run_at=None, last_run_status=None,
+                       _native_clock=clock, _native_routine_id=routine["id"],
+                       _native_triggers=[t["id"] for t in triggers if t["enabled"]])
+            receipt = parse_ts(job.get("manual_run_at"))
+            status = job.get("manual_run_status")
+            if receipt is not None and receipt.tzinfo is not None and activated <= receipt <= now():
+                if status not in ("success", "error", "failed", "timeout", "cancelled", "skipped_quiet_hours", "quiet_skipped"):
+                    raise ValueError("unknown_receipt_status")
+                job.update(last_run_at=job["manual_run_at"], last_run_status=status)
+            mapped[jid] = job
+        if set(mapped) != set(expected):
+            raise ValueError("missing_native_mapping")
+        jobs = [mapped[jid] for jid in expected]
+        for job in jobs:
+            if not job["enabled"]:
+                spath = STATE / (re.sub(r"[^A-Za-z0-9_.-]", "_", job["id"]) + ".json")
+                st = load_json(spath, {})
+                st["native_paused_at"] = iso(now())
+                save_state(job["id"], st)
+        return jobs, "native schedules: %s active, %s paused" % (
+            sum(j["enabled"] for j in jobs), sum(not j["enabled"] for j in jobs))
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, AttributeError, KeyError):
+        log_event("NATIVE_CLOCK_UNKNOWN snapshot_or_mapping_unavailable")
+        return [], "native clock unknown: snapshot or mapping unavailable"
+
+
 def judge_job(job, dry):
     jid = job.get("id", "?")
     spath = STATE / (re.sub(r"[^A-Za-z0-9_.-]", "_", jid) + ".json")
     st = load_json(spath, {})
     actions = []
+    native = job.get("_native_clock")
+    if native and (st.get("native_clock_epoch") != native["activated_at"] or st.get("native_paused_at")):
+        activated = parse_ts(native["activated_at"])
+        paused_at = parse_ts(st.get("native_paused_at"))
+        resume = paused_at if paused_at and paused_at.tzinfo is not None and paused_at <= now() else activated
+        st = {"enabled_since": iso(max(activated, resume)), "consecutive_failures": 0,
+              "seen_last_run_at": None, "native_clock_epoch": native["activated_at"]}
+        save_state(jid, st)
     if "enabled_since" not in st:
         st["enabled_since"] = iso(now())
         st.setdefault("consecutive_failures", 0)
@@ -136,13 +252,16 @@ def judge_job(job, dry):
         return actions  # grace: first observation only records the watermark
 
     last_run = parse_ts(job.get("last_run_at"))
+    if native and last_run and last_run < parse_ts(st["enabled_since"]):
+        job = dict(job, last_run_at=None, last_run_status=None)
+        last_run = None
     seen = st.get("seen_last_run_at")
     if job.get("last_run_at") != seen:
         # a new run happened since we last looked
         if job.get("last_run_status") == "success":
             st["consecutive_failures"] = 0
             st["last_success_at"] = job.get("last_run_at")
-        else:
+        elif job.get("last_run_status") not in ("skipped_quiet_hours", "quiet_skipped"):
             st["consecutive_failures"] = st.get("consecutive_failures", 0) + 1
         st["seen_last_run_at"] = job.get("last_run_at")
         save_state(jid, st)
@@ -151,9 +270,18 @@ def judge_job(job, dry):
     today = iso(now())[:10]
     already_alerted = st.get("last_alert_date") == today
 
-    if cf >= FAIL_THRESHOLD and job.get("enabled"):
+    if (cf >= FAIL_THRESHOLD and job.get("enabled")
+            and job.get("last_run_status") not in ("skipped_quiet_hours", "quiet_skipped")):
         if not dry:
-            registry_pause(jid)
+            paused = registry_pause(jid, job) if native else registry_pause(jid)
+            if native and not paused:
+                msg = f"[{HOST}] cron pause failed: {jid}; native schedule state unconfirmed"
+                actions.append(("pause_failed", msg))
+                if not already_alerted and notify_alert(msg, f"pause_failed:{jid}"):
+                    st["last_alert_date"] = today
+                    save_state(jid, st)
+                log_event(f"PAUSE_FAILED {jid}")
+                return actions
         st["paused_by"] = "watchdog"
         save_state(jid, st)
         msg = (f"[{HOST}] cron auto-paused: {jid}\n"
@@ -180,8 +308,24 @@ def judge_job(job, dry):
     return actions
 
 
-def registry_pause(job_id):
+def registry_pause(job_id, native_job=None):
     """Flip enabled=false via atomic replace; ControlMesh's file watcher reschedules."""
+    if native_job is not None:
+        clock = native_job["_native_clock"]
+        trigger_ids = native_job["_native_triggers"]
+        try:
+            for trigger_id in trigger_ids:
+                native_cli(clock, "routine", "trigger:update", trigger_id,
+                           "--payload-json", '{"enabled":false}')
+            # Verify the native mutation; the preserved legacy registry is not its clock.
+            routines = native_cli(clock, "routine", "list", "-C", clock["company_id"])
+            routine = next((r for r in routines if r.get("id") == native_job["_native_routine_id"]
+                            and r.get("companyId") == clock["company_id"]), None)
+            observed = {t.get("id"): t.get("enabled") for t in routine.get("triggers", [])
+                        if t.get("kind") == "schedule"} if routine else {}
+            return bool(trigger_ids) and all(observed.get(tid) is False for tid in trigger_ids)
+        except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, AttributeError, KeyError):
+            return False
     data = load_json(REGISTRY, None)
     if not data:
         return False
@@ -236,29 +380,38 @@ def check_artifacts(dry):
 
 
 def run_once(dry):
-    if not REGISTRY.exists():
+    config = load_json(NOTIFICATION_CONFIG, None)
+    if not REGISTRY.exists() and (not NOTIFICATION_CONFIG.exists()
+            or isinstance(config, dict) and "native_clock" not in config):
         print("no registry, nothing to judge")
         return
     data = load_json(REGISTRY, {})
     all_actions = []
-    for job in data.get("jobs", []):
+    jobs, observation = observed_jobs(data)
+    if observation:
+        print(observation)
+    for job in jobs:
         if job.get("enabled"):
             all_actions += judge_job(job, dry)
     all_actions += check_artifacts(dry)
     for kind, msg in all_actions:
         print(f"[{kind}] {msg}")
-    if not all_actions:
+    if not all_actions and not observation:
         print(f"{iso(now())} pass clean")
 
 
 def run_daily(dry):
     data = load_json(REGISTRY, {})
-    jobs = data.get("jobs", [])
+    jobs, observation = observed_jobs(data)
+    if observation:
+        print(observation)
     enabled = [j for j in jobs if j.get("enabled")]
     paused_today, failing, stalled = [], [], []
     for j in enabled:
         spath = STATE / (re.sub(r"[^A-Za-z0-9_.-]", "_", j["id"]) + ".json")
         st = load_json(spath, {})
+        if j.get("_native_clock") and st.get("native_clock_epoch") != j["_native_clock"]["activated_at"]:
+            continue
         if st.get("consecutive_failures", 0) >= 1:
             failing.append(f"{j['id']}(cf={st['consecutive_failures']})")
         if st.get("last_alert_date") == iso(now())[:10]:
