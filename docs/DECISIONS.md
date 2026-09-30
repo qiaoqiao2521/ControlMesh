@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-10-01 — CM is the workflow concept; Paperclip is the runtime
+
+Decision: 用户明确确认 CM 是概念与薄适配层，本质运行 Paperclip；仓库介绍和 Agent 交接必须首先说明这个定位。
+Why: 避免新 Agent 将历史 Python CM、Orca 或完整 TS 迁移误读为继续建设独立平台的任务。
+Boundary: 复用上游生命周期，不改 Paperclip 核心，不建平行调度器；只按真实缺口补入口、策略与交付适配。
+This clarifies the September 30 direction, not a completed production migration or permission to remove old code/data.
+Entry: [AGENTS.md](../AGENTS.md), [current plan](../plans/paperclip-based-cm/task_plan.md).
+
 ## 2026-09-30 — Preserve upstream Paperclip; defer direction-review orchestration
 
 Decision: Reuse or clone Paperclip without changing its upstream source. At most add a thin

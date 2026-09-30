@@ -1,5 +1,11 @@
 # ControlMesh Project Context
 
+## Identity (confirmed 2026-10-01)
+
+CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
+介绍与交接必须先说明此定位。Paperclip 承担所选新路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。
+这是当前方向，不是旧 Python 生产入口已全部迁移的声明；历史实现及证据仍保留。
+
 ## Why
 
 ControlMesh should be a focused, local-first CLI with lightweight TUI and messaging entry for

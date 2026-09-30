@@ -1,8 +1,10 @@
 # ControlMesh
 
-ControlMesh is a local-first, chat-native task runtime for official coding CLIs. It connects
-Claude, Codex, Gemini, OpenCode, and configured providers to persistent workspaces,
-background tasks, multi-agent coordination, messaging transports, and operational tools.
+CM 是工作流概念与薄适配层，实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是另一个独立运行时。
+复用上游的任务生命周期、派发与事件唤醒，只补必要的 CLI/TUI、消息入口、策略与交付适配，不重建调度器。
+
+当前方向与验收边界见 [PROJECT.md](PROJECT.md) 和 [Paperclip 计划进度](plans/paperclip-based-cm/progress.md)。
+以下功能和安装命令描述保留的旧 Python CM，**不代表 Paperclip 集成安装或生产迁移已完成**。
 
 ## What
 
@@ -17,7 +19,7 @@ ControlMesh lets you:
 - inspect tasks, providers, events, topologies, and artifacts through a local read-only Web
   dashboard.
 
-Python remains the authoritative runtime. The TypeScript workspace provides public protocol
+Python remains authoritative for the preserved legacy production paths. The TypeScript workspace provides public protocol
 models, runtime validation, an SDK, and the local dashboard.
 
 ## Quick Start

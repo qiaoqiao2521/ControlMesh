@@ -1,5 +1,9 @@
 # Findings
 
+## 2026-10-01 入口一致性
+
+README 开头仍以独立 task runtime 介绍 CM，AGENTS 的 Paperclip 定位位于后部 Development，容易让新 Agent 先接收旧定位。已将用户确认的定位前置到 README、AGENTS、PROJECT，并区分旧安装说明与新方向。CLAUDE.md 已通过 `@AGENTS.md` 复用入口，无需复制规则。
+
 ## 2026-09-30 执行前方向核对调研
 
 - 用户提供 436 跑偏复盘：修复旧 Python CM 与 `/status`，没有推进已选 Paperclip 接管；作为需求案例记录，未据此复测服务器、模型登录或定时任务。
