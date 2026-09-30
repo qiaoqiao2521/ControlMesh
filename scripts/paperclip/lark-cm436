@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Keep the legacy ingress scope while reusing the official Feishu CLI."""
+import json
+import os
+from pathlib import Path
+import sys
+
+# Add a plain-text view without compacting away the raw attachment/message fields.
+# Only the canonical content array is read, never both content and content_v2.
+TEXT_PROJECTION = r'''
+def cm_string:
+  if type == "string" then . else "" end;
+def cm_content:
+  (if type == "string" then (try fromjson catch null) else . end)
+  | if type == "object" then . else {} end;
+def cm_inline:
+  if type != "object" then ""
+  elif .tag == "text" or .tag == "a" then (.text | cm_string)
+  elif .tag == "at" then
+    if (.text | type) == "string" and (.text | length) > 0 then .text
+    else
+      (.user_name | cm_string)
+      | if . == "" or startswith("@") then . else "@" + . end
+    end
+  else "" end;
+def cm_post:
+  (if (.content | type) == "array" then .
+   elif (.zh_cn | type) == "object" then .zh_cn
+   else {} end) as $post
+  | ($post.title | cm_string) as $title
+  | ($post.content
+     | if type == "array" then
+         map(if type == "array" then map(cm_inline) | join("") else "" end)
+         | join("\n")
+       else "" end) as $body
+  | [$title, $body] | map(select(length > 0)) | join("\n");
+if (.text | type) == "string" and (.text | length) > 0 then .
+else
+  (.event.message // .message // .) as $message
+  | ($message.content | cm_content) as $content
+  | (if ($message.message_type // $message.msg_type) == "text" then
+       ($content.text | cm_string)
+     elif ($message.message_type // $message.msg_type) == "post" then
+       ($content | cm_post)
+     else "" end) as $text
+  | if ($text | test("\\S")) then .text = $text else . end
+end
+'''
+
+binary = "/opt/cm-tools/node_modules/.bin/lark-cli"
+args = sys.argv[1:]
+if any(args[i:i + 2] == ["event", "+subscribe"] for i in range(len(args) - 1)):
+    policy = json.loads(Path("/var/lib/agent436/.config/cm/feishu-ingress.json").read_text())
+    # Raw events preserve chat_type so unknown groups cannot match a default route.
+    args = [arg for arg in args if arg != "--compact"]
+    if "--jq" in args or "-q" in args:
+        raise SystemExit("An ingress filter is already present; refusing ambiguous composition")
+    args.extend(["--jq", "(\n" + policy["filter"] + "\n) | (\n" + TEXT_PROJECTION + "\n)"])
+os.execv(binary, [binary, *args])

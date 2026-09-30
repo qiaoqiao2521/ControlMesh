@@ -5,7 +5,9 @@
 Scope note (2026-09-30): the map below describes preserved CM implementations. The next
 product direction is [Paperclip-based CM](../plans/paperclip-based-cm/task_plan.md); its local
 CLI dispatch/idle/event-wake/review and local Feishu text closed-loop are verified.
-Production migration remains open. Preserved Python and historical Orca candidate sections
+436 now has a Paperclip-owned CLI and Feishu listener; see the [host boundary and adapters](paperclip-436.md)
+and [live acceptance status](../plans/436-paperclip-feishu/progress.md). Fleet migration remains open.
+Preserved Python and historical Orca candidate sections
 must not be read as a Paperclip migration claim.
 
 Selected boundary: upstream Paperclip source stays unmodified. CM may supply a thin external

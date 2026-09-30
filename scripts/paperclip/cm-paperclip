@@ -1,0 +1,56 @@
+#!/bin/sh
+# cm-paperclip — thin CLI entry to the 436 Paperclip runtime (2026.916.1).
+# Transparent wrapper only: no state, no legacy-CM reads, no implicit model runs.
+# Executes as the calling user; never escalates.
+set -eu
+
+TARGET="${CM_PAPERCLIP_BIN:-/usr/local/bin/paperclip436}"
+
+usage() {
+	cat <<'EOF'
+cm-paperclip — Paperclip-backed CM entry (thin wrapper, no local scheduler)
+
+Usage:
+  cm-paperclip               show this help
+  cm-paperclip status        runtime health (maps to: paperclip436 health)
+  cm-paperclip tasks         list issues (maps to: paperclip436 issue list)
+  cm-paperclip tasks list    list issues (maps to: paperclip436 issue list)
+  cm-paperclip issue create --help  native task dispatch options
+  cm-paperclip agent wake --help    native wake/resume options
+  cm-paperclip <args...>     pass through to paperclip436 unchanged
+
+Environment:
+  CM_PAPERCLIP_BIN   override target binary (default /usr/local/bin/paperclip436)
+EOF
+}
+
+if [ "$#" -eq 0 ]; then
+	usage
+	exit 0
+fi
+
+case "$1" in
+status)
+	shift
+	exec "$TARGET" health "$@"
+	;;
+tasks)
+	shift
+	if [ "$#" -eq 0 ]; then
+		exec "$TARGET" issue list
+	fi
+	if [ "$1" = "list" ]; then
+		shift
+		exec "$TARGET" issue list "$@"
+	fi
+	case "$1" in -*) exec "$TARGET" issue list "$@" ;; esac
+	exec "$TARGET" tasks "$@"
+	;;
+help|-h|--help)
+	usage
+	exit 0
+	;;
+*)
+	exec "$TARGET" "$@"
+	;;
+esac

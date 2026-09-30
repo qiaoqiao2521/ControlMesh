@@ -17,6 +17,11 @@ wakeups; retain valuable CM CLI, Feishu/group policy and delivery behavior. This
 Orca as the default future backend. Existing Python production paths and the partial Orca
 candidate remain in place; no migration or production cutover is implied.
 
+2026-10-01 selected deployment: 436 now uses Paperclip for its default CLI and Feishu
+listener; the old daemon is stopped and disabled. Telegram identity/config and independent
+cron are preserved. [436 acceptance status](plans/436-paperclip-feishu/progress.md) separates
+the completed cutover from the pending real-message retest. Other hosts remain unmigrated.
+
 Google CLI direction (confirmed 2026-09-13): AGY is the user's forward Google runtime.
 Keep historical Gemini IDs/session formats as explicit compatibility profiles; do not
 alias AGY to the old executable or retry retired personal-account CLI endpoints. Routine
@@ -117,6 +122,10 @@ change runtime ownership, auto-load a vault into workers, or require a knowledge
 
 ## Current State
 
+436 的当前入口与限制见 [运行说明](docs/paperclip-436.md) 和 [验收进度](plans/436-paperclip-feishu/progress.md)。
+2026-10-01 已切换默认命令与消费者；首次真实 post 消息暴露空正文问题，修复后待复测。
+以下实验与实现描述保留其原日期，不覆盖这份主机级状态。
+
 The 2026-09-30 Paperclip 2026.916.1 local experiment dispatched real AGY/ZCode/CBC CLIs,
 ended the coordinating Codex run for 589.998 seconds, then woke it on completed handoffs.
 Independent review accepted AGY/CBC (two new tests; combined 15 passed) and rejected ZCode,
@@ -214,10 +223,14 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 Reuse the demonstrated CLI handoff/wait/review workflow and the accepted local Feishu
 text path: existing bot receipt, Agent execution, and one reply to the original thread.
 The greenrise replacement trial has ended with the candidate stopped and disabled;
-production takeover remains blocked by HTTPS, CLI/provider readiness, and cron migration.
+greenrise takeover remains blocked by HTTPS, CLI/provider readiness, and cron migration.
 See [canary status](plans/paperclip-feishu-canary/progress.md). Do not repeat the accepted
 local text test or resume Orca/full-TS work as the default queue. Group and recovery
 semantics still need acceptance when selected for a real task.
+
+2026-10-01: finish the [436 real-message retest](plans/436-paperclip-feishu/progress.md)
+after its CLI/listener cutover, then migrate other selected hosts with their own bot and cron
+inventory. The user uses only Feishu on 436; no Telegram HTTPS deployment is required there.
 
 ### Historical Orca priority (2026-09-26; superseded)
 

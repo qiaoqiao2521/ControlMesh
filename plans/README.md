@@ -31,6 +31,8 @@ The operating rule is:
 
 Current work is selected here; older task files are dated evidence, not competing priorities.
 
+- Selected server (2026-10-01): [436 Paperclip migration](436-paperclip-feishu/task_plan.md), [status](436-paperclip-feishu/progress.md), [commands](../docs/paperclip-436.md) — default CLI/listener switched; post-body repair deployed, real-message retest pending. Telegram stopped with identity/config retained; independent cron preserved.
+
 - Cross-repository closeout: [CLI](../docs/closeout.md), [status](cli-closeout/progress.md) — one CLI, check/sync, no runtime Agent; declared committed-state references only.
 
 - Current plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified. Reusable product integration, group/recovery semantics and production migration remain open.

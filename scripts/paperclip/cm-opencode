@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Stream OpenCode file-backed stdout without losing its final pipe buffer."""
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+REAL = "/usr/local/bin/opencode"
+
+def final_events(stdout, exported):
+    events = []
+    for line in stdout.splitlines():
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            continue
+    sessions = {e.get("sessionID") for e in events if e.get("sessionID")}
+    if len(sessions) != 1 or exported.get("info", {}).get("id") not in sessions:
+        raise ValueError("OpenCode export does not match this invocation")
+    seen = {e.get("part", {}).get("messageID") for e in events if e.get("part", {}).get("messageID")}
+    assistants = [m for m in exported.get("messages", []) if m.get("info", {}).get("role") == "assistant"]
+    if not assistants:
+        raise ValueError("No assistant result in OpenCode export")
+    final = assistants[-1]
+    mid = final["info"].get("id")
+    if not isinstance(mid, str) or mid not in seen or final["info"].get("finish") != "stop" or final["info"].get("error"):
+        raise ValueError("No completed final answer from this invocation")
+    texts = [p for p in final.get("parts", []) if p.get("type") == "text" and p.get("text", "").strip()]
+    if not texts:
+        raise ValueError("Completed invocation has no final text")
+    delivered = [e.get("part", {}).get("text", "") for e in events if e.get("type") == "text" and e.get("part", {}).get("messageID") == mid]
+    expected = [p["text"] for p in texts]
+    if delivered and delivered != expected:
+        raise ValueError("Partial final text cannot be replayed without duplication")
+    recovered = [] if delivered else [{"type": "text", "sessionID": next(iter(sessions)), "part": p} for p in texts]
+    if not any(e.get("type") == "step_finish" and e.get("part", {}).get("messageID") == mid for e in events) and isinstance(final["info"].get("tokens"), dict):
+        recovered.append({"type": "step_finish", "sessionID": next(iter(sessions)), "part": {"messageID": mid, "reason": "stop", "tokens": final["info"]["tokens"], "cost": final["info"].get("cost", 0)}})
+    return recovered
+
+def main():
+    args = sys.argv[1:]
+    is_json_run = args and args[0] == "run" and ("--format=json" in args or any(args[i:i + 2] == ["--format", "json"] for i in range(len(args) - 1)))
+    if not args or any(arg in {"--help", "-h"} for arg in args) or (args[0] != "export" and not is_json_run):
+        os.execv(REAL, [REAL, *args])
+    def cancelled(signum, _frame):
+        raise SystemExit(128 + signum)
+    for signum in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(signum, cancelled)
+    with tempfile.TemporaryDirectory(prefix="cm-opencode-") as directory:
+        output = Path(directory) / "stdout"
+        # Independent file descriptions keep reader seeks away from the writer.
+        with output.open("wb") as writer:
+            output.chmod(0o600)
+            child = subprocess.Popen([REAL, *args], stdout=writer)
+            try:
+                with output.open("rb") as reader:
+                    while True:
+                        chunk = reader.read(65536)
+                        if chunk:
+                            sys.stdout.buffer.write(chunk)
+                            sys.stdout.buffer.flush()
+                        elif child.poll() is None:
+                            time.sleep(0.05)
+                        else:
+                            # Re-read after observing exit, closing the EOF/exit race.
+                            chunk = reader.read()
+                            if chunk:
+                                sys.stdout.buffer.write(chunk)
+                                sys.stdout.buffer.flush()
+                            break
+                code = child.wait()
+                if code or args[0] != "run":
+                    return code
+                stdout = output.read_text(errors="replace")
+                if stdout and not stdout.endswith("\n"):
+                    # A truncated JSONL tail must not absorb the recovered event.
+                    print(flush=True)
+                sessions = set()
+                for line in stdout.splitlines():
+                    try:
+                        sid = json.loads(line).get("sessionID")
+                        if sid:
+                            sessions.add(sid)
+                    except ValueError:
+                        pass
+                if len(sessions) != 1:
+                    raise ValueError("Missing or ambiguous OpenCode session")
+                export_path = Path(directory) / "export.json"
+                with export_path.open("wb") as export:
+                    export_path.chmod(0o600)
+                    result = subprocess.run([REAL, "export", next(iter(sessions))], stdout=export, stderr=subprocess.DEVNULL, timeout=30)
+                if result.returncode:
+                    raise ValueError("OpenCode result export failed")
+                for event in final_events(stdout, json.loads(export_path.read_text())):
+                    print(json.dumps(event, ensure_ascii=False), flush=True)
+                return 0
+            finally:
+                if child.poll() is None:
+                    child.terminate()
+                    try:
+                        child.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait()
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+        print(json.dumps({"type": "error", "error": {"message": str(error)}}), flush=True)
+        raise SystemExit(1)

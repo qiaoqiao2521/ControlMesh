@@ -63,10 +63,13 @@ discoveries in task findings; promote only durable knowledge into project docume
 - Do not silently reinterpret or weaken user requirements.
 - Do not rename persisted fields, task statuses, provider names, transport names, or
   relative paths without an explicit migration.
-- Python still owns existing production paths. As confirmed on 2026-09-30, the next CM is
+- Python still owns unmigrated production paths. The selected 436 host has switched its
+  CLI and Feishu listener to Paperclip; real-message retest status and remaining boundaries
+  are in `plans/436-paperclip-feishu/progress.md`. Do not restart its retired Python daemon.
+  As confirmed on 2026-09-30, the next CM is
   based on Paperclip; start at `plans/paperclip-based-cm/`. The Orca bridge and full-TypeScript
   candidate are retained evidence, not the default execution queue. The local CLI
-  dispatch/idle/event-wake/review path and local Feishu text closed-loop are verified; production migration is not.
+  dispatch/idle/event-wake/review path and local Feishu text closed-loop are verified; fleet migration is not.
   Reuse upstream lifecycle ownership; do not add a parallel scheduler or migrate tasks from
   a plan alone. Existing JSON Schema contracts and private-runtime boundaries remain.
   Keep Paperclip upstream source unmodified; CM-specific behavior belongs in a thin external
