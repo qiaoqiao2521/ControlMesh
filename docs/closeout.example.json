@@ -1,0 +1,16 @@
+{
+  "repositories": {
+    "cm": "~/src/ControlMesh",
+    "capmesh": "~/projects/CapMesh"
+  },
+  "links": [
+    {
+      "id": "cm-current",
+      "source": "cm",
+      "file": "plans/paperclip-based-cm/progress.md",
+      "section": "Current",
+      "target": "capmesh",
+      "target_file": "capabilities/cm-current.md"
+    }
+  ]
+}
