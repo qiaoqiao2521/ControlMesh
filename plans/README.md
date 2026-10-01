@@ -31,6 +31,8 @@ The operating rule is:
 
 Current work is selected here; older task files are dated evidence, not competing priorities.
 
+- Opt-in decision consultation v1: [usage](../docs/decision-consultation-v1.md), [plan](decision-consultation-v1/task_plan.md), [acceptance](decision-consultation-v1/progress.md). Native Paperclip lifecycle; no mandatory debate or automatic implementation approval.
+
 - Fleet cutover accepted (2026-10-01): [Fleet Paperclip + AGY rollout](fleet-paperclip-agy-20261001/task_plan.md), [status](fleet-paperclip-agy-20261001/progress.md) — 8 default CLIs and AGY program updates, 63 native schedules; per-host AGY login deferred, six Feishu bindings pending. Supersedes the previous next-day timing.
 
 - Selected server (2026-10-01): [436 Paperclip migration](436-paperclip-feishu/task_plan.md), [status](436-paperclip-feishu/progress.md), [commands](../docs/paperclip-436.md) — default CLI/listener switched; post-body repair deployed, real-message retest pending. Telegram stopped with identity/config retained; independent cron preserved.

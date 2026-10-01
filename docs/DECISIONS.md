@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-10-01 — Opt-in decision consultation, not mandatory debate
+
+Decision: 正式 v1 采用两个独立咨询槽位 + 一个可选补充槽位，复用 Paperclip 原生子 Issue、依赖和唤醒。
+Why: SO101 会审证明冻结初判、实质分歧和引用核验有用，但 CLI 超时补取、部分正文、计量未知和手工收口需要明确边界。
+Rejected: 科研实验树、强制共识、每个普通任务必须会审、自建调度器，以及把槽位数宣称为模型调用/费用硬上限。
+Boundary: 咨询只产生建议/拒绝/checkpoint；不自动发布、不修改上游、不实现通用执行前权限关卡。实际证据与限制见[说明](decision-consultation-v1.md)。
+Revisit: 真实任务反复证明一个补充槽不足，或原生权限/恢复语义不满足时，先记录具体缺口而非扩大为通用平台。
+
 ## 2026-10-01 — CM is the workflow concept; Paperclip is the runtime
 
 Decision: 用户明确确认 CM 是概念与薄适配层，本质运行 Paperclip；仓库介绍和 Agent 交接必须首先说明这个定位。

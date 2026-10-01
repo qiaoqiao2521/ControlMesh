@@ -4,6 +4,7 @@ CM 是工作流概念与薄适配层，实际运行底座是 [Paperclip](https:/
 复用上游的任务生命周期、派发与事件唤醒，只补必要的 CLI/TUI、消息入口、策略与交付适配，不重建调度器。
 
 当前方向与验收边界见 [PROJECT.md](PROJECT.md) 和 [Paperclip 计划进度](plans/paperclip-based-cm/progress.md)。
+关键决策可按需启用[会审 v1](docs/decision-consultation-v1.md)：独立意见、有限补充、证据与分歧，不强制每个任务多 Agent 化。
 436 的新命令、飞书入口与恢复方式见 [Paperclip CM 运行说明](docs/paperclip-436.md)；[真实收发复测状态](plans/436-paperclip-feishu/progress.md)单独记录。
 以下功能和安装命令描述保留的旧 Python CM，**不代表 Paperclip 集成安装或生产迁移已完成**。
 

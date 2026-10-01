@@ -1,0 +1,536 @@
+#!/usr/bin/env python3
+"""Bounded decision consultation artifacts over native Paperclip child issues.
+
+No provider launcher, scheduler, polling loop or automatic decision publication.
+The private directory is a dispatch receipt, not an alternate task state store.
+"""
+
+from __future__ import annotations
+
+import argparse
+from contextlib import contextmanager
+from collections.abc import Iterator
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import tempfile
+from typing import NoReturn
+import urllib.error
+import urllib.parse
+import urllib.request
+
+
+PREFIX = "CM-CONSULT-V1\n"
+TERMINAL = {"done", "cancelled"}
+LIMIT = 128 * 1024
+
+
+def digest(value) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()
+
+
+def text(value, field, limit=8000) -> str:
+    if not isinstance(value, str) or not value.strip() or len(value) > limit:
+        raise ValueError(f"invalid_{field}")
+    return value
+
+
+def identity(value) -> str:
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", value):
+        raise ValueError("invalid_identity")
+    return value
+
+
+def read(path) -> dict:
+    with Path(path).open("rb") as stream:
+        raw = stream.read(LIMIT + 1)
+    if len(raw) > LIMIT:
+        raise ValueError("document_too_large")
+    value = json.loads(raw)
+    if not isinstance(value, dict):
+        raise ValueError("object_required")
+    return value
+
+
+def write(path, value) -> None:
+    payload = json.dumps(value, ensure_ascii=False, indent=2)
+    if len(payload.encode()) > LIMIT:
+        raise ValueError("document_too_large")
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".consult-")
+    try:
+        with os.fdopen(fd, "w") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        Path(temporary).replace(path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl) -> NoReturn:
+        raise ValueError("api_redirect_refused")
+
+
+class API:
+    def __init__(self) -> None:
+        self.base = os.environ.get("PAPERCLIP_API_URL", "http://127.0.0.1:3100").rstrip("/")
+        parsed = urllib.parse.urlsplit(self.base)
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}
+            or parsed.username
+            or parsed.password
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("local_api_required")
+
+    def __call__(self, method, path, body=None) -> dict | list | None:
+        headers = {"Content-Type": "application/json"}
+        for env, header in (
+            ("PAPERCLIP_API_KEY", "Authorization"),
+            ("PAPERCLIP_RUN_ID", "X-Paperclip-Run-Id"),
+        ):
+            if os.environ.get(env):
+                headers[header] = ("Bearer " if env.endswith("KEY") else "") + os.environ[env]
+        request = urllib.request.Request(  # noqa: S310 -- loopback HTTP only, no redirects
+            self.base + path,
+            method=method,
+            headers=headers,
+            data=None if body is None else json.dumps(body).encode(),
+        )
+        try:
+            with urllib.request.build_opener(NoRedirect).open(request, timeout=20) as response:
+                raw = response.read(2 * 1024 * 1024 + 1)
+            if len(raw) > 2 * 1024 * 1024:
+                raise ValueError("api_response_too_large")
+            return json.loads(raw) if raw else None
+        except urllib.error.HTTPError as exc:
+            raise ValueError(f"api_http_{exc.code}") from None
+        except (urllib.error.URLError, TimeoutError, OSError):
+            raise ValueError("api_transport_failed_reconcile_before_retry") from None
+
+
+def validate_spec(spec) -> None:
+    if set(spec) != {
+        "company_id",
+        "parent_id",
+        "coordinator_id",
+        "workers",
+        "question",
+        "baseline",
+        "facts",
+        "initial_judgment",
+        "constraints",
+    }:
+        raise ValueError("invalid_spec_fields")
+    for field in ("company_id", "parent_id", "coordinator_id"):
+        identity(spec[field])
+    workers = spec["workers"]
+    if not isinstance(workers, list) or len(workers) != 2:
+        raise ValueError("exactly_two_workers_required")
+    for worker in workers:
+        identity(worker)
+    if len({*workers, spec["coordinator_id"]}) != 3:
+        raise ValueError("distinct_participants_required")
+    for field in ("question", "baseline", "facts", "initial_judgment", "constraints"):
+        text(spec[field], field)
+
+
+class Consultation:
+    def __init__(self, directory, api=None) -> None:
+        self.root = Path(directory).resolve(strict=True)
+        self.path = self.root / "receipt.json"
+        self.api = api or API()
+
+    @contextmanager
+    def locked(self) -> Iterator[None]:
+        fd = os.open(self.root / ".lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            self.data = read(self.path)
+            self.spec = self.data["spec"]
+            validate_spec(self.spec)
+            if digest(self.spec) != self.data["revision"]:
+                raise ValueError("frozen_spec_changed")
+            yield
+        finally:
+            os.close(fd)
+
+    def save(self) -> None:
+        write(self.path, self.data)
+
+    def parent(self) -> dict:
+        value = self.api("GET", f"/api/issues/{self.spec['parent_id']}")
+        if (
+            value.get("companyId") != self.spec["company_id"]
+            or value.get("assigneeAgentId") != self.spec["coordinator_id"]
+        ):
+            raise ValueError("parent_identity_mismatch")
+        if value.get("status") in TERMINAL:
+            raise ValueError("parent_terminal")
+        actor = os.environ.get("PAPERCLIP_AGENT_ID")
+        if actor and actor != self.spec["coordinator_id"]:
+            raise ValueError("coordinator_required")
+        return value
+
+    def description(self, slot) -> str:
+        entry = self.data["slots"][slot]
+        # Deliberately omit coordinator opinion and peer answers from round one.
+        packet = {key: self.spec[key] for key in ("question", "baseline", "facts", "constraints")}
+        return PREFIX + json.dumps(
+            {
+                "revision": self.data["revision"],
+                "slot": slot,
+                "purpose": entry["purpose"],
+                "packet": packet,
+                "instruction": "Independent consultation only, not implementation. Cite evidence; distinguish "
+                "facts, inference and unknowns. Do not spawn/delegate/retry or edit project code. "
+                "Submit one JSON comment prefixed CM-CONSULT-RESULT-V1 newline with revision, slot, "
+                "completeness (complete/partial/failed), recommendation, evidence (nonempty string list "
+                "for complete), uncertainties (list), usage_tokens (integer or null), session_id "
+                "(string or null). Then finish this native child. done means handoff, not acceptance. "
+                "Use native run attribution, never impersonate another agent. "
+                "Use cm consult submit with the private receipt directory when available. "
+                "These instructions are not a filesystem sandbox.",
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+
+    def child(self, slot) -> dict:
+        entry = self.data["slots"][slot]
+        value = self.api("GET", f"/api/issues/{identity(entry['issue_id'])}")
+        if (
+            value.get("companyId") != self.spec["company_id"]
+            or value.get("parentId") != self.spec["parent_id"]
+            or value.get("assigneeAgentId") != entry["agent_id"]
+            or value.get("description") != self.description(slot)
+        ):
+            raise ValueError("child_identity_or_brief_changed")
+        return value
+
+    def dispatch(self) -> dict:
+        with self.locked():
+            self.parent()
+            if self.data.get("decision"):
+                raise ValueError("consultation_closed")
+            for slot, entry in self.data["slots"].items():
+                if entry.get("issue_id"):
+                    self.child(slot)
+                    continue
+                if entry.get("creation_attempted"):
+                    raise ValueError("creation_outcome_unknown_use_bind_no_automatic_retry")
+                entry["creation_attempted"] = True
+                self.save()  # Reserve BEFORE network I/O, including crashes/timeouts.
+                result = self.api(
+                    "POST",
+                    f"/api/issues/{self.spec['parent_id']}/children",
+                    {
+                        "title": f"Decision consultation {slot}",
+                        "description": self.description(slot),
+                        "assigneeAgentId": entry["agent_id"],
+                        "status": "backlog",
+                        "blockParentUntilDone": True,
+                    },
+                )
+                entry["issue_id"] = identity(result["id"])
+                self.save()
+                self.child(slot)
+            # Native blockers are installed before runnable work. No local wait loop.
+            if not any(self.child(slot)["status"] == "backlog" for slot in self.data["slots"]):
+                return {"replayed": True, "model_calls": 0}
+            self.api("PATCH", f"/api/issues/{self.spec['parent_id']}", {"status": "blocked"})
+            for slot in self.data["slots"]:
+                issue = self.child(slot)
+                if issue["status"] == "backlog":
+                    self.api("PATCH", f"/api/issues/{issue['id']}", {"status": "todo"})
+            return {
+                "waiting": "native_paperclip",
+                "children": {slot: entry["issue_id"] for slot, entry in self.data["slots"].items()},
+            }
+
+    def bind(self, slot, issue_id) -> dict:
+        with self.locked():
+            self.parent()
+            entry = self.data["slots"][slot]
+            if not entry.get("creation_attempted") or entry.get("issue_id"):
+                raise ValueError("bind_only_unknown_creation")
+            entry["issue_id"] = identity(issue_id)
+            self.child(slot)
+            self.save()
+            return {"bound": slot}
+
+    def snapshot(self) -> dict:
+        results = {}
+        for slot, entry in self.data["slots"].items():
+            issue = self.child(slot)
+            comments = self.api("GET", f"/api/issues/{issue['id']}/comments")
+            if not isinstance(comments, list):
+                raise ValueError("unexpected_comments_shape")
+            candidates = []
+            for comment in comments:
+                body = comment.get("body", "")
+                if not body.startswith("CM-CONSULT-RESULT-V1\n") or comment.get("deletedAt"):
+                    continue
+                if (
+                    comment.get("authorAgentId") != entry["agent_id"]
+                    or comment.get("issueId") != issue["id"]
+                    or comment.get("companyId") != self.spec["company_id"]
+                ):
+                    raise ValueError("result_author_mismatch")
+                run_id = identity(comment.get("createdByRunId"))
+                run = self.api("GET", f"/api/heartbeat-runs/{run_id}")
+                if (
+                    run.get("agentId") != entry["agent_id"]
+                    or run.get("companyId") != self.spec["company_id"]
+                    or (run.get("contextSnapshot") or {}).get("issueId") != issue["id"]
+                ):
+                    raise ValueError("result_run_mismatch")
+                result = json.loads(body.split("\n", 1)[1])
+                validate_result(result, self.data["revision"], slot)
+                candidates.append(
+                    {"result": result, "run_id": run_id, "run_status": run.get("status")}
+                )
+            unique = {digest(item): item for item in candidates}
+            if len(unique) > 1:
+                raise ValueError("conflicting_results")
+            if unique:
+                runs = self.api("GET", f"/api/issues/{issue['id']}/runs")
+                if not isinstance(runs, list) or not runs:
+                    raise ValueError("result_run_history_missing")
+                latest = max(runs, key=lambda row: row.get("createdAt") or "")
+                if latest.get("runId") != next(iter(unique.values()))["run_id"]:
+                    raise ValueError("stale_result_from_older_run")
+            results[slot] = {
+                "issue_id": issue["id"],
+                "status": issue["status"],
+                "submission": next(iter(unique.values()), None),
+            }
+        return {"revision": self.data["revision"], "results": results}
+
+    def collect(self) -> dict:
+        with self.locked():
+            snapshot = self.snapshot()
+            return {
+                **snapshot,
+                "snapshot_digest": digest(snapshot),
+                "ready": all(row["status"] in TERMINAL for row in snapshot["results"].values()),
+                "reported_usage_complete": all(
+                    row["submission"] and row["submission"]["result"]["usage_tokens"] is not None
+                    for row in snapshot["results"].values()
+                ),
+                "usage_scope": "submitted_results_only_not_total_cost",
+            }
+
+    def submit(self, slot, result) -> dict:
+        with self.locked():
+            validate_result(result, self.data["revision"], slot)
+            entry = self.data["slots"][slot]
+            issue = self.child(slot)
+            run_id = identity(os.environ.get("PAPERCLIP_RUN_ID"))
+            if (
+                os.environ.get("PAPERCLIP_AGENT_ID") != entry["agent_id"]
+                or os.environ.get("PAPERCLIP_TASK_ID") not in (None, issue["id"])
+                or not os.environ.get("PAPERCLIP_API_KEY")
+            ):
+                raise ValueError("native_worker_context_required")
+            run = self.api("GET", f"/api/heartbeat-runs/{run_id}")
+            if (
+                run.get("companyId") != self.spec["company_id"]
+                or run.get("agentId") != entry["agent_id"]
+                or run.get("status") not in {"running", "succeeded"}
+                or (run.get("contextSnapshot") or {}).get("issueId") != issue["id"]
+                or issue.get("executionRunId") not in (None, run_id)
+            ):
+                raise ValueError("native_worker_run_mismatch")
+            body = "CM-CONSULT-RESULT-V1\n" + json.dumps(result, sort_keys=True, ensure_ascii=False)
+            comments = self.api("GET", f"/api/issues/{issue['id']}/comments")
+            found = [c for c in comments if c.get("body", "").startswith("CM-CONSULT-RESULT-V1\n")]
+            if found:
+                if any(
+                    c.get("body") != body
+                    or c.get("authorAgentId") != entry["agent_id"]
+                    or c.get("createdByRunId") != run_id
+                    for c in found
+                ):
+                    raise ValueError("conflicting_results")
+                if issue["status"] == "done":
+                    return {"replayed": True}
+            if issue["status"] in TERMINAL:
+                raise ValueError("child_terminal")
+            if run.get("status") != "running":
+                raise ValueError("native_worker_run_not_active")
+            # A lost response is reconciled by reading the native comment, never by running a model.
+            payload = {"status": "done"}
+            if not found:
+                payload["comment"] = body
+            self.api("PATCH", f"/api/issues/{issue['id']}", payload)
+            return {"handed_off": True, "accepted": False}
+
+    def followup(self, agent_id, purpose) -> dict:
+        with self.locked():
+            self.parent()
+            if self.data.get("decision") or "followup" in self.data["slots"]:
+                raise ValueError("supplement_budget_exhausted")
+            if agent_id not in self.spec["workers"]:
+                raise ValueError("unknown_worker")
+            snapshot = self.snapshot()
+            if not all(row["status"] in TERMINAL for row in snapshot["results"].values()):
+                raise ValueError("initial_consultations_not_terminal")
+            self.data["slots"]["followup"] = {
+                "agent_id": agent_id,
+                "purpose": text(purpose, "purpose", 4000),
+            }
+            self.save()
+            return {"prepared": "followup", "remaining_supplements": 0}
+
+    def decide(self, decision) -> dict:
+        with self.locked():
+            self.parent()
+            snapshot = self.snapshot()
+            if decision.get("snapshot_digest") != digest(snapshot):
+                raise ValueError("stale_evidence")
+            if decision.get("outcome") not in {"recommend", "reject", "checkpoint"}:
+                raise ValueError("invalid_decision")
+            for field in ("rationale", "dissent", "next_action"):
+                text(decision.get(field), field)
+            if (
+                not isinstance(decision.get("verified_evidence"), list)
+                or len(decision["verified_evidence"]) > 20
+            ):
+                raise ValueError("verified_evidence_required")
+            for evidence in decision["verified_evidence"]:
+                text(evidence, "verified_evidence", 2000)
+            if decision["outcome"] == "recommend":
+                if not decision["verified_evidence"]:
+                    raise ValueError("independent_evidence_required")
+                effective = {
+                    entry["agent_id"]: snapshot["results"][slot]
+                    for slot, entry in self.data["slots"].items()
+                }
+                for row in effective.values():
+                    submission = row["submission"]
+                    if (
+                        row["status"] != "done"
+                        or not submission
+                        or submission["run_status"] != "succeeded"
+                        or submission["result"]["completeness"] != "complete"
+                    ):
+                        raise ValueError("incomplete_consultation_use_checkpoint")
+            if self.data.get("decision") and self.data["decision"] != decision:
+                raise ValueError("decision_already_recorded")
+            # Store judgment only; never promote domain code or mark parent done.
+            self.data["decision"] = decision
+            self.save()
+            return {"recorded": decision["outcome"], "published": False}
+
+
+def validate_result(result, revision, slot) -> None:
+    if not isinstance(result, dict) or set(result) != {
+        "revision",
+        "slot",
+        "completeness",
+        "recommendation",
+        "evidence",
+        "uncertainties",
+        "usage_tokens",
+        "session_id",
+    }:
+        raise ValueError("invalid_result_fields")
+    if result["revision"] != revision or result["slot"] != slot:
+        raise ValueError("result_revision_or_slot_mismatch")
+    if result["completeness"] not in {"complete", "partial", "failed"}:
+        raise ValueError("invalid_completeness")
+    text(result["recommendation"], "recommendation")
+    for field in ("evidence", "uncertainties"):
+        if not isinstance(result[field], list) or len(result[field]) > 20:
+            raise ValueError("invalid_evidence_list")
+        for item in result[field]:
+            text(item, field, 2000)
+    if result["completeness"] == "complete" and not result["evidence"]:
+        raise ValueError("complete_requires_citations")
+    usage = result["usage_tokens"]
+    if usage is not None and (type(usage) is not int or usage < 0):
+        raise ValueError("invalid_usage")
+    if result["session_id"] is not None:
+        text(result["session_id"], "session_id", 200)
+
+
+def initialize(directory, spec) -> dict:
+    validate_spec(spec)
+    root = Path(directory)
+    root.mkdir(mode=0o700, parents=True, exist_ok=False)
+    write(
+        root / "receipt.json",
+        {
+            "spec": spec,
+            "revision": digest(spec),
+            "slots": {
+                f"initial-{n}": {"agent_id": agent, "purpose": "independent initial consultation"}
+                for n, agent in enumerate(spec["workers"], 1)
+            },
+        },
+    )
+    return {"prepared": True, "revision": digest(spec), "model_calls": 0}
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--directory", required=True, help="Private, Git-ignored receipt directory")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("init").add_argument("spec", type=Path)
+    commands.add_parser("dispatch")
+    commands.add_parser("collect")
+    bind = commands.add_parser("bind")
+    bind.add_argument("slot", choices=("initial-1", "initial-2", "followup"))
+    bind.add_argument("issue_id")
+    followup = commands.add_parser("followup")
+    followup.add_argument("agent_id")
+    followup.add_argument("purpose")
+    commands.add_parser("decide").add_argument("decision", type=Path)
+    submit = commands.add_parser("submit")
+    submit.add_argument("slot", choices=("initial-1", "initial-2", "followup"))
+    submit.add_argument("result", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        if args.command == "init":
+            result = initialize(args.directory, read(args.spec))
+        else:
+            consult = Consultation(args.directory)
+            if args.command == "dispatch":
+                result = consult.dispatch()
+            elif args.command == "collect":
+                result = consult.collect()
+            elif args.command == "bind":
+                result = consult.bind(args.slot, args.issue_id)
+            elif args.command == "followup":
+                result = consult.followup(args.agent_id, args.purpose)
+            elif args.command == "submit":
+                result = consult.submit(args.slot, read(args.result))
+            else:
+                result = consult.decide(read(args.decision))
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        # No response bodies, bearer values or raw model output in diagnostics.
+        safe = (
+            str(exc)
+            if isinstance(exc, ValueError) and re.fullmatch(r"[a-z_0-9]+", str(exc))
+            else "invalid_input_or_receipt"
+        )
+        print(json.dumps({"error": safe}), file=sys.stderr)
+        return 2
+    else:
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

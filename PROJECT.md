@@ -223,6 +223,8 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
+2026-10-01：按需启用[关键决策会审 v1](docs/decision-consultation-v1.md)：两位独立咨询者、一次可选补充、引用与分歧保留、协调者独立判断；Paperclip 仍拥有运行生命周期。不是所有任务的必经流程，也不是自动实施批准。实现与验收见[进度](plans/decision-consultation-v1/progress.md)。
+
 2026-10-01 最新状态：[服务器批量迭代](plans/fleet-paperclip-agy-20261001/progress.md)已完成默认 CLI、63 项有效定时任务与 8 台 AGY 程序更新。真实 AGY 实施主要程序部署，额度退出后由根协调 CLI 收口并独立审批。下一步是各机独立 AGY 登录、六台缺失飞书绑定和所选真实任务验收；登录不急，不新开授权或常驻 Agent。
 
 2026-09-30: follow [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md).

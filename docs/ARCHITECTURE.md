@@ -14,6 +14,12 @@ Selected boundary: upstream Paperclip source stays unmodified. CM may supply a t
 orchestration layer through supported interfaces. Pre-execution direction review is recorded
 in the current plan but is not implemented or part of the repository closeout CLI.
 
+Opt-in [decision consultation v1](decision-consultation-v1.md) supplies frozen briefs,
+two native consultation children and one optional supplement, result provenance checks and
+an evidence-bound local judgment. `scripts/paperclip/cm-consult` does not launch providers,
+schedule work or promote project files; native Paperclip issues/runs remain authoritative.
+This is advisory consultation, not the deferred mandatory pre-execution approval gate.
+
 ControlMesh is a Python-owned local task runtime. Terminal and messaging entry points feed
 an orchestrator and persistent TaskHub, which execute official provider CLIs and store
 runtime state, memory, workspaces, events, and artifacts. A versioned read-only API exposes
