@@ -54,6 +54,9 @@ AGY 实施、入口核验与有效工作交付完成。全局共享规范已更�
 3. **状态与独立审批边界**：
    - CM 首次状态回写 422 来自 agent-authored in_review 缺少有效 review 路径，非 AGY 失败。
    - 外层只写 durable outcome，由根 Codex 独立进行最终审批与 review 状态修改。
+4. **旧 436 canary bootstrap**：
+   - 本地未跟踪 `plans/436-paperclip-feishu/bootstrap.sh` 已由根重新审查；它创建 `/opt/paperclip` 的 root user unit，末尾仍要求旧 `controlmesh.service` active，与已接受的 agent436 system unit / `/var/lib/agent436` 运行归属不一致。
+   - 不作为当前部署入口发布或运行，原文件保留作历史恢复材料；接续 owner 为根 Codex。最短核对入口是已跟踪的 `plans/436-paperclip-feishu/progress.md` 实际运行归属与该脚本的 `bash -n`/人工 diff；语法通过不能证明适用于当前服务器。
 
 ## 根 Codex 最终验收
 

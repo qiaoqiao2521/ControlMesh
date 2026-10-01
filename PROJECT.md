@@ -4,7 +4,7 @@
 
 CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
 介绍与交接必须先说明此定位。Paperclip 承担所选新路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。
-这是当前方向，不是旧 Python 生产入口已全部迁移的声明；历史实现及证据仍保留。
+8 台服务器的默认 CLI 已统一到 Paperclip，63 项有效 CM 定时任务已接管；历史实现作为一次性执行库和恢复依据保留。账号登录、飞书绑定、风险判读与外部发布分别验收。
 
 ## Why
 
@@ -14,13 +14,15 @@ reasoning, independently accept results, and deliver them to the original conver
 On 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
 Paperclip-based improved CM as the next direction. Reuse upstream task execution and event
 wakeups; retain valuable CM CLI, Feishu/group policy and delivery behavior. This supersedes
-Orca as the default future backend. Existing Python production paths and the partial Orca
-candidate remain in place; no migration or production cutover is implied.
+Orca as the default future backend. The old Python task libraries and partial Orca candidate
+remain preserved; neither is the default server daemon after the accepted fleet cutover.
 
-2026-10-01 selected deployment: 436 now uses Paperclip for its default CLI and Feishu
-listener; the old daemon is stopped and disabled. Telegram identity/config and independent
-cron are preserved. [436 acceptance status](plans/436-paperclip-feishu/progress.md) separates
-the completed cutover from the pending real-message retest. Other hosts remain unmigrated.
+2026-10-01 selected deployment: all 8 servers now use a host-pinned Paperclip default CLI;
+63 effective CM schedules are native routines. Old consumers are stopped, with identities,
+disabled definitions and independent OS cron/timers preserved. The existing 436 Feishu
+listener and publishing timer remain in place. [Fleet acceptance](plans/fleet-paperclip-agy-20261001/progress.md)
+separates runtime cutover from the six missing Feishu bindings and deferred per-host AGY login;
+[436 acceptance](plans/436-paperclip-feishu/progress.md) retains its real-message retest boundary.
 
 Google CLI direction (confirmed 2026-09-13): AGY is the user's forward Google runtime.
 Keep historical Gemini IDs/session formats as explicit compatibility profiles; do not
@@ -44,8 +46,8 @@ The important user outcomes are:
   execution engines;
 - tasks have stable identities, persistent state, artifacts, interruption, resume, and
   result-delivery behavior;
-- Feishu is the native/runtime-first transport, with Telegram and WeChat as important
-  supported paths;
+- Feishu is the selected fleet transport. Historical Telegram/WeChat capabilities and
+  identities stay preserved; they are not selected ingress or notification routes;
 - existing Feishu application bots can be bound to native mode directly; onboarding must
   distinguish creating/binding an app from choosing native/bridge runtime behavior;
 - multi-agent work is explicit, bounded, inspectable, and coordinated through shared
@@ -99,7 +101,7 @@ Obsidian keeps reusable explanations; SpecMesh project files keep current facts,
 capability decisions, and History keeps source evidence. This file-based convention does not
 change runtime ownership, auto-load a vault into workers, or require a knowledge service.
 
-- Python remains authoritative for existing production paths. On a selected Paperclip path,
+- Python remains the preserved one-shot task library for old jobs. On the migrated servers,
   Paperclip owns scheduling and execution; the coordinator owns judgment, with ingress,
   binding and delivery boundaries explicit. Planning does not switch existing task owners.
 - Electron/Xvfb in the headless backend is acceptable. A pure-Node runtime is optional,
@@ -122,7 +124,7 @@ change runtime ownership, auto-load a vault into workers, or require a knowledge
 
 ## Current State
 
-2026-10-01 用户确认公众号协作与网站已有真实产出，要求复盘迁移摩擦并准备 10 月 2 日批量接续。当前执行入口见[迁移复盘](plans/436-paperclip-feishu/migration-review-20261001.md)：逐机保留身份与有效 cron，先交付一件真实任务，再复制到下一台。本轮仅回写计划，不增加新部署；业务可用与文章 QA、特定消息验收分开记录。
+2026-10-01 用户将[迁移复盘](plans/436-paperclip-feishu/migration-review-20261001.md)中的次日安排提前到现在。8 台 AGY 程序更新、默认 CLI 与 63 项有效定时任务接管已接受，最新逐机状态见[批量进度](plans/fleet-paperclip-agy-20261001/progress.md)。登录按用户安排后置，每机不同账号；业务可用与文章 QA、特定消息验收分开记录。
 
 436 的当前入口与限制见 [运行说明](docs/paperclip-436.md) 和 [验收进度](plans/436-paperclip-feishu/progress.md)。
 2026-10-01 已切换默认命令与消费者；首次真实 post 消息暴露空正文问题，修复后待复测。
@@ -135,7 +137,7 @@ including after one bounded native-session correction. Three coordinator runs in
 dispatch, review, re-review. Feishu, broad recovery and production migration were not tested.
 Evidence and integration boundary: [Paperclip findings](plans/paperclip-based-cm/findings.md).
 
-2026-09-30 live canary: [Feishu and greenrise](plans/paperclip-feishu-canary/progress.md). Existing local Feishu bot receipt, Codex execution and source-thread delivery are verified; default progress-card noise is disabled. Greenrise (4GB) has an isolated Paperclip install with restart/idle-memory evidence, but its old CM Telegram entry remains active: native Telegram needs a new HTTPS route and actual CLI trials exposed Codex balance failure / Claude task-delivery permission failure. The unused canary service is stopped with installation/data preserved; do not read deployment as completed takeover.
+2026-09-30 historical canary: [Feishu and greenrise](plans/paperclip-feishu-canary/progress.md). Local Feishu text receipt/execution/reply passed; the unused greenrise candidate stopped with data preserved after provider/Telegram constraints. That dated result is superseded by the 2026-10-01 headless fleet cutover; greenrise now has 12 native schedules and no old consumer. All servers now select Feishu only, so no Telegram HTTPS bridge is queued.
 The following describes preserved implementations and dated evidence, not a new rollout.
 
 As of the 2026-09-26 implementation, CM HEAD is `3596526` with preserved uncommitted work.
@@ -156,7 +158,7 @@ Terminal UX remains a basic line-oriented shell. Runtime and read-only Alpha gat
 not establish terminal product readiness. The user has prioritized an interactive
 terminal redesign; its implementation and real-terminal acceptance are still pending.
 
-The Python runtime is mature and remains the production core. It provides the enhanced
+The historical Python runtime provides the preserved baseline and one-shot execution library. It provides the enhanced
 terminal, legacy bot runtime, provider adapters, persistent TaskHub, message transports,
 memory/workspace behavior, multi-agent supervision, four approved topologies, recovery,
 and operational tooling.
@@ -221,20 +223,21 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
+2026-10-01 最新状态：[服务器批量迭代](plans/fleet-paperclip-agy-20261001/progress.md)已完成默认 CLI、63 项有效定时任务与 8 台 AGY 程序更新。真实 AGY 实施主要程序部署，额度退出后由根协调 CLI 收口并独立审批。下一步是各机独立 AGY 登录、六台缺失飞书绑定和所选真实任务验收；登录不急，不新开授权或常驻 Agent。
+
 2026-09-30: follow [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md).
 Reuse the demonstrated CLI handoff/wait/review workflow and the accepted local Feishu
 text path: existing bot receipt, Agent execution, and one reply to the original thread.
-The greenrise replacement trial has ended with the candidate stopped and disabled;
-greenrise takeover remains blocked by HTTPS, CLI/provider readiness, and cron migration.
-See [canary status](plans/paperclip-feishu-canary/progress.md). Do not repeat the accepted
+The earlier greenrise canary is dated evidence, not the current migration state.
+See [fleet status](plans/fleet-paperclip-agy-20261001/progress.md). Do not repeat the accepted
 local text test or resume Orca/full-TS work as the default queue. Group and recovery
 semantics still need acceptance when selected for a real task.
 
-2026-10-01: prepare the [2026-10-02 batch handoff](plans/436-paperclip-feishu/migration-review-20261001.md),
-starting with one additional host and a real task before copying onward. Preserve each host's
+The [earlier batch handoff](plans/436-paperclip-feishu/migration-review-20261001.md) remains the
+review of actual migration friction; its next-day timing is superseded. Preserve each host's
 bot, model configuration and cron inventory. The [436 post-path retest](plans/436-paperclip-feishu/progress.md)
 remains open and resumes when a new user message is available; do not keep invoking models
-while waiting. The user uses only Feishu on 436; no Telegram HTTPS deployment is required there.
+while waiting. The user uses only Feishu across the fleet; no Telegram HTTPS deployment is required.
 
 ### Historical Orca priority (2026-09-26; superseded)
 

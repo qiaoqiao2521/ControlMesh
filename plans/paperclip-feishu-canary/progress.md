@@ -1,6 +1,8 @@
 # Progress — 2026-09-30
 
 ## Current result
+本文件保存 2026-09-30 canary 实验状态，不再代表 greenrise 当前运行归属。2026-10-01 的默认 CLI/旧消费者接管及 12 项 native schedule 已接受，当前状态见[服务器批量进度](../fleet-paperclip-agy-20261001/progress.md)。以下保留当时的通过项与阻碍，不将历史 HTTPS/旧入口约束重新加入当前队列。
+
 本机已有飞书机器人“本地电脑”已复用，真实收件、Codex执行、原线程交付完成。4GB greenrise已真实部署并测量；**尚未接管旧CM入口**，原CM保留。试验结束后候选服务停止并禁用自启，避免无效双驻留。
 
 ## Meaningful changes
