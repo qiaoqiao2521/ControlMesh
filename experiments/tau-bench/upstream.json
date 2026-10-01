@@ -1,0 +1,23 @@
+{
+  "name": "tau2-bench",
+  "stable_version": "1.0.1",
+  "release_target_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+  "official_source_url": "https://github.com/sierra-research/tau2-bench",
+  "archive_prefix": "b711c1e",
+  "archive_prefix_type": "annotated tag SHA",
+  "archive_prefix_note": "The extracted directory name prefix is an annotated tag SHA, not a measured checkout commit.",
+  "source_integrity": {
+    "method": "official pinned commit git-tree blob SHA comparison",
+    "verified_file_count": 263,
+    "verified_paths": [
+      "src/tau2/**",
+      "data/tau2/domains/retail/**",
+      "pyproject.toml",
+      "uv.lock"
+    ],
+    "archive_sha256": "0b6d0937cf154fe686e3f0d6fabeb6c3c4e608defeec84ab18f797a5b636117a",
+    "verified_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992"
+  },
+  "dependency_lock": "uv.lock (committed upstream)",
+  "install_command": "uv sync --frozen"
+}

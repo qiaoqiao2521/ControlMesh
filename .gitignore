@@ -77,3 +77,7 @@ playwright/.locks/
 start_bot.sh
 python_best_practice.md
 /run.py
+
+# Simulation experiment downloads, environments and private trajectories
+/experiments/tau-bench/output/
+/experiments/tau-bench/.runtime/
