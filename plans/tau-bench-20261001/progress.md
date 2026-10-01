@@ -1,7 +1,7 @@
 # Progress
 
 ## Current
-Implementation and independent task/scorer verification complete; scoped public delivery is being prepared. CM/Paperclip production remains outside this experiment.
+Implementation and independent task/scorer verification complete. Public experiment was committed and pushed to qiaoqiao2521/ControlMesh, branch codex/tau-bench-20261001 (implementation commit 888639a). CM/Paperclip production remains outside this experiment.
 
 ## Executed evidence (2026-10-01)
 - Stable v1.0.1 source/retail/lock files: 263 Git blob hashes matched fixed commit fc0055dc4e0a316c3f83133267fbd6faaa770992; isolated core dependencies installed successfully.
@@ -23,4 +23,4 @@ Python syntax checks, real controls, independent strict native replay and local 
 Canonical CM's Orca bridge/CLI/probe/test changes are retained. Its existing plans/cm-orca-headless-bridge-v0/task_plan.md explicitly records that Paperclip became the default direction and the remaining historical acceptance is open. This experiment does not adopt or discard those changes. Root Codex owns reconciliation against that plan, its real diffs and unpassed A01-A12 checks.
 
 ## Next
-Finish scoped public delivery. Future research: held-out true Agent task and quality policy for recovered tool errors; do not rerun only to obtain a clean score. Owner: root Codex. Shortest entry: experiments/tau-bench/README.md.
+Future research: held-out true Agent task and quality policy for recovered tool errors; do not rerun only to obtain a clean score. Owner: root Codex. Shortest entry: experiments/tau-bench/README.md. Existing historical Orca changes remain preserved under their own pending acceptance plan.
