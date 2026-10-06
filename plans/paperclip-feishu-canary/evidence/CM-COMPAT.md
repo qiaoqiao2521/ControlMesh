@@ -71,3 +71,9 @@ The expanded RPC check exercises ordinary text through issue creation, session o
 Setting enableProgressCards=true opts into the upstream automated card workflow, including acknowledgements when ackOnInbound=true. Explicit/manual card tools remain present, but their live interaction and callbacks have not been newly accepted by these tests. Existing historical Feishu messages are not edited or deleted by this change.
 
 One additional non-network CLI capture test uses a local executable fixture: three synthetic progress updates produce zero calls; a host-built final payload followed by its duplicate produces exactly one +messages-reply with the unchanged text, original message ID, --reply-in-thread, and no interactive/content argument. The 11 basic and 12 RPC checks also pass. Production single-text receipt is the deployment owner's separate acceptance boundary.
+
+## Quiet AGY SDK lifecycle deployment requirement — 2026-10-01
+
+Historical scope only: the current ordinary private-chat path uses native Agent Chat and does not require `agent.sessions.list`. See [native connector](../../../plugins/feishu-connector/README.md). Preserve this requirement only for the separately selected AGY Session bridge.
+
+The quiet AGY lifecycle requires manifest capability `agent.sessions.list` in addition to its unchanged baseline capabilities. Requests and every returned row pin the approved company and agent; only the exact saved session ID may be reused. Do not adopt an arbitrary first list row. See [deployment requirements and blocked execution gate](../../../docs/paperclip-feishu-session-list.md). This source record and assertion do not grant host permissions or alter the historical compat.5 manifest.

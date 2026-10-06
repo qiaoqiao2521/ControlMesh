@@ -41,3 +41,11 @@
 ## 远端交付状态校正 — 2026-09-30T08:23:49+08:00
 
 本轮通过 GitHub 核对 main、已提交补丁与上述收尾记录，修正历史“无提交或推送”在当前状态中的歧义。未重新运行模型 CLI、飞书、SSH 或服务器部署；本机未提交 Orca/cron 遗留仍按原移交记录处理。当前账号的 Actions 查询为 0 次运行，CI 状态未证实；文档交付不等于 CI 或生产验收。
+
+## Source-only Moonrise requirement — 2026-10-01
+
+Historical scope: ordinary private chats now use [native Agent Chat](../feishu-native-conversation-20261006/progress.md), without a new SDK capability. The gate below belongs to the old AGY Session proposal.
+
+Required `agent.sessions.list` is recorded in [the deployment contract](../../docs/paperclip-feishu-session-list.md), with baseline-preserving manifest assertions and request/return company+agent pin regressions. User approval was reported at 14:39:43.290Z, but the once-retried grant action was rejected by automatic approval review because relayed authorization was not direct trusted user text. No grant, third retry, online deployment, V4 send, upstream/DB modification or commit/push occurred in this local documentation task. Local bridge checks passed for two files (four new list/manifest tests and eight existing SDK lifecycle tests); the project declaration regression is checked separately below. Existing unrelated working-tree changes are preserved.
+
+Exact local verification: `node --test plans/paperclip-feishu-canary/evidence/test_feishu_manifest_requirements.mjs` exited 0 (one test file passed); workspace `node --test test_feishu_manifest_requirements.mjs test_agy_sdk_lifecycle.mjs` exited 0 (two test files passed). `git diff --check` for this task returned clean. No SDK helper/core/workerbuilder was changed. Source requirement SHA256 `b13fa296dbeb9558008c533ce1fd51c7a1123455b5e1a8442881ecc11bbb0bcb`; project regression SHA256 `889dc5a1f27af66ecfbd20e708d1de449ac20312f49764ee13424a2d851f020b`. Actual baseline source manifest SHA256 `836a1cd9cd9415ba6b0eff881a6f4ea75a1958d77826817a8af256b98fb3ae75`; worker `8fbd9f1faaa39d005adacb7c7ae53278f1ab304841bc642f7e66e641668d3f5b`. Both baseline files remained unmodified.

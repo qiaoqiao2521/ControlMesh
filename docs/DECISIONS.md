@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10-07 — Ordinary private chat uses native Agent Chat
+
+Decision: 普通飞书私聊由外部插件接入 Paperclip 原生 Agent Chat；真实工作保持独立执行任务。
+Why: 按飞书 root/message 创建任务会割裂普通对话，完成状态也不等于下一条需求有持续上下文。
+Rejected: 继续加 task/session 映射、扩充旧 AGY 桥的 SDK capability、改 Paperclip 核心，以及增加另一个调度器或定时 Agent。
+Boundary: 当前只在已核验的 local_trusted 实例使用精确 owner/chat 绑定，不代理任意用户。插件仅保存传输回执；模型、队列与会话由上游负责。
+Evidence: 本机与 436 已完成两轮独立主聊天消息、同一提供商会话及原机器人实际一次送达。见[进度](../plans/feishu-native-conversation-20261006/progress.md)。
+Revisit: 真实任务需要多用户身份、非 local_trusted 部署或卡片 continuation 时，先核对原生授权和来源关联，不扩大当前入口的身份权限。
+
 ## 2026-10-01 — Opt-in decision consultation, not mandatory debate
 
 Decision: 正式 v1 采用两个独立咨询槽位 + 一个可选补充槽位，复用 Paperclip 原生子 Issue、依赖和唤醒。

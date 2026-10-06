@@ -2,6 +2,15 @@
 
 ## Overview
 
+Current ordinary private-chat path (2026-10-07): the external [Feishu connector](../plugins/feishu-connector/README.md)
+maps one explicitly paired owner/chat to native Paperclip Agent Chat. A stdlib CLI calls the
+official chat/comment API of a verified local_trusted instance. Paperclip owns conversation,
+provider session, queue and run lifecycle; the plugin owns inbound identity and outbound receipts.
+Native presentationDecision selects the final response. Durable intent and ACK records fence
+duplicate delivery; uncertain POST/send results do not trigger automatic retries.
+Group/task routes retain their existing adapters. Textual conversation, independent execution
+tasks and UI interaction cards have separate acceptance boundaries. See [current evidence and limits](../plans/feishu-native-conversation-20261006/progress.md).
+
 Scope note (2026-09-30): the map below describes preserved CM implementations. The next
 product direction is [Paperclip-based CM](../plans/paperclip-based-cm/task_plan.md); its local
 CLI dispatch/idle/event-wake/review and local Feishu text closed-loop are verified.
