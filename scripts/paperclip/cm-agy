@@ -1,0 +1,425 @@
+#!/usr/bin/env python3
+"""One native Paperclip child issue -> AGY AUTH -> handoff for independent review.
+
+No scheduler, account management, Feishu sender, or automatic model retry.
+Deploy beside cm-process-runner and run as the actual non-root task user.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+from importlib.machinery import SourceFileLoader
+import json
+import os
+from pathlib import Path
+import pwd
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+import threading
+import types
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+
+MODEL = "gemini-3.8-flash-medium"
+LIMIT = 1024 * 1024
+STATE_LIMIT = 4 * LIMIT
+RESULT_LIMIT = 64 * 1024
+PREFIX = "CM-AGY-HANDOFF-V1\n"
+
+
+def identity(value):
+    try:
+        valid = isinstance(value, str) and str(uuid.UUID(value)) == value
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ValueError("native_identity_invalid")
+    return value
+
+
+def digest(value):
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def nonroot_environment(env):
+    if os.getuid() == 0 or os.geteuid() == 0:
+        raise ValueError("nonroot_task_user_required")
+    home = pwd.getpwuid(os.geteuid()).pw_dir
+    if Path(env.get("HOME", "")).resolve() != Path(home).resolve():
+        raise ValueError("task_home_mismatch")
+    # Native AUTH stays in this user's HOME; never forward manager/API secrets.
+    allowed = {"HOME", "USER", "LOGNAME", "PATH", "LANG", "TZ", "TERM",
+               "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
+               "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+               "http_proxy", "https_proxy", "all_proxy", "no_proxy"}
+    return {k: v for k, v in env.items() if k in allowed or k.startswith("LC_")}
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args):
+        raise ValueError("api_redirect_refused")
+
+
+class API:
+    def __init__(self, env):
+        self.env = env
+        self.base = env.get("PAPERCLIP_API_URL", "http://127.0.0.1:3100").rstrip("/")
+        p = urllib.parse.urlsplit(self.base)
+        if (p.scheme != "http" or p.hostname not in {"localhost", "127.0.0.1", "::1"}
+                or p.username or p.password or p.path or p.query or p.fragment):
+            raise ValueError("local_api_required")
+        if not env.get("PAPERCLIP_API_KEY"):
+            raise ValueError("native_run_authorization_required")
+
+    def __call__(self, method, path, body=None):
+        headers = {"Content-Type": "application/json",
+                   "Authorization": "Bearer " + self.env["PAPERCLIP_API_KEY"],
+                   "X-Paperclip-Run-Id": self.env["PAPERCLIP_RUN_ID"]}
+        req = urllib.request.Request(self.base + path, method=method, headers=headers,
+              data=None if body is None else json.dumps(body).encode())
+        try:
+            with urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect).open(req, timeout=15) as response:
+                raw = response.read(LIMIT + 1)
+            if len(raw) > LIMIT:
+                raise ValueError("api_response_too_large")
+            return json.loads(raw) if raw else None
+        except urllib.error.HTTPError as exc:
+            raise ValueError(f"api_http_{exc.code}") from None
+        except (urllib.error.URLError, TimeoutError, OSError):
+            raise ValueError("api_transport_unknown") from None
+
+
+class Store:
+    def __init__(self, root, issue_id):
+        self.root = Path(root)
+        if not self.root.is_absolute():
+            raise ValueError("absolute_state_directory_required")
+        for part in (self.root, *self.root.parents):
+            if part.is_symlink():
+                raise ValueError("state_symlink_refused")
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        info = self.root.stat()
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise ValueError("private_state_directory_required")
+        self.path = self.root / (issue_id + ".json")
+        self.lock = self.root / (issue_id + ".lock")
+
+    def __enter__(self):
+        self.fd = os.open(self.lock, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        info = os.fstat(self.fd)
+        if info.st_uid != os.geteuid() or not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) & 0o077:
+            os.close(self.fd)
+            raise ValueError("private_lock_required")
+        fcntl.flock(self.fd, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, *args):
+        os.close(self.fd)
+
+    def read(self):
+        try:
+            fd = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW)
+        except FileNotFoundError:
+            return None
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if info.st_uid != os.geteuid() or not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) & 0o077:
+                raise ValueError("private_receipt_required")
+            raw = stream.read(STATE_LIMIT + 1)
+        if len(raw) > STATE_LIMIT:
+            raise ValueError("receipt_too_large")
+        return json.loads(raw)
+
+    def write(self, value):
+        raw = json.dumps(value, ensure_ascii=False, sort_keys=True).encode()
+        if len(raw) > STATE_LIMIT:
+            raise ValueError("receipt_too_large")
+        fd, name = tempfile.mkstemp(dir=self.root, prefix=".agy-")
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(raw)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(name, self.path)
+            directory = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+        finally:
+            Path(name).unlink(missing_ok=True)
+
+
+def run_cli(command, cwd, env, stdout_path, stderr_path, timeout):
+    """Reuse the accepted subtree fence; drain pipes to size-limited private files."""
+    helper = types.ModuleType("cm_process_runner")
+    SourceFileLoader(helper.__name__, str(Path(__file__).with_name("cm-process-runner"))).exec_module(helper)
+    overflow = threading.Event()
+    streams, threads = [], []
+    for path in (stdout_path, stderr_path):
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        streams.append(os.fdopen(fd, "wb"))
+
+    def drain(pipe, out, limit):
+        written = 0
+        try:
+            while chunk := pipe.read(8192):
+                remaining = max(0, limit - written)
+                out.write(chunk[:remaining])
+                written += len(chunk)
+                if written > limit:
+                    overflow.set()
+            out.flush()
+        except (OSError, ValueError):
+            overflow.set()
+        finally:
+            pipe.close()
+
+    def started(child):
+        for pipe, out, limit in ((child.stdout, streams[0], LIMIT),
+                                 (child.stderr, streams[1], RESULT_LIMIT)):
+            thread = threading.Thread(target=drain, args=(pipe, out, limit), daemon=True)
+            threads.append(thread)
+            thread.start()
+
+    try:
+        result = helper.run_owned_process(command, timeout, env=env, cwd=cwd,
+                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, on_spawn=started,
+                 abort_reason=lambda: "output_limit_exceeded" if overflow.is_set() else None)
+        for thread in threads:
+            thread.join(timeout=5)
+        if any(thread.is_alive() for thread in threads):
+            return "output_stream_unknown", None
+        return ("output_limit_exceeded", result[1]) if overflow.is_set() else result
+    finally:
+        for stream in streams:
+            stream.close()
+
+
+def parse_result(path, resumed=None):
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, "rb") as stream:
+        raw = stream.read(LIMIT + 1)
+    if len(raw) > LIMIT:
+        raise ValueError("output_limit_exceeded")
+    value = json.loads(raw)
+    if not isinstance(value, dict) or value.get("status") != "SUCCESS":
+        raise ValueError("model_not_successful")
+    conversation = value.get("conversation_id")
+    answer = value.get("response")
+    if not isinstance(conversation, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", conversation):
+        raise ValueError("conversation_id_invalid")
+    if resumed and conversation != resumed:
+        raise ValueError("conversation_resume_mismatch")
+    if not isinstance(answer, str) or not answer.strip() or len(answer.encode()) > RESULT_LIMIT:
+        raise ValueError("model_response_invalid")
+    return {"conversation_id": conversation, "response": answer,
+            "stdout_sha256": hashlib.sha256(raw).hexdigest()}
+
+
+class Worker:
+    def __init__(self, args, env, api=None):
+        self.args, self.env = args, env
+        self.child_env = nonroot_environment(env)
+        self.ids = {k: identity(env.get("PAPERCLIP_" + v)) for k, v in
+                    (("company", "COMPANY_ID"), ("agent", "AGENT_ID"), ("run", "RUN_ID"))}
+        self.api = api or API(env)
+        # The native process adapter does not inject PAPERCLIP_TASK_ID. Resolve
+        # its authoritative run associations instead of configuring a task ID.
+        issue, _ = self.context()
+        self.ids["issue"] = identity(issue["id"])
+        self.store = Store(args.state_dir, self.ids["issue"])
+
+    def context(self):
+        run = self.api("GET", "/api/heartbeat-runs/" + self.ids["run"])
+        if (not isinstance(run, dict) or run.get("id") != self.ids["run"]
+                or run.get("companyId") != self.ids["company"] or run.get("agentId") != self.ids["agent"]):
+            raise ValueError("native_ownership_mismatch")
+        snapshot = run.get("contextSnapshot")
+        if snapshot is not None and not isinstance(snapshot, dict):
+            raise ValueError("run_context_invalid")
+        context_id = (snapshot or {}).get("issueId")
+        if context_id is not None:
+            context_id = identity(context_id)
+        links = self.api("GET", f"/api/heartbeat-runs/{self.ids['run']}/issues")
+        if not isinstance(links, list) or any(not isinstance(link, dict) for link in links):
+            raise ValueError("run_associations_invalid")
+        linked_ids = {identity(link.get("issueId")) for link in links}
+        if context_id:
+            if context_id not in linked_ids:
+                raise ValueError("run_association_mismatch")
+            issue_id = context_id
+        elif len(linked_ids) == 1:
+            issue_id = next(iter(linked_ids))
+        else:
+            raise ValueError("run_issue_ambiguous_or_missing")
+        # A supplied TASK_ID is only an assertion. It cannot replace the native
+        # association and cannot redirect a replay to a different issue.
+        asserted_id = self.env.get("PAPERCLIP_TASK_ID")
+        if ((asserted_id is not None and identity(asserted_id) != issue_id)
+                or self.ids.get("issue", issue_id) != issue_id):
+            raise ValueError("native_ownership_mismatch")
+        issue = self.api("GET", "/api/issues/" + issue_id)
+        if (not isinstance(issue, dict) or issue.get("id") != issue_id
+                or issue.get("companyId") != self.ids["company"]
+                or issue.get("assigneeAgentId") != self.ids["agent"]):
+            raise ValueError("native_ownership_mismatch")
+        parent_id = identity(issue.get("parentId"))
+        parent = self.api("GET", "/api/issues/" + parent_id)
+        if (parent.get("id") != parent_id or parent.get("companyId") != self.ids["company"]
+                or not parent.get("assigneeAgentId") or parent.get("assigneeAgentId") == self.ids["agent"]):
+            raise ValueError("independent_parent_required")
+        for field in ("executionRunId", "checkoutRunId"):
+            if issue.get(field) not in (None, self.ids["run"]):
+                raise ValueError("issue_owned_by_another_run")
+        description = issue.get("description")
+        if not isinstance(description, str) or not description.strip() or len(description.encode()) > RESULT_LIMIT:
+            raise ValueError("child_task_description_required")
+        return issue, run
+
+    def reconcile(self, record):
+        if "body" not in record:
+            raise ValueError("model_attempt_unknown_no_automatic_retry")
+        issue, _ = self.context()
+        if (digest(issue["description"]) != record["description_sha256"]
+                or issue.get("parentId") != record["parent_id"]):
+            raise ValueError("task_scope_changed_review_required")
+        comments = self.api("GET", f"/api/issues/{self.ids['issue']}/comments")
+        if not isinstance(comments, list):
+            raise ValueError("comments_shape_invalid")
+        matching = [c for c in comments if c.get("body") == record["body"] and not c.get("deletedAt")]
+        if len(matching) > 1:
+            raise ValueError("duplicate_handoff_requires_review")
+        if matching:
+            c = matching[0]
+            if (c.get("createdByRunId") != self.ids["run"] or c.get("authorAgentId") != self.ids["agent"]
+                    or c.get("companyId") != self.ids["company"] or c.get("issueId") != self.ids["issue"]):
+                raise ValueError("handoff_author_mismatch")
+            if issue.get("status") == "done":
+                record["phase"] = "handed_off"
+                record["comment_id"] = identity(c.get("id"))
+                return True
+        return False
+
+    def execute(self):
+        issue, run = self.context()
+        with self.store as store:
+            ledger = store.read() or {"schema": "cm.agy.handoff.v1", "issue": self.ids["issue"],
+                        "company": self.ids["company"], "agent": self.ids["agent"], "runs": {}}
+            if (ledger.get("schema") != "cm.agy.handoff.v1" or
+                    any(ledger.get(k) != self.ids[k] for k in ("issue", "company", "agent"))):
+                raise ValueError("receipt_identity_mismatch")
+            records = ledger["runs"]
+            record = records.get(self.ids["run"])
+            if record:
+                if self.reconcile(record):
+                    store.write(ledger)
+                    return record["outcome"] == "READY_FOR_REVIEW"
+                # Model complete with no delivery attempt is the only safe write retry.
+                if record.get("phase") != "model_complete":
+                    raise ValueError("handoff_unknown_read_only_reconciliation")
+            else:
+                if run.get("status") != "running" or issue.get("status") not in {"todo", "backlog", "in_progress"}:
+                    raise ValueError("active_native_child_required")
+                if len(records) >= 32:
+                    raise ValueError("receipt_history_limit")
+                # Reserve the worst bounded result (including JSON escaping)
+                # before consuming a model call, rather than failing to save it.
+                if len(json.dumps(ledger, ensure_ascii=False).encode()) > STATE_LIMIT - LIMIT:
+                    raise ValueError("receipt_storage_budget_exhausted")
+                resumed = None
+                if records:
+                    previous = identity(self.args.resume_run)
+                    old = records.get(previous)
+                    if (previous != ledger.get("last_run") or not old or old.get("phase") != "handed_off"
+                            or old.get("outcome") != "READY_FOR_REVIEW"):
+                        raise ValueError("explicit_completed_round_required")
+                    resumed = old["result"]["conversation_id"]
+                elif self.args.resume_run:
+                    raise ValueError("resume_receipt_missing")
+                record = {"phase": "checkout_attempted", "description_sha256": digest(issue["description"]),
+                          "parent_id": issue["parentId"],
+                          "model": MODEL, "resume_conversation": resumed}
+                records[self.ids["run"]] = record
+                ledger["last_run"] = self.ids["run"]
+                store.write(ledger)
+                self.api("POST", f"/api/issues/{self.ids['issue']}/checkout",
+                         {"agentId": self.ids["agent"], "expectedStatuses": ["todo", "backlog", "in_progress"]})
+                checked, current_run = self.context()
+                if (checked.get("status") != "in_progress" or current_run.get("status") != "running"
+                        or self.ids["run"] not in (checked.get("checkoutRunId"), checked.get("executionRunId"))):
+                    raise ValueError("checkout_not_confirmed")
+                binary = Path(self.args.agy).resolve(strict=True)
+                if not binary.is_file() or not os.access(binary, os.X_OK):
+                    raise ValueError("agy_binary_not_executable")
+                cwd = Path(self.args.cwd).resolve(strict=True)
+                command = [str(binary), "--model", MODEL, "--print", issue["description"],
+                           "--mode", "accept-edits", "--output-format", "json",
+                           "--print-timeout", f"{self.args.timeout}s"]
+                if resumed:
+                    command += ["--conversation", resumed]
+                record["phase"] = "model_attempted"
+                store.write(ledger)  # A crash after this point never launches AGY again.
+                out = store.root / (self.ids["run"] + ".stdout.json")
+                err = store.root / (self.ids["run"] + ".stderr.log")
+                error, code = run_cli(command, str(cwd), self.child_env, out, err, self.args.timeout + 2)
+                record.update(exit_code=code, error=error)
+                try:
+                    if error or code != 0:
+                        raise ValueError(error or "model_exit_nonzero")
+                    record["result"] = parse_result(out, resumed)
+                    record["outcome"] = "READY_FOR_REVIEW"
+                except (ValueError, json.JSONDecodeError, OSError) as exc:
+                    record["outcome"] = "EXECUTION_FAILED"
+                    record["error"] = str(exc) if isinstance(exc, ValueError) and not isinstance(exc, json.JSONDecodeError) else "model_result_invalid"
+                handoff = {"run_id": self.ids["run"], "issue_id": self.ids["issue"],
+                           "outcome": record["outcome"], "approval": "PENDING_PARENT_REVIEW", "model": MODEL,
+                           "error": record.get("error"), "result": record.get("result")}
+                record.update(phase="model_complete", body=PREFIX + json.dumps(handoff, ensure_ascii=False, sort_keys=True))
+                store.write(ledger)
+            # Freeze the write attempt before network I/O. A lost response is GET-only.
+            current, current_run = self.context()
+            if (digest(current["description"]) != record["description_sha256"]
+                    or current.get("parentId") != record["parent_id"]):
+                raise ValueError("task_scope_changed_review_required")
+            if current_run.get("status") != "running":
+                raise ValueError("handoff_run_not_active")
+            record["phase"] = "handoff_attempted"
+            store.write(ledger)
+            self.api("PATCH", f"/api/issues/{self.ids['issue']}", {"status": "done", "comment": record["body"]})
+            if not self.reconcile(record):
+                raise ValueError("handoff_receipt_not_confirmed")
+            store.write(ledger)
+            return record["outcome"] == "READY_FOR_REVIEW"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--agy", default="/usr/local/bin/agy")
+    parser.add_argument("--cwd", default=os.getcwd())
+    parser.add_argument("--state-dir", default=str(Path.home() / ".local/state/cm-agy"))
+    parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--resume-run", help="Explicitly continue the last completed round of this same child issue")
+    args = parser.parse_args()
+    if not 1 <= args.timeout <= 1800:
+        parser.error("timeout must be 1..1800 seconds")
+    try:
+        ready = Worker(args, dict(os.environ)).execute()
+        print(json.dumps({"state": "handoff_complete", "outcome": "READY_FOR_REVIEW" if ready else "EXECUTION_FAILED",
+                          "approval": "PENDING_PARENT_REVIEW"}))
+        return 0 if ready else 1
+    except Exception as exc:
+        # Raw provider/network exceptions and output never reach Paperclip logs.
+        reason = str(exc) if type(exc) is ValueError and re.fullmatch(r"[a-z_0-9]+", str(exc)) else "wrapper_failed_preserve_receipt"
+        print(json.dumps({"state": "needs_reconciliation", "reason": reason}), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

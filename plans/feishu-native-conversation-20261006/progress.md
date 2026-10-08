@@ -44,3 +44,19 @@
 
 ## Next
 本次文本私聊需求已完成。需要扩展时，先选一个真实任务验收 UI continuation 或独立执行交接，再决定是否改插件；不增加常驻 Agent 或定时 ping。保留工作由根 Codex 按上述入口接续。
+
+## 2026-10-08 基线与待接续
+
+六台继续运行的 VPS 已回读普通用户 Paperclip 基线，冗余 cron 按 Ops 当前清单治理。AGY 公共程序统一1.3.1，普通用户 AUTH 六机仍待完成；qiaobird／cy 独立新机器人尚未创建。Moon 原 AGY 保持 paused，不能把插件ready写成原私聊已回复。
+
+可选cm-agy已完成独立离线审查及上游process任务关联修复，163包装器测试通过，未部署；新handoff不兼容cm-consult既有prefix。根Codex负责实际AUTH与native父任务/交接验收；不更换436已有compat.6生产worker。
+
+当前非root/cron事实回源Ops-Vault，当前公众号任务回源内容仓。旧Orca／tau／sandpile与既有未核实脚本按前述具体owner和恢复入口保留，不纳入本次生产部署；缺原任务验收/发布边界，不能仅凭源码存在推送为已交付。
+
+知识收尾：already_covered，既有Wiki「按当前任务选择验收依据」已覆盖本轮独立判断。上游版本特定字段差异记录在候选说明，不新建知识机制。
+
+## 2026-10-09 CLI 收口
+
+436 公共 cm-paperclip 显式设置 PAPERCLIP_CONTEXT 为 /var/lib/agent436/.paperclip/context.json。实际 agent436、HOME 和 cwd 下 cm status 返回 exit 0、status ok；不再从 root cwd 命中旧 context。该入口仍只做透明转发，不新增状态或模型调用。
+
+436 内容仓通过离线 bundle fast-forward 到 84883d9061fa8c2ef19fbf41eff4c3fbc7900036；交付代码逐字节一致，原辅助脚本和稿件保留，公众号 timer 继续 disabled/inactive。Ops 继续记录逐机 CLI 的真实用户、AUTH 与废弃 root 配置清理；qiaobird Codex 的新登录不提升为全六机 AUTH 通过。

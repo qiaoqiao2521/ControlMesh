@@ -6,6 +6,10 @@ CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https:/
 介绍与交接必须先说明此定位。Paperclip 承担所选新路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。
 2026-10-01 曾完成 8 台服务器的默认 CLI 迁移和 63 项有效定时任务接管。后续设备取舍以 Ops 的当前记录为准，不将此历史数量当成当前运行状态。历史实现作为一次性执行库和恢复依据保留。账号登录、飞书绑定、风险判读与外部发布分别验收。
 
+2026-10-08 当前服务器范围仅 bf2025、436、qiaobird、greenrise、cy、moonrise；六机 Paperclip manager 已逐机验为普通用户。52 个重复维护 routine 已归档并删除时钟，11 个旧内容 routine 暂停，13 条冗余 OS cron 移除；旧 Python CM 程序与无用源码正在按依赖退役，业务目录和当前身份保留。逐机当前事实以 Ops-Vault 的 `plans/fleet-agy-opencode-feishu-20261008/cleanup-list.md` 为源，不将下文历史八机／63 schedules 当作当前基线。
+
+可选 [AGY AUTH 任务入口](docs/paperclip-agy-auth.md) 已完成离线行为审查，未部署；六机普通用户 Google AUTH 仍待完成，不将它与 root 历史认证合并。
+
 2026-10-07 飞书普通私聊改为外部插件调用 Paperclip 原生 Agent Chat。完成一次任务后仍能接新需求，不依赖回复旧消息；执行任务保持独立。入口、复现构建与限制见[插件说明](plugins/feishu-connector/README.md)，实机交接见[持续对话进度](plans/feishu-native-conversation-20261006/progress.md)。原生问题卡在飞书提交及 UI continuation 的完整关联尚未验收。
 
 ## Why

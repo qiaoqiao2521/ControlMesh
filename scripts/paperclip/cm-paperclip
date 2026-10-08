@@ -3,6 +3,7 @@
 # Transparent wrapper only: no state, no legacy-CM reads, no implicit model runs.
 # Executes as the calling user; never escalates.
 set -eu
+export PAPERCLIP_CONTEXT="/var/lib/agent436/.paperclip/context.json"
 
 TARGET="${CM_PAPERCLIP_BIN:-/usr/local/bin/paperclip436}"
 
