@@ -52,6 +52,7 @@ Runtime behavior notes:
 ## Documentation Index
 
 - [Architecture](ARCHITECTURE.md)
+- [Cron 安全规范与任务契约](cron-safety-contract.md)（Paperclip薄适配，规范未部署）
 - [Decisions](DECISIONS.md)
 - [System Overview](system_overview.md)
 - [Installation](installation.md)
