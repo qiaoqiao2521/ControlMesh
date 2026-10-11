@@ -2,7 +2,7 @@
 
 ## Current
 
-2026-10-11：按用户最新选择只接本机。社区 runtime 与薄适配已实现、安装并验证；Git 交付正在串行收尾。未操作 436，也未接入真实 CM 任务的完成钩子。
+2026-10-11：按用户最新选择只接本机。社区 runtime 与薄适配已实现、安装并验证；实现提交 c42900e 已推送并读回远端 main。未操作 436，也未接入真实 CM 任务的完成钩子。
 
 ## Done
 
@@ -13,6 +13,7 @@
 - 36 项隔离测试通过：9 项上游 DeliveryTests、5 项消费竞态测试、22 项适配行为测试。未运行真实 worker、ProcessTests 或 live_test。
 - 两份新增测试通过 Ruff；入口通过 E/F 检查（忽略动态 runtime import 的 E402）、语法检查和已安装命令 help。该结果不代表入口通过全部 Ruff 规则。
 - 使用说明与架构、决策、计划索引已更新。
+- 11 项来源/补丁/测试哈希、183 个本地文档链接与暂存 diff 检查通过。23 个提交文件经范围检查，无运行状态文件和凭据模式命中；使用已验证的新账户推送到既有目标仓库。
 
 验证命令（仓库根目录）：
 
@@ -24,7 +25,6 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
-- 核对来源哈希、文档链接与暂存范围，提交并推送本次已验证成果。
 - 真实本机任务使用原生 company/issue/run 绑定后，由其完成钩子调用 notify；真实任务回传需单独验收。本轮不制造额外事件来替代该验收。
 - App 下次普通启动的持久连接仍需独立验收。
 
@@ -36,7 +36,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-根 Codex 完成本次 Git 交付。下次真实派发时，在既有完成钩子调用 [notify](../../docs/codex-callback.md#接收完成事件)，由原会话核对交接文件和结果；不重建调度器。
+下次真实派发时，根 Codex 在既有完成钩子调用 [notify](../../docs/codex-callback.md#接收完成事件)，由原会话核对交接文件和结果；不重建调度器。
 
 ## Knowledge closeout
 
