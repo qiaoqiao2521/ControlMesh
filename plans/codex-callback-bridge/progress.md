@@ -2,7 +2,7 @@
 
 ## Current
 
-2026-10-11：只接本机。实现提交 c42900e 已推送并验远端。用户随后授权立即试用，当前准备以 Night Lab 最新已结束批次 QIA-99 补发完成通知；不重跑研究，不操作 436。queue 与实际接续仍须由本次运行记录核验。
+2026-10-11：只接本机。实现提交 c42900e 已推送并验远端。用户授权立即试用后，Night Lab 已结束批次 QIA-99 的真实结果补发通过：忙时入队、同原线程自动接续、持久 turn 和交接文件读回全部核验。不重跑研究，不操作 436。
 
 ## Done
 
@@ -14,6 +14,8 @@
 - 两份新增测试通过 Ruff；入口通过 E/F 检查（忽略动态 runtime import 的 E402）、语法检查和已安装命令 help。该结果不代表入口通过全部 Ruff 规则。
 - 使用说明与架构、决策、计划索引已更新。
 - 11 项来源/补丁/测试哈希、183 个本地文档链接与暂存 diff 检查通过。23 个提交文件经范围检查，无运行状态文件和凭据模式命中；使用已验证的新账户推送到既有目标仓库。
+- QIA-99 补发：原线程 active 时仅一条 matching queue 消息；随后 status=started、receipt_source=history。持久历史仅一个匹配 client ID/marker/交接路径的 turn，queue 已无该消息；实际 CODEX_THREAD_ID、queue_id、turn_id 对账通过。交接文件、批回执与五份产物哈希读回一致，私有 acceptance.json 已保存并读回。不宣称当前核验 turn 已结束。
+- Native heartbeat succeeded/exitCode=0，原生任务仍 in_review、批回执 held。N011 终审通过，N012 待修订。社区外部通知没有 command，其 returncode=null 合乎 notify() 行为，不代替原生退出证据。
 
 验证命令（仓库根目录）：
 
@@ -25,7 +27,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
-- 真实本机任务使用原生 company/issue/run 绑定后，由其完成钩子调用 notify；真实任务回传需单独验收。本轮不制造额外事件来替代该验收。
+- 真实结果补发已验收；持续自动回传仍需由本机任务完成钩子调用 notify，并单独验收。现有回传入口不能冒充已安装持续钩子。
 - App 下次普通启动的持久连接仍需独立验收。
 
 ## Issues
@@ -36,7 +38,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-根 Codex 核验 QIA-99 补发的 queue/turn 与交接文件回读；具体证据只存 Night Lab 被忽略的私有 runtime。后续持续回传仍应接既有完成钩子，不重建调度器。
+本次补发验证完成，停止新增 callback。根 Codex 接续持续自动回传时，应接既有完成钩子，不重建调度器。最短验证入口为 Night Lab 被忽略的 .runtime/codex-callback/QIA-99/acceptance.json；真实任务状态回源原生 Issue 与批回执。
 
 ## Knowledge closeout
 
