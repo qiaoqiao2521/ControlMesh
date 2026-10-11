@@ -12,7 +12,7 @@
 - 仅修复桌面先消费后 queue/start not-found 的回执对账竞态。
 - 新增本机薄 CLI：绑定原线程/同服务/CM 原任务，接收已验证完成事件与交接文件，对外部 run 去重，查询 queue/turn 收据。
 - 提供独立 cm-codex-callback 本机入口；保留现有 cm 与 436 模板，不重建调度器或任务生命周期。
-- 保留历史 acceptance reference 与两次 idle/busy 记录。本轮不创建第三个测试 callback、不重启 App、不修改生产 CM。
+- 保留历史 acceptance reference 与两次 idle/busy 记录，不重做原测试。后续用户授权即时试用：仅为 QIA-99 已结束 run 补发一次结果，不重跑任务、不重启 App、不修改生产 CM。
 
 ## Plan
 
@@ -21,6 +21,7 @@
 3. 完成：实现薄 CLI、完成事件去重与回执查询，补行为测试。
 4. 完成：审查创建结果未知的恢复边界，完成必要检查、使用说明与本机入口安装。
 5. 完成：本次已验证成果提交 c42900e 已推送 qiaoqiao2521/ControlMesh，远端 main 读回匹配；未接受遗留保留。
+6. 进行中：用户授权的 QIA-99 真实结果补发；核验 queue/原线程 turn 与交接文件回读，不把它当作持续钩子或研究业务验收。
 
 ## Acceptance
 

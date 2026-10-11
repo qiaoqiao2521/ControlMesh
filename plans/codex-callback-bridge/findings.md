@@ -6,6 +6,7 @@
 - 当前只读预检：服务 0.162.1，原线程已 loaded，cwd 匹配，允许直接输入且 active。内核 socket peer 证明 App 与该 daemon 相连。未发送消息；实际线程 ID 与运行记录仅保留在私有本地验收目录。
 - cm-paperclip 只透传原生派发；cm-agy 与 cm-process-runner 保存 handoff 后更新原生 issue。当前没有已证实的 CM→本机 Codex 完成事件回传通道；飞书属于独立路线。
 - 本机 PATH 中 cm/controlmesh 仍是旧 uv 工具包，未发现 paperclip/paperclip436 命令。cm-paperclip 固定的是 436 专属 context。因此提供独立本机入口，不把这份远端模板安装为本机默认 cm。
+- 后续用户授权即时试用：沿 Night Lab/cm.json 发现并读回本机 127.0.0.1:3100 Paperclip 2026.916.1；缺 CLI 不能推断实例不存在。最新 QIA-99 的 native run succeeded，但批回执 held、issue in_review；N011 通过，N012 待审。原生评论与批回执、卡片、晨报、catalog、终审事件哈希一致。本次仅补发已有结果，不重复收费执行，不安装新调度。
 - 同 daemon 与回执要求采用已有 queue acceptance 的经验；原任务和原线程分别绑定，queue 入队不等于任务验收。
 - 采用已有知识：CapMesh inventory/community-alternatives.md 与 pitfalls/002-upstream-protocol-wrapping-blackhole.md 的复用原则；用于保留社区客户端和原生生命周期，不编写通用协议包装层。
 

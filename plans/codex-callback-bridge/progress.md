@@ -2,7 +2,7 @@
 
 ## Current
 
-2026-10-11：按用户最新选择只接本机。社区 runtime 与薄适配已实现、安装并验证；实现提交 c42900e 已推送并读回远端 main。未操作 436，也未接入真实 CM 任务的完成钩子。
+2026-10-11：只接本机。实现提交 c42900e 已推送并验远端。用户随后授权立即试用，当前准备以 Night Lab 最新已结束批次 QIA-99 补发完成通知；不重跑研究，不操作 436。queue 与实际接续仍须由本次运行记录核验。
 
 ## Done
 
@@ -30,13 +30,13 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Issues
 
-本机尚未发现 Paperclip 命令或已接通的 CM 完成钩子。因此当前交付是可调用的本机通知入口，不代表真实任务已自动回传。跨主机事件和文件传输不属于当前范围。
+本机没有 Paperclip CLI 不代表没有运行实例。沿 Night Lab 的 cm.json 核实本机 127.0.0.1:3100 已运行 Paperclip 2026.916.1，qiao 公司及最新 run 可读回。此前“未发现完成钩子”边界仍成立；本次是已有任务结果补发，不能称为已安装持续完成回传。跨主机传输不属于当前范围。
 
 开工遗留的 Orca、未接受 cron 提案及历史部署材料继续保留；具体阻碍与最短接续入口见 [Handover & Retained Legacy](../repository-closeout-policy/progress.md#handover--retained-legacy-移交根-codex-独立审批与接续)。接续 owner 为根 Codex，不将未接受成果混入本次提交。
 
 ## Next
 
-下次真实派发时，根 Codex 在既有完成钩子调用 [notify](../../docs/codex-callback.md#接收完成事件)，由原会话核对交接文件和结果；不重建调度器。
+根 Codex 核验 QIA-99 补发的 queue/turn 与交接文件回读；具体证据只存 Night Lab 被忽略的私有 runtime。后续持续回传仍应接既有完成钩子，不重建调度器。
 
 ## Knowledge closeout
 
