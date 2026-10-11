@@ -25,6 +25,9 @@ root 与 agent436 各有自己的 Paperclip CLI context；公司和 API 地址�
 切换 OS 用户时也要进入该用户可访问的工作目录：原生 CLI 会搜索 cwd 的祖先 context，
 仅设置 HOME 不能排除误用 `/root/.paperclip/context.json`。不要放宽 root 配置权限。
 
+定时任务新增或变更时使用[失败收敛与磁盘有界规范](cron-safety-contract.md)及其任务模板；
+这是后续准入/验收要求，不表示436或其他主机已部署这些门禁。
+
 ## 运行归属
 
 - system `paperclip-436.service`：以 agent436 运行，数据在 `/var/lib/paperclip-436`，

@@ -2,6 +2,9 @@
 
 In-process cron scheduling with JSON persistence and one-shot CLI execution.
 
+历史实现说明。当前Paperclip路径的新增任务应遵守[cron安全规范](../cron-safety-contract.md)；
+该规范不恢复本模块的旧调度器，也不声称本模块已实现新门禁。
+
 ## Files
 
 - `manager.py`: `CronJob`, `CronManager` CRUD/persistence
