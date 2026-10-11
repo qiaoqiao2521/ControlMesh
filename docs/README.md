@@ -53,6 +53,7 @@ Runtime behavior notes:
 
 - [Architecture](ARCHITECTURE.md)
 - [Decisions](DECISIONS.md)
+- [Codex Original-chat Callback](codex-callback.md)
 - [System Overview](system_overview.md)
 - [Installation](installation.md)
 - [Read-only Alpha](read-only-alpha.md)

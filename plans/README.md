@@ -29,6 +29,8 @@ The operating rule is:
 
 ## Current work (2026-10-01)
 
+- Codex original-chat callback (2026-10-11): [usage](../docs/codex-callback.md), [plan](codex-callback-bridge/task_plan.md), [status](codex-callback-bridge/progress.md). Reuse codex_callback; local adapter verification and actual CM completion delivery have separate acceptance boundaries.
+
 Current work is selected here; older task files are dated evidence, not competing priorities.
 
 - Opt-in decision consultation v1: [usage](../docs/decision-consultation-v1.md), [plan](decision-consultation-v1/task_plan.md), [acceptance](decision-consultation-v1/progress.md). Native Paperclip lifecycle; no mandatory debate or automatic implementation approval.

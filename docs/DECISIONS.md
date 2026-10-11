@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10-11 — Reuse codex_callback for original Codex chat continuation
+
+Decision: 用户选用 codex_callback 的外部完成通知、原会话 native queue 和接续回执查询。
+Why: 同服务原线程的 idle/busy 路径已在独立本地验收中验证，社区 notify() 已接收外部工作流事件。
+Boundary: 固定 MIT 上游版本，仅补 CM 归属绑定、完成事件去重与消费竞态对账；Paperclip 保留生命周期所有权。
+Alternative: wake-codex 可提供 HTTP 接收与持久化去重，当前不叠加第二个投递器。
+Acceptance: 本轮隔离测试与只读预检分别验收；生产事件传输、文件回传和 App 重启后连接不借此宣称通过。
+Entry: [使用说明](codex-callback.md)、[计划](../plans/codex-callback-bridge/task_plan.md)。
+
 ## 2026-10-07 — Ordinary private chat uses native Agent Chat
 
 Decision: 普通飞书私聊由外部插件接入 Paperclip 原生 Agent Chat；真实工作保持独立执行任务。

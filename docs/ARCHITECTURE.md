@@ -2,6 +2,13 @@
 
 ## Overview
 
+Codex original-chat callbacks use the pinned [community runtime](../vendor/codex_callback/UPSTREAM.md)
+through [cm-codex-callback](codex-callback.md). The local adapter freezes a CM issue's original
+thread and daemon, deduplicates completion runs, and exposes queue/turn receipts.
+Paperclip owns dispatch and lifecycle; Codex independently reviews the handoff.
+The adapter adds no scheduler. The local completion hook remains unconnected;
+adapter verification does not establish delivery from an actual CM task.
+
 Current ordinary private-chat path (2026-10-07): the external [Feishu connector](../plugins/feishu-connector/README.md)
 maps one explicitly paired owner/chat to native Paperclip Agent Chat. A stdlib CLI calls the
 official chat/comment API of a verified local_trusted instance. Paperclip owns conversation,

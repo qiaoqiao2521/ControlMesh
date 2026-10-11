@@ -6,6 +6,7 @@ CM 是工作流概念与薄适配层，实际运行底座是 [Paperclip](https:/
 当前方向与验收边界见 [PROJECT.md](PROJECT.md) 和 [Paperclip 计划进度](plans/paperclip-based-cm/progress.md)。
 关键决策可按需启用[会审 v1](docs/decision-consultation-v1.md)：独立意见、有限补充、证据与分歧，不强制每个任务多 Agent 化。
 436 的新命令、飞书入口与恢复方式见 [Paperclip CM 运行说明](docs/paperclip-436.md)；[真实收发复测状态](plans/436-paperclip-feishu/progress.md)单独记录。
+Codex 原会话完成回调采用 [codex_callback 薄适配](docs/codex-callback.md)，独立入口为 `cm-codex-callback`。
 以下功能和安装命令描述保留的旧 Python CM，**不代表 Paperclip 集成安装或生产迁移已完成**。
 
 ## What
@@ -45,7 +46,7 @@ controlmesh bot
 Develop from source:
 
 ```bash
-git clone https://github.com/muqiao215/ControlMesh.git
+git clone https://github.com/qiaoqiao2521/ControlMesh.git
 cd ControlMesh
 uv sync --locked --all-extras --dev
 uv run controlmesh

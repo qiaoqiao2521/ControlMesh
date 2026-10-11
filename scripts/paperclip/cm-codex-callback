@@ -1,0 +1,444 @@
+#!/usr/bin/env python3
+"""Bind one CM issue to its original local Codex thread, then notify once per run.
+
+CM owns the handoff; codex_callback owns delivery. This adapter neither dispatches
+work nor retries an uncertain callback.
+"""
+
+from __future__ import annotations
+
+import argparse
+from contextlib import contextmanager
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import stat
+import sys
+import tempfile
+import time
+import uuid
+
+RUNTIME = Path(__file__).resolve().parents[2] / "vendor/codex_callback/runtime"
+sys.path.insert(0, str(RUNTIME))
+from codex_callback.client import CodexClient
+from codex_callback.jobs import notify, read_status
+
+MAX_HANDOFF_BYTES = 2 * 1024 * 1024
+MAX_STATE_BYTES = 64 * 1024
+OUTCOMES = {"completed", "failed", "cancelled", "timed_out"}
+CALLBACK_STATES = {"pending", "sending", "queued", "started"}
+DEFAULT_STATE = Path.home() / ".local/state/cm-codex-callback"
+DEFAULT_SOCKET = Path.home() / ".codex/app-server-control/app-server-control.sock"
+
+
+def identity(value):
+    try:
+        return str(uuid.UUID(value))
+    except (ValueError, TypeError, AttributeError):
+        raise ValueError("invalid_uuid") from None
+
+
+def logical_path(value):
+    return Path(value).expanduser().absolute()
+
+
+def private_directory(path, *, create=False):
+    path = logical_path(path)
+    if any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError("state_symlink_refused")
+    if create:
+        missing = []
+        parent = path
+        while not parent.exists():
+            missing.append(parent)
+            parent = parent.parent
+        path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        for created in reversed(missing):
+            fd = os.open(created.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+    try:
+        info = path.stat()
+    except FileNotFoundError:
+        raise ValueError("binding_or_event_not_found") from None
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
+        raise ValueError("private_state_directory_required")
+    return path
+
+
+def private_file(path):
+    info = path.lstat()
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or info.st_mode & 0o077
+        or info.st_size > MAX_STATE_BYTES
+    ):
+        raise ValueError("private_state_file_required")
+
+
+def load(path):
+    private_file(path)
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_STATE_BYTES + 1)
+    if len(raw) > MAX_STATE_BYTES:
+        raise ValueError("state_too_large")
+    value = json.loads(raw)
+    if not isinstance(value, dict):
+        raise ValueError("state_object_required")
+    return value
+
+
+def save(path, value):
+    raw = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+    if len(raw) > MAX_STATE_BYTES:
+        raise ValueError("state_too_large")
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".callback-")
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+@contextmanager
+def locked(directory):
+    fd = os.open(directory / ".lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
+
+
+def namespace(company_id, issue_id, state_dir, *, create=False):
+    root = private_directory(state_dir or DEFAULT_STATE, create=create)
+    company = private_directory(root / company_id, create=create)
+    return private_directory(company / issue_id, create=create)
+
+
+def preflight(binding):
+    """Use only read RPCs; the daemon must already own this exact thread."""
+    try:
+        with CodexClient(binding["socket_path"]) as client:
+            cursor, seen = None, set()
+            for _ in range(100):
+                page = client.request("thread/loaded/list", {"cursor": cursor, "limit": 100})
+                data = page.get("data")
+                if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
+                    raise ValueError("native_loaded_list_invalid")
+                if binding["thread_id"] in data:
+                    break
+                cursor = page.get("nextCursor")
+                if not cursor:
+                    raise ValueError("native_thread_not_loaded")
+                if not isinstance(cursor, str) or cursor in seen:
+                    raise ValueError("native_loaded_list_invalid")
+                seen.add(cursor)
+            else:
+                raise ValueError("native_loaded_list_incomplete")
+            thread = client.read_thread(binding["thread_id"])
+            if not isinstance(thread, dict) or thread.get("id") != binding["thread_id"]:
+                raise ValueError("native_thread_identity_mismatch")
+            native_cwd = thread.get("cwd")
+            if (
+                not isinstance(native_cwd, str)
+                or not Path(native_cwd).is_absolute()
+                or str(Path(native_cwd).resolve(strict=True)) != binding["cwd"]
+            ):
+                raise ValueError("native_thread_cwd_mismatch")
+            if thread.get("canAcceptDirectInput") is not True:
+                raise ValueError("native_thread_input_unavailable")
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("native_preflight_failed") from None
+
+
+def binding_fields(company_id, issue_id, thread_id, cwd, socket_path):
+    directory = Path(cwd or os.getcwd()).expanduser().resolve(strict=True)
+    if not directory.is_dir():
+        raise ValueError("cwd_directory_required")
+    return {
+        "company_id": identity(company_id),
+        "issue_id": identity(issue_id),
+        "thread_id": identity(thread_id or os.environ.get("CODEX_THREAD_ID")),
+        "cwd": str(directory),
+        "socket_path": str(logical_path(socket_path or DEFAULT_SOCKET)),
+    }
+
+
+def bind(company_id, issue_id, *, thread_id=None, cwd=None, socket_path=None, state_dir=None):
+    fields = binding_fields(company_id, issue_id, thread_id, cwd, socket_path)
+    directory = namespace(fields["company_id"], fields["issue_id"], state_dir, create=True)
+    path = directory / "binding.json"
+    with locked(directory):
+        if path.exists() or path.is_symlink():
+            existing = load(path)
+            if existing.get("schema") != "cm.codex_callback.binding.v1" or any(
+                existing.get(key) != value for key, value in fields.items()
+            ):
+                raise ValueError("binding_conflict")
+            return {**fields, "bound": True, "replayed": True, "business_accepted": False}
+        preflight(fields)
+        save(path, {"schema": "cm.codex_callback.binding.v1", **fields, "created_at": time.time()})
+    return {**fields, "bound": True, "replayed": False, "business_accepted": False}
+
+
+def get_binding(company_id, issue_id, state_dir):
+    company_id, issue_id = identity(company_id), identity(issue_id)
+    directory = namespace(company_id, issue_id, state_dir)
+    binding = load(directory / "binding.json")
+    if (
+        binding.get("schema") != "cm.codex_callback.binding.v1"
+        or binding.get("company_id") != company_id
+        or binding.get("issue_id") != issue_id
+        or identity(binding.get("thread_id")) != binding.get("thread_id")
+        or not isinstance(binding.get("cwd"), str)
+        or not isinstance(binding.get("socket_path"), str)
+    ):
+        raise ValueError("binding_identity_mismatch")
+    return directory, binding
+
+
+def handoff_record(filename, binding):
+    candidate = Path(filename).expanduser()
+    if not candidate.is_absolute():
+        candidate = Path(binding["cwd"]) / candidate
+    if candidate.is_symlink():
+        raise ValueError("handoff_symlink_refused")
+    path = candidate.resolve(strict=True)
+    if not path.is_relative_to(Path(binding["cwd"])):
+        raise ValueError("handoff_outside_bound_cwd")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError("handoff_regular_file_required")
+        raw = stream.read(MAX_HANDOFF_BYTES + 1)
+        after = os.fstat(stream.fileno())
+    if len(raw) > MAX_HANDOFF_BYTES:
+        raise ValueError("handoff_too_large")
+    if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+        raise ValueError("handoff_changed_during_read")
+    return {"path": str(path), "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def followup_for(event, binding):
+    artifact = event["handoff"]
+    return (
+        f"CM completion for original Codex thread {binding['thread_id']}. "
+        f"company_id={event['company_id']}; issue_id={event['issue_id']}; "
+        f"run_id={event['run_id']}; outcome={event['outcome']}. "
+        f"Read handoff {artifact['path']}; expected SHA256={artifact['sha256']}. "
+        "Check the actual CODEX_THREAD_ID matches the original thread above "
+        "and recompute the hash. Independently verify the handoff, CM identity, "
+        "evidence and pending review in this original conversation. "
+        "A callback receipt is not business acceptance. Do not create or send another "
+        "callback for this event."
+    )
+
+
+def callback_receipt(event_dir, event, binding):
+    """Recover a single existing community callback; never create or restart one."""
+    callbacks = private_directory(event_dir / "callbacks")
+    entries = list(callbacks.iterdir())
+    if not entries:
+        return None
+    if len(entries) != 1:
+        raise ValueError("multiple_callback_directories")
+    directory = private_directory(entries[0])
+    if identity(directory.name) != directory.name:
+        raise ValueError("callback_directory_invalid")
+    recorded = event.get("callback_directory")
+    if recorded is not None and recorded != str(directory):
+        raise ValueError("callback_directory_mismatch")
+    status_file = directory / "status.json"
+    if not status_file.exists():
+        return None
+    private_file(status_file)
+    state = read_status(directory)
+    if not isinstance(state, dict) or any(
+        state.get(key) != value
+        for key, value in {
+            "id": directory.name,
+            "directory": str(directory),
+            "thread_id": binding["thread_id"],
+            "cwd": binding["cwd"],
+            "socket_path": event["callback_socket_path"],
+            "outcome": event["outcome"],
+            "followup": followup_for(event, binding),
+            "command": None,
+        }.items()
+    ):
+        raise ValueError("callback_identity_mismatch")
+    callback = state.get("callback")
+    if not isinstance(callback, dict) or callback.get("status") not in CALLBACK_STATES:
+        raise ValueError("callback_status_invalid")
+    receipt = {"status": callback["status"]}
+    for key in ("queue_id", "turn_id"):
+        if key in callback:
+            value = callback[key]
+            if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", value):
+                raise ValueError("callback_receipt_invalid")
+            receipt[key] = value
+    if (
+        callback["status"] == "queued"
+        and "queue_id" not in receipt
+        or callback["status"] == "started"
+        and "turn_id" not in receipt
+    ):
+        raise ValueError("callback_receipt_missing")
+    if callback.get("error"):
+        receipt["error_recorded"] = True
+    worker_seen = isinstance(state.get("worker_pid"), int) and state["worker_pid"] > 0
+    progress_seen = worker_seen or callback["status"] in {"sending", "queued", "started"}
+    return str(directory), receipt, progress_seen
+
+
+def summary(event_dir, event, binding, *, replayed=False):
+    found = callback_receipt(event_dir, event, binding)
+    creation_confirmed = found and (event.get("creation_acknowledged") is True or found[2])
+    return {
+        "company_id": event["company_id"],
+        "issue_id": event["issue_id"],
+        "run_id": event["run_id"],
+        "thread_id": binding["thread_id"],
+        "outcome": event["outcome"],
+        "handoff": event["handoff"],
+        "phase": "callback_created" if creation_confirmed else "needs_reconciliation",
+        "callback": found[1] if found else {"status": "unknown"},
+        "replayed": replayed,
+        "followup_complete": False,
+        "business_accepted": False,
+    }
+
+
+def notify_completion(company_id, issue_id, run_id, outcome, handoff, *, state_dir=None):
+    directory, binding = get_binding(company_id, issue_id, state_dir)
+    run_id = identity(run_id)
+    if outcome not in OUTCOMES:
+        raise ValueError("invalid_outcome")
+    facts = {
+        "company_id": binding["company_id"],
+        "issue_id": binding["issue_id"],
+        "run_id": run_id,
+        "outcome": outcome,
+        "handoff": handoff_record(handoff, binding),
+    }
+    events = private_directory(directory / "events", create=True)
+    event_dir = private_directory(events / run_id, create=True)
+    event_path = event_dir / "event.json"
+    with locked(event_dir):
+        if event_path.exists() or event_path.is_symlink():
+            event = load(event_path)
+            if event.get("schema") != "cm.codex_callback.event.v1" or any(
+                event.get(key) != value for key, value in facts.items()
+            ):
+                raise ValueError("completion_conflict")
+            result = summary(event_dir, event, binding, replayed=True)
+            event["phase"] = result["phase"]
+            save(event_path, event)
+            return result
+        preflight(binding)
+        private_directory(event_dir / "callbacks", create=True)
+        event = {
+            "schema": "cm.codex_callback.event.v1",
+            **facts,
+            "phase": "creating",
+            "created_at": time.time(),
+            "callback_directory": None,
+            "creation_acknowledged": False,
+            "callback_socket_path": str(Path(binding["socket_path"]).resolve()),
+        }
+        save(event_path, event)  # Reserve durably before the community function can spawn.
+        try:
+            callback_dir = notify(
+                followup=followup_for(event, binding),
+                cwd=binding["cwd"],
+                outcome=outcome,
+                thread_id=binding["thread_id"],
+                socket_path=binding["socket_path"],
+                runs_dir=event_dir / "callbacks",
+            )
+            event["callback_directory"] = str(logical_path(callback_dir))
+            event["creation_acknowledged"] = True
+            result = summary(event_dir, event, binding)
+            event["phase"] = result["phase"]
+            save(event_path, event)
+            return result
+        except BaseException:
+            event["phase"] = "needs_reconciliation"
+            save(event_path, event)
+            raise ValueError("notify_result_unknown_read_only_reconciliation") from None
+
+
+def status(company_id, issue_id, run_id, *, state_dir=None):
+    directory, binding = get_binding(company_id, issue_id, state_dir)
+    event_dir = private_directory(directory / "events" / identity(run_id))
+    with locked(event_dir):
+        event = load(event_dir / "event.json")
+        if (
+            event.get("schema") != "cm.codex_callback.event.v1"
+            or event.get("company_id") != binding["company_id"]
+            or event.get("issue_id") != binding["issue_id"]
+            or event.get("run_id") != identity(run_id)
+        ):
+            raise ValueError("event_identity_mismatch")
+        return summary(event_dir, event, binding)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    binding_parser = commands.add_parser("bind", help="Freeze an existing native thread binding")
+    binding_parser.add_argument("--thread-id", default=None)
+    binding_parser.add_argument("--cwd", default=None)
+    binding_parser.add_argument("--socket-path", default=None)
+    event_parser = commands.add_parser(
+        "notify", help="Notify once from a verified local CM completion hook"
+    )
+    event_parser.add_argument("--run-id", required=True)
+    event_parser.add_argument("--outcome", required=True, choices=sorted(OUTCOMES))
+    event_parser.add_argument("--handoff", required=True)
+    status_parser = commands.add_parser(
+        "status", help="Read local callback receipts; never retry delivery"
+    )
+    status_parser.add_argument("--run-id", required=True)
+    for sub in (binding_parser, event_parser, status_parser):
+        sub.add_argument("--company-id", required=True)
+        sub.add_argument("--issue-id", required=True)
+        sub.add_argument("--state-dir", default=None)
+    args = parser.parse_args(argv)
+    fields = {k: v for k, v in vars(args).items() if k != "command"}
+    try:
+        result = {"bind": bind, "notify": notify_completion, "status": status}[args.command](
+            **fields
+        )
+    except Exception as exc:
+        reason = (
+            str(exc)
+            if type(exc) is ValueError and re.fullmatch(r"[a-z_0-9]+", str(exc))
+            else "callback_adapter_failed"
+        )
+        print(json.dumps({"error": reason, "business_accepted": False}), file=sys.stderr)
+        return 2
+    print(json.dumps(result, ensure_ascii=False))
+    return 2 if args.command == "notify" and result["phase"] == "needs_reconciliation" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
