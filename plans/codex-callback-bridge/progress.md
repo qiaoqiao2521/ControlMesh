@@ -2,7 +2,7 @@
 
 ## Current
 
-2026-10-11：只接本机。实现提交 c42900e 已推送并验远端。用户授权立即试用后，Night Lab 已结束批次 QIA-99 的真实结果补发通过：忙时入队、同原线程自动接续、持久 turn 和交接文件读回全部核验。不重跑研究，不操作 436。
+2026-10-11：只接本机。QIA-99 真实结果补发已通过。QIA-100 新研究已原生成功结束，生成草稿；native 完成状态事件自动触发 notify，原会话 active 时一条匹配 queue 消息已核验。等待当前答复结束后的原会话接续与草稿独立验收，尚不宣称完整闭环完成。
 
 ## Done
 
@@ -16,6 +16,9 @@
 - 11 项来源/补丁/测试哈希、183 个本地文档链接与暂存 diff 检查通过。23 个提交文件经范围检查，无运行状态文件和凭据模式命中；使用已验证的新账户推送到既有目标仓库。
 - QIA-99 补发：原线程 active 时仅一条 matching queue 消息；随后 status=started、receipt_source=history。持久历史仅一个匹配 client ID/marker/交接路径的 turn，queue 已无该消息；实际 CODEX_THREAD_ID、queue_id、turn_id 对账通过。交接文件、批回执与五份产物哈希读回一致，私有 acceptance.json 已保存并读回。不宣称当前核验 turn 已结束。
 - Native heartbeat succeeded/exitCode=0，原生任务仍 in_review、批回执 held。N011 终审通过，N012 待修订。社区外部通知没有 command，其 returncode=null 合乎 notify() 行为，不代替原生退出证据。
+- 新增单任务 native event watcher 与单轮研究 worker；12 项 Node 事件/身份/终态/退出码/产物篡改测试通过。Node 语法检查、worker E/F 与 help 检查通过；未重跑原两事件验收。
+- QIA-100 先创建 backlog、绑定原会话、验订阅就绪，再切 todo 原生派发。读回 in_progress 与 run=running；worker-attempt 保留记录已存在，watch 无错误。具体 UUID、PID、模型日志与运行状态仅保存在 Night Lab 忽略的 .runtime/codex-callback/local-model-deployment-20261011/。
+- QIA-100 后续 native status=succeeded/exitCode=0、issue=in_review、草稿已生成。watch 收到 heartbeat.run.status 终态事件，重新核验 run/task/agent/link、worker 与三份产物哈希后自动 notify。队列中仅一个匹配 callback，原线程仍 active；queued-evidence.json 私有保存。本轮没有手动执行 notify 或轮询来触发通知。
 
 验证命令（仓库根目录）：
 
@@ -27,7 +30,8 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
-- 真实结果补发已验收；持续自动回传仍需由本机任务完成钩子调用 notify，并单独验收。现有回传入口不能冒充已安装持续钩子。
+- QIA-100 终态事件与 queue 已核验；持久 turn、交接文件回读与研究草稿需由原会话完成独立验收。根 Codex 接续 owner；最短入口为本次任务私有目录 handoff.json、queued-evidence.json、report.md。
+- 该订阅仅覆盖本次明确绑定任务，不代表所有后续 CM 任务已经自动绑定，也不代表断线恢复或长期后台服务通过。
 - App 下次普通启动的持久连接仍需独立验收。
 
 ## Issues
@@ -38,7 +42,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-本次补发验证完成，停止新增 callback。根 Codex 接续持续自动回传时，应接既有完成钩子，不重建调度器。最短验证入口为 Night Lab 被忽略的 .runtime/codex-callback/QIA-99/acceptance.json；真实任务状态回源原生 Issue 与批回执。
+当前答复结束后，让 QIA-100 的原生完成事件自动投递原会话。原会话读取交接文件、源页面回执和匹配持久 turn，保存独立 acceptance；不重复派发，不重跑模型。核验后暂停本次一次性 Agent，保留原生审计任务与私有证据。
 
 ## Knowledge closeout
 

@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""One CM process task; reuse Night Lab research and source-receipt validation."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--spec", required=True)
+    args = parser.parse_args()
+    spec = json.loads(Path(args.spec).read_text())
+    directory = Path(spec["directory"]).resolve()
+    sys.path.insert(0, spec["night_lab"])
+    import run as runner
+    from paperclip_bridge import NativeAPI, require_uuid
+
+    api = NativeAPI(os.environ["PAPERCLIP_API_KEY"], os.environ["PAPERCLIP_RUN_ID"])
+    run_id = require_uuid(os.environ["PAPERCLIP_RUN_ID"], "invalid_native_run")
+    assert (os.environ["PAPERCLIP_COMPANY_ID"], os.environ["PAPERCLIP_AGENT_ID"]) == (
+        spec["company_id"],
+        spec["agent_id"],
+    )
+    native = api.call("GET", "/api/heartbeat-runs/" + run_id)
+    issue = api.call("GET", "/api/issues/" + spec["issue_id"])
+    links = api.call("GET", "/api/heartbeat-runs/" + run_id + "/issues")
+    assert native["id"] == run_id and native["status"] == "running"
+    assert native["companyId"] == issue["companyId"] == spec["company_id"]
+    assert native["agentId"] == issue["assigneeAgentId"] == spec["agent_id"]
+    assert native["contextSnapshot"]["issueId"] == issue["id"] == spec["issue_id"]
+    assert any(x["issueId"] == issue["id"] for x in links)
+    with (directory / "worker-attempt.json").open("x") as stream:
+        json.dump({"run_id": run_id, "no_automatic_retry": True}, stream)
+    runner.ROOT, runner.RUNTIME = directory, directory / ".runtime"
+    job = directory / ".runtime/research"
+    job.mkdir(parents=True, exist_ok=True)
+    config = dict(
+        json.loads((Path(spec["night_lab"]) / "config.json").read_text()),
+        daily_call_limit=1,
+        phase_timeout_seconds=600,
+        agent_steps=10,
+    )
+    receipt = dict(
+        company_id=spec["company_id"],
+        issue_id=spec["issue_id"],
+        agent_id=spec["agent_id"],
+        run_id=run_id,
+        business_outcome="failed",
+        artifacts=[],
+    )
+    try:
+        prompt = (
+            (Path(spec["night_lab"]) / "prompts/research.md").read_text()
+            + "\n\n"
+            + spec["question"]
+        )
+        text, model_receipt = runner.invoke(config["researcher"], prompt, config, "research", job)
+        research = runner.extract(text)
+        runner.validate_research(research)
+        runner.verify_access(research, model_receipt)
+        runner.save(directory / "research.json", research)
+        lines = [
+            "# " + research["title"],
+            "",
+            "> 单轮研究草稿，等待原 Codex 核查；未安装或测试本地模型。",
+            "",
+            research["summary"],
+            "",
+        ]
+        for claim in research["claims"]:
+            lines += [
+                "- " + claim["id"] + " [" + claim["kind"] + "] " + claim["text"],
+                "  边界：" + claim["limits"],
+            ]
+        lines += ["", "## 来源"]
+        lines += [
+            "- " + s["id"] + " [" + s["title"] + "](" + s["url"] + ")" for s in research["sources"]
+        ]
+        runner.write(directory / "report.md", "\n".join(lines) + "\n")
+        receipt["business_outcome"] = "draft_for_review"
+        for path in [
+            directory / "research.json",
+            directory / "report.md",
+            job / "research.receipt.json",
+        ]:
+            receipt["artifacts"].append(
+                {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+            )
+        runner.save(directory / "worker-receipt.json", receipt)
+        interaction = api.call(
+            "POST",
+            "/api/issues/" + issue["id"] + "/interactions",
+            {
+                "kind": "request_confirmation",
+                "sourceRunId": run_id,
+                "idempotencyKey": "local-model-review-" + run_id,
+                "addresseeUserId": "local-board",
+                "continuationPolicy": "none",
+                "title": "本地模型部署研究待验收",
+                "payload": {
+                    "version": 1,
+                    "prompt": "原 Codex 核查研究草稿和来源回执；不自动重跑或安装模型。",
+                },
+            },
+        )
+        api.call(
+            "PATCH",
+            "/api/issues/" + issue["id"],
+            {
+                "status": "in_review",
+                "reviewInteractionId": interaction["id"],
+                "comment": "本地模型部署研究已交接，来源回执与产物哈希已保存；待原 Codex 验收。",
+            },
+        )
+        print("research_draft_handoff_completed", flush=True)
+        return 0
+    except Exception:
+        receipt["business_outcome"] = "failed"
+        runner.save(directory / "worker-receipt.json", receipt)
+        api.call(
+            "PATCH",
+            "/api/issues/" + issue["id"],
+            {
+                "status": "blocked",
+                "comment": "研究失败或交接未完成；保留回执，不自动重试。",
+                "unblockDescriptor": {
+                    "owner": {"agentId": spec["agent_id"]},
+                    "action": "根 Codex 核查本次研究回执与错误，不重跑收费阶段。",
+                },
+            },
+        )
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

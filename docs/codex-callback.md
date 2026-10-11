@@ -73,3 +73,19 @@ cm-codex-callback status \
 ## 验证与接续
 
 隔离测试不运行真实 worker，也不投递 native queue。当前进度与验证命令见 [progress.md](../plans/codex-callback-bridge/progress.md)。在本机任务的完成钩子中调用 notify，再由原会话读取交接文件。跨主机传输不属于本次范围。
+
+## 原生完成事件试用
+
+本机 Paperclip 2026.916.1 提供 `/api/companies/<company>/events/ws`。其 `heartbeat.run.status` 事件包含 run、issue、agent 和终态。薄入口 [cm-codex-native-watch.mjs](../scripts/paperclip/cm-codex-native-watch.mjs) 订阅这一现有接口，不修改 Paperclip 或飞书插件。
+
+当前只支持明确的 `127.0.0.1:3100`、`local_trusted` 实例和 Node 22+ 内置 WebSocket。它绑定一个 company/issue/agent，先生成订阅就绪记录，再由原生入口派发。终态事件触发后，重新查询 run 和关联 issue，核验 worker 回执与文件哈希，然后调用既有 notify。它不轮询、不执行模型、不创建任务或恢复失败运行。
+
+每次订阅最多 20 分钟，只接一个 run，结束后退出。连接中断、不同 run、缺失产物或未知通知结果均保存错误并停止，不自动重连或重发。它没有补历史事件的保证；操作者应从保留记录核验，不能假设长期或断线恢复已验收。
+
+QIA-100 试用 [cm-local-model-research](../scripts/paperclip/cm-local-model-research)，复用 Night Lab 的研究调用、来源回执和 JSON 校验。一轮 GLM 研究产生待审草稿，临时 Paperclip 凭据不传给模型。运行保留记录拒绝同任务自动重跑；未安装或下载本地模型。其草稿不冒充四阶段互审已通过知识卡。
+
+独立事件边界测试：
+
+```sh
+node --test tests/paperclip_adapters/test_codex_native_watch.mjs
+```
