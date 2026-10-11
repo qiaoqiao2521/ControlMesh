@@ -22,6 +22,7 @@
 - QIA-100 原会话自动接续后，实测 CODEX_THREAD_ID 与绑定原线程一致。持久历史只有一个匹配 callback/client ID 的 turn；marker、交接路径与哈希、queue_id、turn_id 均对账通过，队列匹配项已为零。handoff、worker 回执、三份产物与研究事件文件哈希读回一致。acceptance.json 私有保存并读回，不提前宣称当前核验 turn 已结束。
 - 六个研究来源均有 completed webfetch，模型最终 reason=stop、exit_code=0。原会话另读官方 Linux/build/server/FAQ/context 文档，发现构建命令缺目录参数、AMD 安装边界过宽、KV 量化条件缺失、通用内存公式与维护成本概括证据不足。operator-review.json、review.md 私有保存；原产物不改写，业务接受保持 false，没有重跑模型或安装本地模型。
 - 通过原生 pause 接口仅暂停本次一次性 Agent，并重新读回 paused。原生 run 仍 succeeded，issue 仍 in_review，保留审计与待审交互；没有创建或发送另一条 callback。
+- 用户后续要求把君临天下项目返工接到 queue。QIA-101 已独立绑定、订阅就绪后派发；其项目 worker 的动态模块缺 __file__，在启动 AGY 前失败，原生 failed 事件已通知 queue。离线复现与标准模块加载修复后，复用子进程入口 /usr/bin/true 回归通过；QIA-102 按父子任务保留失败并重新绑定、先订阅后派发，旧 Agent 已暂停，旧 callback 不重发。新增可选 spec.followup 仅描述任务自己的验收入口，原生身份和社区传输不变。产品返工与验收属于游戏工程计划；不将派发说成产品完成。运行证据继续私有保存，历史遗留仍保留。
 
 验证命令（仓库根目录）：
 

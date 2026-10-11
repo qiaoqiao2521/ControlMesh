@@ -54,6 +54,7 @@ export function verifyArtifacts(spec, receipt, runId) {
 async function watch(specPath) {
   const spec = json(specPath);
   for (const key of ['company_id', 'issue_id', 'agent_id', 'thread_id']) check(uuid.test(spec[key]), 'spec_identity_invalid');
+  check(spec.followup === undefined || typeof spec.followup === 'string' && spec.followup.length > 0 && spec.followup.length <= 8000, 'spec_followup_invalid');
   check(spec.native_base === BASE && realpathSync(spec.directory) === dirname(realpathSync(specPath)), 'spec_path_invalid');
   const health = await api('health');
   check(health.deploymentMode === 'local_trusted' && health.status === 'ok', 'local_trusted_required');
@@ -107,7 +108,7 @@ async function watch(specPath) {
         business_outcome: receipt?.business_outcome ?? 'no_worker_receipt', artifacts,
         worker_receipt: receipt ? { path: receiptPath, sha256: digest(readFileSync(receiptPath)) } : null,
         acceptance_directory: spec.directory,
-        followup: 'Verify actual CODEX_THREAD_ID, handoff/artifact hashes, native event/run/task ownership and one matching persisted callback turn. Read report.md and research.json; independently review source receipts and conclusions. Save acceptance.json here, report the deployment research and whether dispatch -> native completion event -> queue -> original chat continuation passed. Do not create another callback or rerun the model. Pause only this one-shot agent after verification. Task output is a research draft, not an installed model or deployment benchmark.',
+        followup: spec.followup ?? 'Verify actual CODEX_THREAD_ID, handoff/artifact hashes, native event/run/task ownership and one matching persisted callback turn. Read report.md and research.json; independently review source receipts and conclusions. Save acceptance.json here, report the deployment research and whether dispatch -> native completion event -> queue -> original chat continuation passed. Do not create another callback or rerun the model. Pause only this one-shot agent after verification. Task output is a research draft, not an installed model or deployment benchmark.',
       };
       const handoffPath = resolve(spec.directory, 'handoff.json');
       exclusive(handoffPath, handoff);
