@@ -84,6 +84,8 @@ cm-codex-callback status \
 
 QIA-100 试用 [cm-local-model-research](../scripts/paperclip/cm-local-model-research)，复用 Night Lab 的研究调用、来源回执和 JSON 校验。一轮 GLM 研究产生待审草稿，临时 Paperclip 凭据不传给模型。运行保留记录拒绝同任务自动重跑；未安装或下载本地模型。其草稿不冒充四阶段互审已通过知识卡。
 
+本次真实试用已通过原生派发、完成事件自动 notify、忙时入队、同原会话唯一持久 turn 与文件独立读回。草稿独立审查需要修订，issue 保持 in_review；一次性 Agent 已暂停。验收与审查证据私有保存。该结果只覆盖本次明确绑定任务，不扩展为后续任务自动绑定、断线恢复或模型部署通过。
+
 独立事件边界测试：
 
 ```sh

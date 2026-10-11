@@ -2,7 +2,7 @@
 
 ## Current
 
-2026-10-11：只接本机。QIA-99 真实结果补发已通过。QIA-100 新研究已原生成功结束，生成草稿；native 完成状态事件自动触发 notify，原会话 active 时一条匹配 queue 消息已核验。等待当前答复结束后的原会话接续与草稿独立验收，尚不宣称完整闭环完成。
+2026-10-11：只接本机。QIA-99 真实结果补发已通过。QIA-100 新任务的原生派发 → 完成事件 → queue → 原会话自动接续 → 文件独立核验闭环已通过。研究草稿需要修订，原生 issue 保持 in_review；本次一次性 Agent 已暂停并读回确认。
 
 ## Done
 
@@ -19,6 +19,9 @@
 - 新增单任务 native event watcher 与单轮研究 worker；12 项 Node 事件/身份/终态/退出码/产物篡改测试通过。Node 语法检查、worker E/F 与 help 检查通过；未重跑原两事件验收。
 - QIA-100 先创建 backlog、绑定原会话、验订阅就绪，再切 todo 原生派发。读回 in_progress 与 run=running；worker-attempt 保留记录已存在，watch 无错误。具体 UUID、PID、模型日志与运行状态仅保存在 Night Lab 忽略的 .runtime/codex-callback/local-model-deployment-20261011/。
 - QIA-100 后续 native status=succeeded/exitCode=0、issue=in_review、草稿已生成。watch 收到 heartbeat.run.status 终态事件，重新核验 run/task/agent/link、worker 与三份产物哈希后自动 notify。队列中仅一个匹配 callback，原线程仍 active；queued-evidence.json 私有保存。本轮没有手动执行 notify 或轮询来触发通知。
+- QIA-100 原会话自动接续后，实测 CODEX_THREAD_ID 与绑定原线程一致。持久历史只有一个匹配 callback/client ID 的 turn；marker、交接路径与哈希、queue_id、turn_id 均对账通过，队列匹配项已为零。handoff、worker 回执、三份产物与研究事件文件哈希读回一致。acceptance.json 私有保存并读回，不提前宣称当前核验 turn 已结束。
+- 六个研究来源均有 completed webfetch，模型最终 reason=stop、exit_code=0。原会话另读官方 Linux/build/server/FAQ/context 文档，发现构建命令缺目录参数、AMD 安装边界过宽、KV 量化条件缺失、通用内存公式与维护成本概括证据不足。operator-review.json、review.md 私有保存；原产物不改写，业务接受保持 false，没有重跑模型或安装本地模型。
+- 通过原生 pause 接口仅暂停本次一次性 Agent，并重新读回 paused。原生 run 仍 succeeded，issue 仍 in_review，保留审计与待审交互；没有创建或发送另一条 callback。
 
 验证命令（仓库根目录）：
 
@@ -30,19 +33,19 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
-- QIA-100 终态事件与 queue 已核验；持久 turn、交接文件回读与研究草稿需由原会话完成独立验收。根 Codex 接续 owner；最短入口为本次任务私有目录 handoff.json、queued-evidence.json、report.md。
+- QIA-100 回传验证已结束。草稿修订仍待独立研究任务，不自动重试收费阶段。根 Codex 为待审接续 owner；最短入口为本次私有目录 review.md 与 operator-review.json。
 - 该订阅仅覆盖本次明确绑定任务，不代表所有后续 CM 任务已经自动绑定，也不代表断线恢复或长期后台服务通过。
 - App 下次普通启动的持久连接仍需独立验收。
 
 ## Issues
 
-本机没有 Paperclip CLI 不代表没有运行实例。沿 Night Lab 的 cm.json 核实本机 127.0.0.1:3100 已运行 Paperclip 2026.916.1，qiao 公司及最新 run 可读回。此前“未发现完成钩子”边界仍成立；本次是已有任务结果补发，不能称为已安装持续完成回传。跨主机传输不属于当前范围。
+本机没有 Paperclip CLI 不代表没有运行实例。沿 Night Lab 的 cm.json 核实本机 127.0.0.1:3100 已运行 Paperclip 2026.916.1，qiao 公司及最新 run 可读回。QIA-99 是已有结果补发；QIA-100 已验通真实原生完成事件的单任务回传。所有后续任务自动绑定与持续服务仍未验收。跨主机传输不属于当前范围。
 
 开工遗留的 Orca、未接受 cron 提案及历史部署材料继续保留；具体阻碍与最短接续入口见 [Handover & Retained Legacy](../repository-closeout-policy/progress.md#handover--retained-legacy-移交根-codex-独立审批与接续)。接续 owner 为根 Codex，不将未接受成果混入本次提交。
 
 ## Next
 
-当前答复结束后，让 QIA-100 的原生完成事件自动投递原会话。原会话读取交接文件、源页面回执和匹配持久 turn，保存独立 acceptance；不重复派发，不重跑模型。核验后暂停本次一次性 Agent，保留原生审计任务与私有证据。
+本次闭环验收停止，不重复派发或重跑模型。未来新任务沿既有 bind → 订阅就绪 → 原生派发 → 完成事件 notify → 原会话独立验收的顺序。业务待审与传输回执分别记录；本次草稿修订要求已交接给根 Codex。
 
 ## Knowledge closeout
 
