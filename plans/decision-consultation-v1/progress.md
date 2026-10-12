@@ -5,6 +5,8 @@
 
 2026-10-13：新会审的互补视角已实现，复用已有 purpose；旧回执恢复兼容检查通过。本轮未派发真实咨询，视角对模型判断的实际作用待真实任务观察。
 
+实现提交 43a0a767d403e9bce96eefb1993596d1a8d29163 已推送原 main。总览及 CapMesh 的 CM/callback Current 引用用原 cm-closeout 同步；本轮没有新调度或部署。
+
 ## Done
 - 2026-10-13：新会审分别核对来源/假设与反证/失败条件；共用冻结事实，原结果协议、2+1 预算、归属及唤醒机制不变。使用说明明确选定准则、来源、产物和停止条件由协调者传递。
 - 定位指定会审的原文和已提交摘要；只审查流程，不重评技术路线。
@@ -30,6 +32,7 @@
 - 在用户下一次真实关键决策中验收所选模型的结构化回报、timeout/恢复及最终建议质量；不为凑验收重复已完成的领域咨询。
 
 ## Issues
+本轮首次 CM/CapMesh Git fetch 连接 GitHub 超时；有界重试成功，未改变全局网络或账号配置。身份与三个原仓库所有权已核对为 qiaoqiao2521，保持既有可见性。
 本轮不得以 mock/离线测试声称真实多模型、原生唤醒或成本封顶已验收。
 已补原生无模型唤醒证据；仍不证明真实协调模型在每种恢复路径都只调用一次。共享私有目录不是 worker 安全沙箱，用户级权限与预算由原生 Agent 配置负责。
 既有遗留：Orca/cron 按 repository-closeout-policy/progress.md 移交根 Codex；436 bootstrap 不作为部署入口；tau-bench/experiments/.gitignore 已由该任务报告提交到独立 codex/tau-bench-20261001 分支（888639a），此处保留本地副本，不未经差异审查再并入 main。根 Codex 接续入口为其 progress.md 与 experiments/tau-bench/README.md，先核对分支等价与原始材料忽略范围。
