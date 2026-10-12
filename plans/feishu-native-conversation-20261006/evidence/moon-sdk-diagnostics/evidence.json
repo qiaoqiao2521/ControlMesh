@@ -1,0 +1,44 @@
+{
+  "checked_at_utc": "2026-10-12T08:54:37.510Z",
+  "host": "moonrise",
+  "runtime_user": "cm-agent",
+  "manager_pid": 1631150,
+  "sdk_version": "1.7.3",
+  "plugin_version": "0.3.11-connector-feishu.cm-compat.6",
+  "upstream": {
+    "stage": "sdk-listen",
+    "exception_type": "ClientException",
+    "code": 1000040345,
+    "credential_invalid": true
+  },
+  "status": "listener_not_restored",
+  "lastInboundEventAt": null,
+  "source_hashes": {
+    "kit_compat.py": "393e0d4f39c427ed4d81d004116e2021d76b9c75f010f30a6a3e240b0b891fdd",
+    "kit_compat_launcher.py": "d9e5cd1b4967013e81c47efd14198d17e75b779ef5b5ff5162bd1085bc083613"
+  },
+  "offline_privacy_tests": 5,
+  "final_code_deployment": {
+    "installed_at_utc": "2026-10-12T09:19:40Z",
+    "status": "installed_without_subscriber_or_model",
+    "manager_pid_before": 1631150,
+    "manager_pid_after": 1631150,
+    "enableEventSubscriber": false,
+    "activeSubscribers": 0,
+    "liveRuns": 0,
+    "installed_source_hashes": {
+      "kit_compat_launcher.py": "9ee279e80fa7f074cab996d5c270bdac24434c422afd4bfd9f55f1ca543bb3fa",
+      "kit_compat.py": "393e0d4f39c427ed4d81d004116e2021d76b9c75f010f30a6a3e240b0b891fdd",
+      "rebind_secret.py": "9599821f91f3b08d4ca35a504b8d2a61c4340182eccb46167db57349fadde049"
+    },
+    "syntax_readback": "passed",
+    "diagnostic_tests": 8,
+    "credential_helper_tests": 15,
+    "ordinary_user_read_access": "passed",
+    "getpass_executed": false,
+    "private_state_modified": false,
+    "receipt": "deployment-receipt.json"
+  },
+  "next_owner": "root Codex",
+  "next_step": "Update the verified original Feishu app binding through its official flow; verify listener, native routing, and real reply independently."
+}

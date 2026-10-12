@@ -61,6 +61,7 @@ const key=p=>JSON.stringify([p.scopeKind,p.scopeId,p.namespace,p.stateKey]);
 const entityKey=p=>JSON.stringify([p.scopeKind,p.scopeId,p.entityType,p.externalId]);
 const calls=[],denials=[],subscribers=[],notifications=[];
 const sessions=new Map(); let issueCreates=0, sends=0, failSend=false; const fullIssue={id:"issue-full",companyId:company,identifier:"FX-2",title:"reply fixture",status:"backlog"};
+const historicalAgents=new Map(),historicalIssues=new Map(),ownershipReads=[];
 const services={
  config:{get:async p=>{assert.equal(p.companyId,company);return config;}},
  state:{get:async p=>state.get(key(p))??null,set:async p=>{state.set(key(p),p.value);return null;},delete:async p=>{state.delete(key(p));return null;}},
@@ -71,21 +72,28 @@ const services={
  metrics:{write:async()=>null},
  activity:{log:async()=>null},
  agentSessions:{create:async p=>{const row={...p,sessionId:'session-'+(sessions.size+1)};sessions.set(row.sessionId,row);return row;},sendMessage:async p=>{const row=sessions.get(p.sessionId);if(!row || row.companyId!==p.companyId || !row.taskKey.startsWith('plugin:paperclipai.feishu-connector:session:'))throw new Error('Session not found: '+p.sessionId);if(failSend)throw new Error('fixture dispatch unavailable');sends++;return {runId:'run-full-'+sends};}},
- issues:{get:async p=>p.issueId==='issue-full'?fullIssue:({id:'issue-fixture',companyId:company,identifier:'FX-1',title:'fixture completed',status:'done'}),listComments:async p=>p.issueId==='issue-full'?[{id:'source-comment',body:'original user request',authorUserId:'user-fixture'}]:[{id:'comment-final',body:'已完成：fixture result',authorAgentId:'agent-fixture',createdAt:new Date().toISOString()}],createComment:async()=>({id:'audit-comment'}),create:async()=>{issueCreates++;return fullIssue;}},
- agents:new Proxy({},{get(){throw new Error('model calls forbidden');}}),
+ issues:{get:async p=>{
+  if(p.issueId.startsWith('historical-issue-')){ownershipReads.push(['issue',p.issueId,p.companyId]);return historicalIssues.get(p.issueId)??null;}
+  return p.issueId==='issue-full'?fullIssue:({id:'issue-fixture',companyId:company,identifier:'FX-1',title:'fixture completed',status:'done'});
+ },listComments:async p=>p.issueId==='issue-full'?[{id:'source-comment',body:'original user request',authorUserId:'user-fixture'}]:[{id:'comment-final',body:'已完成：fixture result',authorAgentId:'agent-fixture',createdAt:new Date().toISOString()}],createComment:async()=>({id:'audit-comment'}),create:async()=>{issueCreates++;return fullIssue;}},
+ agents:new Proxy({get:async p=>{ownershipReads.push(['agent',p.agentId,p.companyId]);return historicalAgents.get(p.agentId)??null;}},{get(target,field){if(field==='get')return target.get;throw new Error('model calls forbidden');}}),
 };
 const host=createHostClientHandlers({pluginId:'fixture-plugin',capabilities:manifest.capabilities,services});
+const restrictedHosts=Object.fromEntries(['agents.read','issues.read'].map(capability=>[capability,
+ createHostClientHandlers({pluginId:'fixture-plugin',capabilities:manifest.capabilities.filter(value=>value!==capability),services})]));
+let deniedOwnershipCapability=null;
 async function start(){
  const child=spawn(process.execPath,[workerPath],{stdio:['pipe','pipe','pipe'],env:{PATH:'/usr/bin:/bin',LANG:'C.UTF-8',NODE_ENV:'test'}});const pending=new Map(),active=new Map();let seq=10000,stderr='';
  child.stderr.on('data',d=>stderr+=d);
  const lines=createInterface({input:child.stdout});
- const send=m=>child.stdin.write(JSON.stringify(m)+'\n');
+ // Background host responses can finish after shutdown closes worker stdin.
+ const send=m=>{if(!child.stdin.destroyed&&!child.stdin.writableEnded)child.stdin.write(JSON.stringify(m)+'\n');};
  lines.on('line',async line=>{let m;try{m=JSON.parse(line);}catch{return;}
   if(m.method&&m.id!==undefined){calls.push(m);try{
    let context={};const ref=m.params?.companyId??(m.params?.scopeKind==='company'?m.params.scopeId:null)??m.params?.filter?.companyId;
    if(m.paperclipInvocationId){context=active.has(m.paperclipInvocationId)?{invocationScope:{companyId:active.get(m.paperclipInvocationId)}}:{invalidInvocationScope:true};}
    else if(ref===company)context={invocationScope:{companyId:company}};
-   const h=host[m.method];if(!h)throw new Error('unsupported host RPC '+m.method);
+   const h=(deniedOwnershipCapability?restrictedHosts[deniedOwnershipCapability]:host)[m.method];if(!h)throw new Error('unsupported host RPC '+m.method);
    const result=await h(m.params??{},context);send({jsonrpc:'2.0',id:m.id,result:result??null});
   }catch(e){denials.push({method:m.method,message:e.message});send({jsonrpc:'2.0',id:m.id,error:{code:e.code??-32002,message:e.message}});}
   }else if(m.id!==undefined){const p=pending.get(m.id);if(p){pending.delete(m.id);active.delete(p.invocation);clearTimeout(p.timer);m.error?p.reject(new Error(m.error.message)):p.resolve(m.result);}}
@@ -165,6 +173,89 @@ r=await start();
 try{
  await r.request('initialize',{manifest,config:{},apiVersion:1,databaseNamespace:'plugin_fixture'});
  await r.request('configChanged',{companyId:company,config},company);
+ const replyCount=async ()=>(await readCapture(larkCapture)).filter(args=>args.includes('+messages-reply')||args.includes('+messages-send')).length;
+ const larkBeforeLegacy=await replyCount();
+ const legacyState=(messageId)=>({scopeKind:'company',scopeId:company,namespace:'feishu-dedup',stateKey:'selected:message:'+messageId});
+ for (const status of ['sent','unknown','awaiting_final_text','planned']) {
+  const messageId='om_legacy_'+status,rootId='om_legacy_root_'+status;
+  const session={connectionId:'selected',sessionKey:'feishu:selected:oc_fixture:root:'+rootId,
+   chatId:'oc_fixture',paperclipIssueId:'legacy-issue-'+status,paperclipAgentId:'agent-fixture',
+   requesterOpenId:'ou_fixture',rootMessageId:rootId,
+   lastMessageId:status==='sent'?'om_later_legacy_source':messageId,processedMessageIds:[messageId],lastRunId:'legacy-run-'+status,
+   lastReplyStatus:status,lastReplyMessageId:status==='sent'?'legacy-reply-'+status:undefined};
+  const entity={entityType:'feishu-session',scopeKind:'company',scopeId:company,externalId:session.sessionKey,data:session};
+  const prior={processedAt:'2026-10-01T00:00:00.000Z',messageId};
+  entities.set(entityKey(entity),entity);state.set(key(legacyState(messageId)),prior);
+  const replay=await r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:nativeRaw(messageId,rootId)}},company);
+  assert.equal(replay.persistedDuplicate,true);assert.equal(replay.nativeConversation,undefined);
+  assert.deepEqual(entities.get(entityKey(entity)),entity);
+  assert.deepEqual(state.get(key(legacyState(messageId))),prior);
+ }
+ assert.equal((await readCapture(nativeCapture)).length,0);
+ assert.equal(await replyCount(),larkBeforeLegacy);
+ assert.deepEqual({issues:issueCreates,sends,sessions:sessions.size},legacyCounts);
+ results.push('delivered and uncertain legacy sources stay in their existing reconciliation path with no native model turn or duplicate reply');
+ const seenId='om_legacy_seen_only';state.set(key(legacyState(seenId)),{messageId:seenId,processedAt:'2026-10-01T00:00:00.000Z'});
+ const seen=await r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:nativeRaw(seenId,'om_seen_root')}},company);
+ assert.equal(seen.duplicate,true);assert.equal(seen.nativeConversation,undefined);
+ assert.equal((await readCapture(nativeCapture)).length,0);
+ results.push('legacy seen admission is not mistaken for a fresh native turn or a delivered native receipt');
+ for(const scenario of ['same-company','missing-agent','missing-issue','foreign-agent','foreign-issue','wrong-agent-id','wrong-issue-id']) {
+  const messageId='om_historical_'+scenario,rootId='om_historical_root_'+scenario;
+  const oldAgentId='historical-agent-'+scenario,oldIssueId='historical-issue-'+scenario;
+  historicalAgents.set(oldAgentId,{id:scenario==='wrong-agent-id'?'different-agent':oldAgentId,companyId:scenario==='foreign-agent'?'other-company':company});
+  historicalIssues.set(oldIssueId,{id:scenario==='wrong-issue-id'?'different-issue':oldIssueId,companyId:scenario==='foreign-issue'?'other-company':company});
+  if(scenario==='missing-agent')historicalAgents.delete(oldAgentId);
+  if(scenario==='missing-issue')historicalIssues.delete(oldIssueId);
+  const session={connectionId:'selected',sessionKey:'feishu:selected:oc_fixture:root:'+rootId,
+   chatId:'oc_fixture',paperclipIssueId:oldIssueId,paperclipAgentId:oldAgentId,
+   requesterOpenId:'ou_fixture',lastMessageId:messageId,processedMessageIds:[messageId]};
+  // Real scoped entities can have a NULL companyId. findSessionByKey owns
+  // normalization from scopeId; the callback must use that normalized result.
+  const entity={companyId:null,entityType:'feishu-session',scopeKind:'company',scopeId:company,externalId:session.sessionKey,data:session};
+  entities.set(entityKey(entity),entity);
+  const beforeReads=ownershipReads.length;
+  const request=()=>r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:nativeRaw(messageId,rootId)}},company);
+  if(scenario==='same-company') {
+   const replay=await request();assert.equal(replay.persistedDuplicate,true);assert.equal(replay.nativeConversation,undefined);
+  } else await assert.rejects(request(),/Legacy admission source identity mismatch/);
+  assert.deepEqual(ownershipReads.slice(beforeReads).sort(),[['agent',oldAgentId,company],['issue',oldIssueId,company]].sort());
+  assert.deepEqual(entities.get(entityKey(entity)),entity);
+  assert.equal((await readCapture(nativeCapture)).length,0);
+  assert.equal(await replyCount(),larkBeforeLegacy);
+  results.push(scenario==='same-company'?'historical Agent route migration retains exact legacy ownership after host-scoped Agent and Issue reads':
+   'historical ownership rejects '+scenario+' before native admission or reply');
+ }
+ for(const capability of ['agents.read','issues.read']) {
+  const suffix=capability.replace('.','_'),messageId='om_unavailable_'+suffix,rootId='om_unavailable_root_'+suffix;
+  const oldAgentId='historical-agent-'+suffix,oldIssueId='historical-issue-'+suffix;
+  historicalAgents.set(oldAgentId,{id:oldAgentId,companyId:company});historicalIssues.set(oldIssueId,{id:oldIssueId,companyId:company});
+  const session={connectionId:'selected',sessionKey:'feishu:selected:oc_fixture:root:'+rootId,chatId:'oc_fixture',
+   paperclipIssueId:oldIssueId,paperclipAgentId:oldAgentId,requesterOpenId:'ou_fixture',lastMessageId:messageId};
+  const entity={companyId:null,entityType:'feishu-session',scopeKind:'company',scopeId:company,externalId:session.sessionKey,data:session};
+  entities.set(entityKey(entity),entity);deniedOwnershipCapability=capability;
+  try {
+   await assert.rejects(r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:nativeRaw(messageId,rootId)}},company),/missing required capability/);
+  } finally {deniedOwnershipCapability=null;}
+  assert.deepEqual(entities.get(entityKey(entity)),entity);
+  assert.equal((await readCapture(nativeCapture)).length,0);assert.equal(await replyCount(),larkBeforeLegacy);
+  results.push('historical ownership fails closed when the host denies '+capability);
+ }
+ for (const [field,value] of [['connectionId','other-connection'],['chatId','other-chat'],['paperclipAgentId','other-agent'],['requesterOpenId','other-owner']]) {
+  const messageId='om_mismatch_'+field,rootId='om_mismatch_root_'+field;
+  const session={connectionId:'selected',sessionKey:'feishu:selected:oc_fixture:root:'+rootId,
+   chatId:'oc_fixture',paperclipIssueId:'legacy-identity-issue',paperclipAgentId:'agent-fixture',
+   requesterOpenId:'ou_fixture',lastMessageId:messageId,[field]:value};
+  const entity={entityType:'feishu-session',scopeKind:'company',scopeId:company,externalId:session.sessionKey,data:session};
+  entities.set(entityKey(entity),entity);
+  await assert.rejects(r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:nativeRaw(messageId,rootId)}},company),/Legacy admission source identity mismatch/);
+ }
+ const collisionId='om_legacy_dedup_collision';state.set(key(legacyState(collisionId)),{messageId:'another-message'});
+ await assert.rejects(r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:nativeRaw(collisionId,'om_collision_root')}},company),/Legacy admission message identity mismatch/);
+ assert.equal((await readCapture(nativeCapture)).length,0);
+ assert.equal(await replyCount(),larkBeforeLegacy);
+ assert.ok(![...entities.values()].some(row=>row.entityType==='feishu-native-turn'));
+ results.push('legacy owner, Agent, chat, connection and message identity conflicts fail safely before native admission');
  const first=await r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:firstNative}},company);
  const second=await r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:secondNative}},company);
  assert.equal(first.nativeConversation,true);assert.equal(second.nativeConversation,true);
@@ -178,7 +269,11 @@ try{
  const nativeRows=[...entities.values()].filter(row=>row.entityType==='feishu-native-turn');
  assert.equal(nativeRows.length,2);assert.ok(nativeRows.every(row=>row.scopeId===company&&row.data.phase==='submitted'));
  assert.deepEqual(nativeRows.map(row=>row.data.source.rootMessageId).sort(),['om_root_first','om_root_second']);
+ assert.equal(state.has(key(legacyState('om_native_first'))),false);
+ assert.equal(state.has(key(legacyState('om_native_second'))),false);
  results.push('real worker hooks route two independent message roots to one native conversation without legacy issue/session dispatch');
+ // A stale legacy admission must not steal recovery of an already native turn.
+ state.set(key(legacyState('om_native_first')),{messageId:'inconsistent-legacy-receipt'});
  const callsBefore=(await readCapture(nativeCapture)).length;
  const duplicate=await r.request('performAction',{key:'simulate-inbound-message',params:{connectionId:'selected',raw:firstNative}},company);
  assert.equal(duplicate.duplicate,true);assert.equal((await readCapture(nativeCapture)).length,callsBefore);

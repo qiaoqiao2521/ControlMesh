@@ -1,0 +1,55 @@
+{
+  "status": "installed",
+  "files_replaced": [
+    "kit_compat_launcher.py",
+    "kit_compat.py",
+    "rebind_secret.py"
+  ],
+  "before": {
+    "enableEventSubscriber": false,
+    "activeSubscribers": 0,
+    "liveRuns": 0
+  },
+  "backup_path": "/var/lib/cm-feishu-moonrise-code-history/diagnostic-20261012T091940Z-8bfd1521",
+  "manager_pid_before": 1631150,
+  "files": [
+    {
+      "path": "/opt/cm-feishu-moonrise/kit_compat_launcher.py",
+      "sha256": "9ee279e80fa7f074cab996d5c270bdac24434c422afd4bfd9f55f1ca543bb3fa",
+      "uid": 0,
+      "gid": 1000,
+      "mode": "0o755",
+      "syntax": "passed"
+    },
+    {
+      "path": "/opt/cm-feishu-moonrise/kit_compat.py",
+      "sha256": "393e0d4f39c427ed4d81d004116e2021d76b9c75f010f30a6a3e240b0b891fdd",
+      "uid": 0,
+      "gid": 1000,
+      "mode": "0o640",
+      "syntax": "passed"
+    },
+    {
+      "path": "/opt/cm-feishu-moonrise/rebind_secret.py",
+      "sha256": "9599821f91f3b08d4ca35a504b8d2a61c4340182eccb46167db57349fadde049",
+      "uid": 0,
+      "gid": 0,
+      "mode": "0o755",
+      "syntax": "passed"
+    }
+  ],
+  "after": {
+    "enableEventSubscriber": false,
+    "activeSubscribers": 0,
+    "liveRuns": 0
+  },
+  "manager_pid_after": 1631150,
+  "listener_enabled": false,
+  "model_called": false,
+  "getpass_executed": false,
+  "private_state_modified": false,
+  "upload_stage_removed": true,
+  "checked_at_utc": "2026-10-12T09:19:40Z",
+  "host": "moonrise",
+  "ordinary_user_command": "ssh -t moonrise 'sudo -iu cm-agent env -i HOME=/var/lib/cm-agent USER=cm-agent LOGNAME=cm-agent PATH=/usr/bin:/bin PYTHONPATH=/opt/cm-feishu-moonrise/src /opt/cm-feishu-moonrise/venv/bin/python /opt/cm-feishu-moonrise/rebind_secret.py'"
+}

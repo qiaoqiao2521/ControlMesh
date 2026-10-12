@@ -101,7 +101,7 @@ class BuildTests(unittest.TestCase):
         )
         self.assertIn("native config schema", (self.output / "dist/manifest.js").read_text())
         self.assertIn(
-            'var PLUGIN_VERSION = "0.3.11-connector-feishu.cm-compat.6";',
+            'var PLUGIN_VERSION = "0.3.11-connector-feishu.cm-compat.8";',
             (self.output / "dist/manifest.js").read_text(),
         )
         self.assertEqual(
@@ -116,7 +116,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(
             receipt["nativeTransformSha256"], build.sha256_file(self.source_dir / "transform.py")
         )
-        self.assertEqual(receipt["version"], "0.3.11-connector-feishu.cm-compat.6")
+        self.assertEqual(receipt["version"], "0.3.11-connector-feishu.cm-compat.8")
         self.assertEqual(
             json.loads((self.output / "package.json").read_text())["version"], receipt["version"]
         )
@@ -296,6 +296,8 @@ class RealPackageTransformTests(unittest.TestCase):
         self.assertIn("await cmNativeConversation.handle(ctx, config, connection, message)", worker)
         self.assertIn("await cmNativeConversation.flush(ctx, config)", worker)
         self.assertIn("validateNativeConversationConfig(config, incomingCompanyId)", worker)
+        self.assertIn("legacyAlreadyAdmitted: async", worker)
+        self.assertIn('namespace: "feishu-dedup"', worker)
         self.assertIn("nativeConversation: {", manifest)
         self.assertIn(f'var PLUGIN_VERSION = "{receipt["version"]}";', manifest)
         self.assertEqual(receipt["version"], build.COMPAT_VERSION)
@@ -307,6 +309,8 @@ class RealPackageTransformTests(unittest.TestCase):
             worker.replace(anchor, "  // missing dispatch anchor\n"),
             worker + "\n" + anchor,
             worker.replace("function cmScopedContext(", "function obsoleteContext("),
+            *(worker.replace(f"function {helper}(", f"function obsolete_{helper}(")
+              for helper in ("dedupKey", "findSessionByKey", "sessionAlreadyHandledMessage")),
         )
         for candidate in candidates:
             with self.subTest(candidate_length=len(candidate)), self.assertRaises(ValueError):

@@ -107,7 +107,8 @@ const failureText = result => ['authentication_failed', 'authentication_required
     : '这次没有执行成功。已保留原消息与故障记录，需要修复执行入口。';
 
 /** Transport ledger only. Paperclip owns comments, queues, sessions and execution. */
-export function createNativeConversationBridge({ reply, record = () => {}, invoke = invokeNativeCli }) {
+export function createNativeConversationBridge({ reply, record = () => {}, invoke = invokeNativeCli,
+  legacyAlreadyAdmitted = async () => false }) {
   let queue = Promise.resolve();
   const serial = action => {
     const result = queue.then(action);
@@ -178,6 +179,25 @@ export function createNativeConversationBridge({ reply, record = () => {}, invok
       }
     }
     if (!pendingPhases.includes(row.phase)) return;
+    const connection = (config.connections ?? []).find(c => c.id === row.binding.connectionId && c.enabled !== false);
+    if (!connection) {
+      record('error', 'Native pending source retains an unavailable connection', {
+        sourceMessageId: row.source.messageId, companyId: row.binding.companyId,
+      });
+      return;
+    }
+    // Older native rows can precede the cross-version admission check. Keep
+    // their original legacy owner without querying runs or sending a new reply.
+    // A native admission marker or durable native ACK owns its own recovery.
+    if (row.admissionOwner !== 'native' && !row.replyMessageId &&
+        await legacyAlreadyAdmitted(ctx, row.binding, connection, row.source)) {
+      row.phase = 'legacy_retained';
+      await save(ctx, row);
+      record('info', 'Native pending source retained by the legacy connector', {
+        sourceMessageId: row.source.messageId, companyId: row.binding.companyId,
+      });
+      return;
+    }
     const result = await invoke(config.nativeConversation, {
       operation: 'status', ...row.binding, messageId: row.source.messageId,
       ...(row.commentId ? { commentId: row.commentId } : {}),
@@ -220,8 +240,12 @@ export function createNativeConversationBridge({ reply, record = () => {}, invok
       if (config.dryRunCli === true) return { ok: true, dryRun: true, nativeConversation: true };
       const key = sourceKey(binding, message.messageId);
       if (await get(ctx, binding.companyId, key)) return { ok: true, duplicate: true, nativeConversation: true };
+      // The older connector still owns admitted sources and their uncertain
+      // replies. Never turn a cross-version receipt miss into another model run.
+      // Read native receipts first so an accepted native turn keeps its recovery.
+      if (await legacyAlreadyAdmitted(ctx, binding, connection, message)) return null;
       const pending = await loadPending(ctx, binding.companyId);
-      const row = { key, binding, phase: 'planned', source: {
+      const row = { key, binding, phase: 'planned', admissionOwner: 'native', source: {
         messageId: message.messageId, chatId: message.chatId, threadId: message.threadId,
         rootMessageId: message.rootMessageId, senderOpenId: message.senderOpenId,
       }, createdAt: new Date().toISOString() };

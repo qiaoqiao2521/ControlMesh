@@ -1,0 +1,218 @@
+--- a/kit_compat.py
++++ b/kit_compat.py
+@@ -310,8 +310,8 @@
+             with contextlib.redirect_stdout(quiet), contextlib.redirect_stderr(quiet):
+                 listen(bridge.store, use_environment_proxy=use_environment_proxy,
+                        credentials_provider=lambda: bridge._verified()[0])
+-    except BaseException:
+-        raise CompatError() from None
++    except BaseException as exc:
++        raise CompatError() from exc
+ 
+ 
+ def main(args=None):
+--- a/kit_compat_launcher.py
++++ b/kit_compat_launcher.py
+@@ -1,8 +1,8 @@
+ #!/usr/bin/env python3
+ """Own one native SDK child for compat.5 subscriptions; ordinary sends delegate.
+ 
+-No new service, port, key or credential. Linux only. Child stdout/stderr are
+-quiet; parent stdout remains the existing kit_compat event/receipt protocol.
++No new service, port, key or credential. Linux only. Child stdout is quiet;
++stderr relays only validated diagnostics. Parent stdout remains the event protocol.
+ """
+ 
+ from __future__ import annotations
+@@ -28,6 +28,99 @@
+ class LauncherError(RuntimeError):
+     def __init__(self):
+         super().__init__("SDK subscription could not continue")
++
++
++_DIAGNOSTIC_STAGES = {
++    "arm-parent", "load-verified", "sdk-listen", "launcher-lock",
++    "exclusive-listener", "sdk-spawn", "sdk-connect", "forward-events", "cleanup",
++}
++
++
++def _safe_diagnostic(exc, stage):
++    seen = set()
++    root = exc
++    while root.__cause__ is not None and id(root) not in seen and len(seen) < 8:
++        seen.add(id(root))
++        root = root.__cause__
++    item = {
++        "diagnostic": "sdk_subscription",
++        "stage": stage,
++        "exception_type": type(root).__name__,
++        "credential_invalid": root.args == ("app_id or app_secret is invalid",),
++    }
++    for key in ("errno", "status_code", "code"):
++        value = getattr(root, key, None)
++        if type(value) is int:
++            item[key] = value
++    response = getattr(root, "response", None)
++    value = getattr(response, "status_code", None)
++    if type(value) is int:
++        item["status_code"] = value
++    print(json.dumps(item, separators=(",", ":")), file=sys.stderr, flush=True)
++
++
++def _relay_diagnostic_line(line):
++    try:
++        item = json.loads(line)
++        if (item.get("diagnostic") != "sdk_subscription"
++                or item.get("stage") not in _DIAGNOSTIC_STAGES
++                or not isinstance(item.get("exception_type"), str)
++                or not item["exception_type"].isidentifier()
++                or len(item["exception_type"]) > 120):
++            return
++        clean = {key: item[key] for key in ("diagnostic", "stage", "exception_type")}
++        for key in ("errno", "status_code", "code"):
++            if type(item.get(key)) is int:
++                clean[key] = item[key]
++        if type(item.get("credential_invalid")) is bool:
++            clean["credential_invalid"] = item["credential_invalid"]
++        print(json.dumps(clean, separators=(",", ":")), file=sys.stderr, flush=True)
++    except (ValueError, TypeError, AttributeError):
++        return  # Never relay raw SDK output, exception bodies or extra fields.
++
++
++def _drain_child_diagnostics(proc, state):
++    # Limit work per monitor tick and retain at most one bounded partial line.
++    for _ in range(16):
++        try:
++            chunk = os.read(proc.stderr.fileno(), 4096)
++        except BlockingIOError:
++            return
++        if not chunk:
++            if state["partial"] and not state["discarding"]:
++                _relay_diagnostic_line(state["partial"])
++            state.update(eof=True, partial=b"", discarding=False)
++            return
++        pieces = chunk.split(b"\n")
++        for index, piece in enumerate(pieces):
++            if not state["discarding"]:
++                state["partial"] += piece
++                if len(state["partial"]) > 4096:
++                    state.update(partial=b"", discarding=True)
++            if index < len(pieces) - 1:
++                if not state["discarding"]:
++                    _relay_diagnostic_line(state["partial"])
++                state.update(partial=b"", discarding=False)
++
++
++def _relay_child_diagnostics(proc, state=None, *, final=True,
++                             clock=time.monotonic, pause=time.sleep):
++    if proc is None or proc.stderr is None or proc.stderr.closed:
++        return
++    state = state if state is not None else {"partial": b"", "discarding": False, "eof": False}
++    os.set_blocking(proc.stderr.fileno(), False)
++    if not final:
++        _drain_child_diagnostics(proc, state)
++        return
++    # Even an inherited write end cannot keep cleanup waiting for EOF forever.
++    deadline = clock() + 0.5
++    try:
++        while not state["eof"] and clock() < deadline:
++            _drain_child_diagnostics(proc, state)
++            if not state["eof"]:
++                pause(0.01)
++    finally:
++        proc.stderr.close()
+ 
+ 
+ def _arm_parent_death(expected_parent_pid):
+@@ -87,9 +180,10 @@
+     raise LauncherError()
+ 
+ 
+-def _watch_child(proc, done, failed, parent_pid):
++def _watch_child(proc, done, failed, parent_pid, diagnostics):
+     while not done.wait(0.05):
+         try:
++            _relay_child_diagnostics(proc, diagnostics, final=False)
+             exited = proc.poll() is not None
+         except BaseException:
+             exited = True
+@@ -138,13 +232,17 @@
+ 
+ 
+ def _sdk_child(expected_parent_pid):
++    stage = "arm-parent"
+     try:
+         _arm_parent_death(expected_parent_pid)
++        stage = "load-verified"
+         store, identity = _load_verified()
++        stage = "sdk-listen"
+         kit_compat.listen_sdk(store, identity)
+         return 0
+-    except BaseException:
+-        return 1  # Parent owns the only fixed diagnostic; child prints nothing.
++    except BaseException as exc:
++        _safe_diagnostic(exc, stage)
++        return 1
+ 
+ 
+ def _text_subscription_args(args):
+@@ -195,7 +293,9 @@
+     proc, lock_fd, monitor = None, None, None
+     previous = {}
+     done, failed = threading.Event(), threading.Event()
++    diagnostics = {"partial": b"", "discarding": False, "eof": False}
+     result = 1
++    stage = "load-verified"
+     def stopped(signum, _frame):
+         if signum == signal.SIGUSR1:
+             failed.set()
+@@ -203,27 +303,34 @@
+         raise SystemExit(0)
+     try:
+         store, _identity = _load_verified(opts)
++        stage = "launcher-lock"
+         lock_fd = _launcher_lock(store)  # This is NOT the SDK's listener.lock.
++        stage = "exclusive-listener"
+         folder = store.private / "realtime"
+         if (folder / "listener.lock").exists() and listener_alive(folder):
+             raise LauncherError()  # Never adopt somebody else's SDK process.
+         for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGUSR1):
+             previous[signum] = signal.signal(signum, stopped)
+         started_ms = time.time_ns() // 1_000_000
++        stage = "sdk-spawn"
+         proc = subprocess.Popen(
+             [sys.executable, str(Path(__file__).resolve()), "--sdk-child", str(os.getpid())],
+-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
++            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+             start_new_session=True, close_fds=True,
+         )
++        monitor = threading.Thread(target=_watch_child,
++                                   args=(proc, done, failed, os.getpid(), diagnostics), daemon=True)
++        monitor.start()
++        stage = "sdk-connect"
+         _wait_connected(proc, store, started_ms=started_ms)
+-        monitor = threading.Thread(target=_watch_child, args=(proc, done, failed, os.getpid()), daemon=True)
+-        monitor.start()
++        stage = "forward-events"
+         result = kit_compat.main(args)
+         if failed.is_set():
+             result = 1
+     except (KeyboardInterrupt, SystemExit):
+         result = 0 if not failed.is_set() else 1
+-    except BaseException:
++    except BaseException as exc:
++        _safe_diagnostic(exc, stage)
+         print("SDK subscription could not continue", file=sys.stderr)
+         result = 1
+     finally:
+@@ -234,7 +341,9 @@
+             if monitor is not None:
+                 monitor.join(timeout=0.2)
+             _stop_child(proc)
+-        except BaseException:
++            _relay_child_diagnostics(proc, diagnostics)
++        except BaseException as exc:
++            _safe_diagnostic(exc, "cleanup")
+             result = 1
+         finally:
+             if lock_fd is not None:

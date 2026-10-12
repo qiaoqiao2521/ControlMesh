@@ -15,6 +15,9 @@ def transform_worker(source):
         raise ValueError("Native conversation hooks are already present")
     if 'function cmScopedContext(' not in source or 'cmBackground.runInAsyncScope' not in source:
         raise ValueError("Company-scoped compatibility base is required")
+    for helper in ('dedupKey', 'findSessionByKey', 'sessionAlreadyHandledMessage'):
+        if source.count(f'function {helper}(') != 1:
+            raise ValueError(f"Legacy admission helper is required: {helper}")
     source = ('import { createNativeConversationBridge, normalizeNativeConversationConfig, '
               'validateNativeConversationConfig } from "./native-conversation.mjs";\n' + source)
     source = once(source, '    ...DEFAULT_CONFIG,\n',
@@ -38,6 +41,44 @@ def transform_worker(source):
     # Deliberately avoid replyToFeishu: it queues automatic retries after an
     # uncertain send. Native replies retain the intent and require an actual ACK.
     factory = '''const cmNativeConversation = createNativeConversationBridge({
+  legacyAlreadyAdmitted: async (ctx, binding, connection, message) => {
+    // These are read-only probes. Only the existing connector may reconcile an
+    // admitted legacy source; do not mark a genuinely new native source seen.
+    const existing = await findSessionByKey(ctx, buildSessionKey(message, connection.id));
+    if (sessionAlreadyHandledMessage(existing?.data, message)) {
+      const source = existing.data;
+      if (existing.companyId !== binding.companyId || source.connectionId !== binding.connectionId ||
+          source.chatId !== binding.chatId ||
+          source.requesterOpenId !== binding.senderOpenId) {
+        throw new Error("Legacy admission source identity mismatch");
+      }
+      if (source.paperclipAgentId !== binding.agentId) {
+        // A migrated route does not change the owner of an already admitted
+        // source. Verify that historical owner and issue through the host.
+        if (typeof ctx.agents?.get !== "function" || typeof ctx.issues?.get !== "function") {
+          throw new Error("Legacy ownership verification is unavailable");
+        }
+        const [agent, issue] = await Promise.all([
+          ctx.agents.get(source.paperclipAgentId, binding.companyId),
+          ctx.issues.get(source.paperclipIssueId, binding.companyId)
+        ]);
+        if (!agent || !issue || agent.id !== source.paperclipAgentId || issue.id !== source.paperclipIssueId ||
+            agent.companyId !== binding.companyId || issue.companyId !== binding.companyId) {
+          throw new Error("Legacy admission source identity mismatch");
+        }
+      }
+      return true;
+    }
+    const admitted = await ctx.state.get({
+      scopeKind: "company", scopeId: binding.companyId, namespace: "feishu-dedup",
+      stateKey: dedupKey(message, connection.id)
+    });
+    if (admitted == null) return false;
+    if (admitted.messageId !== message.messageId) {
+      throw new Error("Legacy admission message identity mismatch");
+    }
+    return true;
+  },
   reply: async (config, connection, message, text, idempotencyKey) => {
     const args = buildReplyMessageArgs({
       profileName: connection.profileName, identity: "bot",

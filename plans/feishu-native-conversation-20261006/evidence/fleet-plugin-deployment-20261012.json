@@ -1,0 +1,372 @@
+{
+  "checkedDate": "2026-10-12",
+  "version": "0.3.11-connector-feishu.cm-compat.8",
+  "liveAcceptance": "separate synthetic-message evidence; deployment receipts alone are not delivery",
+  "deployments": [
+    {
+      "host": "bf2025",
+      "pluginId": "e82238fb-3e28-4097-aa8d-30f1d1401912",
+      "packagePath": "/opt/agent-tools/plugins/feishu-connector-cm-compat-1",
+      "runtimeUser": "cm-agent",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 395000,
+        "uid": 1000,
+        "startTimeTicks": "799265377",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerAfter": {
+        "pid": 395000,
+        "uid": 1000,
+        "startTimeTicks": "799265377",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "ca9878f1-9855-4502-b7ab-ee85e827fb6f"
+      ],
+      "configHashesBefore": {
+        "ca9878f1-9855-4502-b7ab-ee85e827fb6f": "febfb812eeb2d30fcac4d4aa78e5364e52e671dc87a5b066f92a7f4c57435063"
+      },
+      "configHashesAfter": {
+        "ca9878f1-9855-4502-b7ab-ee85e827fb6f": "febfb812eeb2d30fcac4d4aa78e5364e52e671dc87a5b066f92a7f4c57435063"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "65d749914e0723c27d445a76e0ea524f1f956266cd5c3ab8ceac6ae0b9d06b3f",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "ca9878f1-9855-4502-b7ab-ee85e827fb6f": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    },
+    {
+      "host": "436",
+      "pluginId": "396c0386-4b21-4788-b6ec-c5b4de901eb2",
+      "packagePath": "/var/lib/paperclip-436/local-plugins/feishu-connector-cm-compat-1",
+      "runtimeUser": "agent436",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 3803608,
+        "uid": 1000,
+        "startTimeTicks": "499055185",
+        "commandHash": "21765de8322e8ef25a42b4dde4a62aaef8e36639b39c21a0215d3888261f555b"
+      },
+      "managerAfter": {
+        "pid": 3803608,
+        "uid": 1000,
+        "startTimeTicks": "499055185",
+        "commandHash": "21765de8322e8ef25a42b4dde4a62aaef8e36639b39c21a0215d3888261f555b"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "5dde8cef-0b64-44a3-a6e3-17774326aaea"
+      ],
+      "configHashesBefore": {
+        "5dde8cef-0b64-44a3-a6e3-17774326aaea": "6dfcb707a6261f7b3cd9e5f5d04c9a3942c5a2924a5d1e2ff1ec139fb69dfd34"
+      },
+      "configHashesAfter": {
+        "5dde8cef-0b64-44a3-a6e3-17774326aaea": "6dfcb707a6261f7b3cd9e5f5d04c9a3942c5a2924a5d1e2ff1ec139fb69dfd34"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "ebac646a99699803a76c0e6723d63dcb1a7b0260fc3184bcb33207cdf984d4b8",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "5dde8cef-0b64-44a3-a6e3-17774326aaea": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    },
+    {
+      "host": "greenrise",
+      "pluginId": "9fdf3e97-61d5-4061-a229-24af2711753d",
+      "packagePath": "/opt/paperclip/local-plugins/feishu-connector-cm-compat-1",
+      "runtimeUser": "cm-agent",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 2621157,
+        "uid": 1000,
+        "startTimeTicks": "805882731",
+        "commandHash": "8e1e9f85f9bd6cac553e21c653756f2040dfb752869b6d3a345bbbc6d547b487"
+      },
+      "managerAfter": {
+        "pid": 2621157,
+        "uid": 1000,
+        "startTimeTicks": "805882731",
+        "commandHash": "8e1e9f85f9bd6cac553e21c653756f2040dfb752869b6d3a345bbbc6d547b487"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "1f6ff762-b89c-41d2-8519-a3afd145909b"
+      ],
+      "configHashesBefore": {
+        "1f6ff762-b89c-41d2-8519-a3afd145909b": "e798c83da0ddab27522a4c216ce29a2a497367fba80b2df261d9d2bdb8e316e0"
+      },
+      "configHashesAfter": {
+        "1f6ff762-b89c-41d2-8519-a3afd145909b": "e798c83da0ddab27522a4c216ce29a2a497367fba80b2df261d9d2bdb8e316e0"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "ebac646a99699803a76c0e6723d63dcb1a7b0260fc3184bcb33207cdf984d4b8",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "1f6ff762-b89c-41d2-8519-a3afd145909b": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    },
+    {
+      "host": "moonrise",
+      "pluginId": "a054866e-8847-48ca-9c5a-b470a4628b60",
+      "packagePath": "/opt/agent-tools/paperclip-2026.916.1/local-plugins/feishu-connector-cm-agy-moonrise-1",
+      "runtimeUser": "cm-agent",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 1631150,
+        "uid": 1000,
+        "startTimeTicks": "1087492377",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerAfter": {
+        "pid": 1631150,
+        "uid": 1000,
+        "startTimeTicks": "1087492377",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "35701f6d-8bdc-47ea-a740-442915254da5"
+      ],
+      "configHashesBefore": {
+        "35701f6d-8bdc-47ea-a740-442915254da5": "8b54d0b11dba7266fdbdc2fc57f7b52afe2f8f8034dd0e252e32bec3103334c4"
+      },
+      "configHashesAfter": {
+        "35701f6d-8bdc-47ea-a740-442915254da5": "8b54d0b11dba7266fdbdc2fc57f7b52afe2f8f8034dd0e252e32bec3103334c4"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "d6c3aa150e6fc6c8a1add5dc9b0192b663a606a41bb7d0f3abf681d510442646",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "35701f6d-8bdc-47ea-a740-442915254da5": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    },
+    {
+      "host": "qiaobird",
+      "pluginId": "5ea011ab-5fca-4ff0-af6a-1661f0a803c4",
+      "packagePath": "/opt/agent-tools/paperclip-2026.916.1/local-plugins/feishu-connector-cm-compat-5",
+      "runtimeUser": "cm-agent",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 2111711,
+        "uid": 1000,
+        "startTimeTicks": "794957878",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerAfter": {
+        "pid": 2111711,
+        "uid": 1000,
+        "startTimeTicks": "794957878",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "01511639-11d7-4a5f-9648-3efd4cb1d769"
+      ],
+      "configHashesBefore": {
+        "01511639-11d7-4a5f-9648-3efd4cb1d769": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "configHashesAfter": {
+        "01511639-11d7-4a5f-9648-3efd4cb1d769": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "65d749914e0723c27d445a76e0ea524f1f956266cd5c3ab8ceac6ae0b9d06b3f",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "01511639-11d7-4a5f-9648-3efd4cb1d769": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    },
+    {
+      "host": "cy",
+      "pluginId": "4999bc12-7a2b-42bf-8ce0-a1d0253e0ef0",
+      "packagePath": "/opt/agent-tools/paperclip-2026.916.1/local-plugins/cm-feishu-native-compat6",
+      "runtimeUser": "cm-agent",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 1212931,
+        "uid": 1000,
+        "startTimeTicks": "716315517",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerAfter": {
+        "pid": 1212931,
+        "uid": 1000,
+        "startTimeTicks": "716315517",
+        "commandHash": "d2ccdb8de3f76b3105d65181cec68e452749f7cca27d54fbf890bee9e739a788"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "6b1cfc33-9b23-4144-91b7-9b6c1a1debb5"
+      ],
+      "configHashesBefore": {
+        "6b1cfc33-9b23-4144-91b7-9b6c1a1debb5": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "configHashesAfter": {
+        "6b1cfc33-9b23-4144-91b7-9b6c1a1debb5": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "65d749914e0723c27d445a76e0ea524f1f956266cd5c3ab8ceac6ae0b9d06b3f",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "6b1cfc33-9b23-4144-91b7-9b6c1a1debb5": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    },
+    {
+      "host": "local",
+      "pluginId": "6471c5f5-bc08-403f-802a-44415be88094",
+      "packagePath": "/data/Applications/paperclip/local-plugins/feishu-connector-cm-compat-1",
+      "runtimeUser": "muqiao",
+      "version": "0.3.11-connector-feishu.cm-compat.8",
+      "pluginStatus": "ready",
+      "stage": "code_upgrade_verified_live_delivery_not_tested",
+      "scriptModelCallsRequested": 0,
+      "scriptFeishuMessagesRequested": 0,
+      "managerBefore": {
+        "pid": 2901,
+        "uid": 1000,
+        "startTimeTicks": "2503",
+        "commandHash": "2202b76e661c8bfbe1d115574d5a8329d9e00b0d97cd291cae84db3231c8925c"
+      },
+      "managerAfter": {
+        "pid": 2901,
+        "uid": 1000,
+        "startTimeTicks": "2503",
+        "commandHash": "2202b76e661c8bfbe1d115574d5a8329d9e00b0d97cd291cae84db3231c8925c"
+      },
+      "managerUnchanged": true,
+      "companyIds": [
+        "1fcf4165-fa86-4607-8935-982d4c0f472c",
+        "6896e6ce-c9c3-47c7-9a48-b251992581f5"
+      ],
+      "configHashesBefore": {
+        "1fcf4165-fa86-4607-8935-982d4c0f472c": "76c832e4b51500520b64e220e48f133cca1568fbbdd0e20dae53803d34bc9b48",
+        "6896e6ce-c9c3-47c7-9a48-b251992581f5": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "configHashesAfter": {
+        "1fcf4165-fa86-4607-8935-982d4c0f472c": "76c832e4b51500520b64e220e48f133cca1568fbbdd0e20dae53803d34bc9b48",
+        "6896e6ce-c9c3-47c7-9a48-b251992581f5": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "configUnchanged": true,
+      "companySetUnchanged": true,
+      "targetHashesReadback": {
+        "dist/native-conversation.mjs": "ce1c818f47920d15138e986a76a342b582fc810adc5bc18efbba520cdadefebe",
+        "dist/native-conversation-cli.py": "70f22ab0382040c7f53b89d472626654bde13fb54a128943ebd1dd6c2aa9584a",
+        "dist/worker.js": "65d749914e0723c27d445a76e0ea524f1f956266cd5c3ab8ceac6ae0b9d06b3f",
+        "dist/manifest.js": "428e5df560a8371bd0d12c8fecad9f619d29c4660c1de40cb803e79eb601139c",
+        "package.json": "a87b5461263118826aa7d2333a105d85e0c69d0ed39f5130b7139c99258c3d76"
+      },
+      "fileOwnershipPreserved": true,
+      "runtimeRunObservation": {
+        "1fcf4165-fa86-4607-8935-982d4c0f472c": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        },
+        "6896e6ce-c9c3-47c7-9a48-b251992581f5": {
+          "newRunIdsObserved": [],
+          "observationWindowComplete": true,
+          "liveRunsAfter": 0
+        }
+      },
+      "healthStatus": "ready"
+    }
+  ]
+}

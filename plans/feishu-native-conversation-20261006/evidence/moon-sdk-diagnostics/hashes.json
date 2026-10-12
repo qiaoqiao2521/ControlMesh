@@ -1,0 +1,10 @@
+{
+  "kit_compat.py": {
+    "before": "01153cacf541f8dbf443be867f0b9fc8e278b4ea8f877b2b507a1bcda95c653b",
+    "after": "393e0d4f39c427ed4d81d004116e2021d76b9c75f010f30a6a3e240b0b891fdd"
+  },
+  "kit_compat_launcher.py": {
+    "before": "6848a7edb65191a5ada803f44c42866ebf1d656586ad32e605095358af0e8682",
+    "after": "9ee279e80fa7f074cab996d5c270bdac24434c422afd4bfd9f55f1ca543bb3fa"
+  }
+}

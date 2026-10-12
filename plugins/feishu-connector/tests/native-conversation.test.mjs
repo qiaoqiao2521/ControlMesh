@@ -75,7 +75,8 @@ function fixture(options = {}) {
     if (options.reply) return options.reply(...args, { entities, states, events });
     return { ok: true, messageId: 'feishu_reply_a' };
   };
-  const makeBridge = () => createNativeConversationBridge({ invoke, reply });
+  const makeBridge = () => createNativeConversationBridge({ invoke, reply,
+    legacyAlreadyAdmitted: options.legacyAlreadyAdmitted });
   const bridge = makeBridge();
   const handle = (message = makeMessage(), selectedConfig = config, selectedBridge = bridge) =>
     selectedBridge.handle(ctx, selectedConfig, selectedConfig.connections[0], message);
@@ -158,6 +159,180 @@ test('a foreign-company entity response is rejected before dispatch', async () =
   const f = fixture({ list: () => [{ scopeId: 'other_company', data: { phase: 'delivered' } }] });
   await assert.rejects(f.handle(), /crossed company boundary/);
   assert.equal(f.invocations.length, 0);
+});
+
+test('legacy admitted sources keep the legacy path without native dispatch or duplicate reply', async () => {
+  const f = fixture({ legacyAlreadyAdmitted: async (_ctx, selected, connection, message) => {
+    assert.deepEqual(selected, binding);
+    assert.equal(connection.id, binding.connectionId);
+    assert.equal(message.messageId, 'message_a');
+    return true;
+  } });
+  assert.equal(await f.handle(), null);
+  assert.equal(f.invocations.length, 0);
+  assert.equal(f.replies.length, 0);
+  assert.equal(f.entities.size, 0);
+  assert.equal(f.states.size, 0);
+});
+
+test('an ambiguous legacy identity fails before creating a native turn', async () => {
+  const f = fixture({ legacyAlreadyAdmitted: async () => {
+    throw new Error('Legacy admission source identity mismatch');
+  } });
+  await assert.rejects(f.handle(), /Legacy admission source identity mismatch/);
+  assert.equal(f.invocations.length, 0);
+  assert.equal(f.replies.length, 0);
+  assert.equal(f.entities.size, 0);
+  assert.equal(f.states.size, 0);
+});
+
+test('an existing native receipt precedes the legacy probe and keeps native recovery', async () => {
+  let probes = 0;
+  const f = fixture({ legacyAlreadyAdmitted: async () => {
+    if (++probes > 1) throw new Error('must not inspect legacy after native acceptance');
+    return false;
+  } });
+  assert.equal((await f.handle()).status, 'submitted');
+  assert.equal((await f.handle(makeMessage(), f.config, f.makeBridge())).duplicate, true);
+  await f.flush();
+  assert.equal(probes, 1);
+  assert.deepEqual(f.invocations.map(request => request.operation), ['send', 'status']);
+  assert.equal(f.replies.length, 1);
+});
+
+test('pre-guard pending sources already admitted by the legacy connector retain history without status or reply I/O', async () => {
+  for (const phase of ['planned', 'submitted', 'submit_unknown', 'waiting_interaction']) {
+    let admitted = false;
+    const f = fixture({ legacyAlreadyAdmitted: async (_ctx, selected, connection, source) => {
+      assert.deepEqual(selected, binding);
+      assert.equal(connection.id, binding.connectionId);
+      assert.equal(source.messageId, 'message_a');
+      assert.equal(source.chatId, binding.chatId);
+      assert.equal(source.senderOpenId, binding.senderOpenId);
+      return admitted;
+    } });
+    await f.handle();
+    const [key, entry] = [...f.entities.entries()][0];
+    delete entry.data.admissionOwner;
+    entry.data.phase = phase;
+    entry.status = phase;
+    f.entities.set(key, entry);
+    admitted = true;
+    await f.flush(f.makeBridge());
+    const row = f.rows()[0];
+    assert.equal(row.phase, 'legacy_retained');
+    assert.equal(row.commentId, 'comment_a');
+    assert.equal(row.conversationIssueId, 'issue_a');
+    assert.equal(row.source.messageId, 'message_a');
+    assert.deepEqual(f.invocations.map(request => request.operation), ['send']);
+    assert.equal(f.replies.length, 0);
+    assert.deepEqual([...f.states.values()][0], []);
+    assert.equal((await f.handle(makeMessage(), f.config, f.makeBridge())).duplicate, true);
+    await f.flush(f.makeBridge());
+    assert.equal(f.entities.size, 1);
+    assert.equal(f.replies.length, 0);
+  }
+});
+
+test('a pre-guard native source with no legacy admission keeps ordinary native status recovery', async () => {
+  let probes = 0;
+  const f = fixture({ legacyAlreadyAdmitted: async () => { probes++; return false; } });
+  await f.handle();
+  const [key, entry] = [...f.entities.entries()][0];
+  delete entry.data.admissionOwner;
+  f.entities.set(key, entry);
+  await f.flush(f.makeBridge());
+  assert.equal(probes, 2);
+  assert.deepEqual(f.invocations.map(request => request.operation), ['send', 'status']);
+  assert.equal(f.rows()[0].phase, 'delivered');
+  assert.equal(f.replies.length, 1);
+});
+
+test('an ambiguous legacy owner cannot retire a pre-guard pending source or produce a failure reply', async () => {
+  let ambiguous = false;
+  const f = fixture({ legacyAlreadyAdmitted: async () => {
+    if (ambiguous) throw new Error('Legacy admission source identity mismatch');
+    return false;
+  } });
+  await f.handle();
+  const [key, entry] = [...f.entities.entries()][0];
+  delete entry.data.admissionOwner;
+  f.entities.set(key, entry);
+  ambiguous = true;
+  await assert.rejects(f.flush(f.makeBridge()), /Legacy admission source identity mismatch/);
+  assert.equal(f.rows()[0].phase, 'submitted');
+  assert.equal([...f.states.values()][0].length, 1);
+  assert.deepEqual(f.invocations.map(request => request.operation), ['send']);
+  assert.equal(f.replies.length, 0);
+});
+
+test('pending sources with an unavailable original connection stay recoverable without status or reply I/O', async () => {
+  let probes = 0;
+  const f = fixture({ legacyAlreadyAdmitted: async () => { probes++; return false; } });
+  await f.handle();
+  const [key, entry] = [...f.entities.entries()][0];
+  delete entry.data.admissionOwner;
+  f.entities.set(key, entry);
+  f.config.connections[0].enabled = false;
+  await f.flush(f.makeBridge());
+  assert.equal(probes, 1);
+  assert.equal(f.rows()[0].phase, 'submitted');
+  assert.equal([...f.states.values()][0].length, 1);
+  assert.deepEqual(f.invocations.map(request => request.operation), ['send']);
+  assert.equal(f.replies.length, 0);
+});
+
+test('pre-guard sending intents and terminal native receipts are never transferred to legacy ownership', async () => {
+  for (const phase of ['sending', 'delivered', 'delivery_unknown']) {
+    let probes = 0;
+    const f = fixture({ legacyAlreadyAdmitted: async () => {
+      if (++probes > 1) throw new Error('sending and terminal receipts must remain untouched');
+      return false;
+    } });
+    await f.handle();
+    const [key, entry] = [...f.entities.entries()][0];
+    delete entry.data.admissionOwner;
+    entry.data.phase = phase;
+    entry.status = phase;
+    f.entities.set(key, entry);
+    await f.flush(f.makeBridge());
+    assert.equal(probes, 1);
+    assert.equal(f.rows()[0].phase, phase);
+    assert.deepEqual(f.invocations.map(request => request.operation), ['send']);
+    assert.equal(f.replies.length, 0);
+  }
+});
+
+test('a durable native ACK precedes legacy pending recovery even without a new admission marker', async () => {
+  for (const status of ['replied', 'interaction']) {
+    let crashed = false, probes = 0;
+    const expectedPhase = status === 'interaction' ? 'waiting_interaction' : 'delivered';
+    const f = fixture({
+      legacyAlreadyAdmitted: async () => {
+        if (++probes > 1) throw new Error('native ACK must retain its own recovery');
+        return false;
+      },
+      invoke: (_native, request) => request.operation === 'send' ? clone(submitted)
+        : { ...replied, status, ...(status === 'interaction' ? { interactionId: 'choice_a' } : {}) },
+      beforeUpsert: entry => {
+        if (!crashed && entry.data.kind !== 'delivery' && entry.data.phase === expectedPhase) {
+          crashed = true;
+          throw new Error('crash after durable native ACK');
+        }
+      },
+    });
+    await f.handle();
+    await assert.rejects(f.flush(), /crash after durable native ACK/);
+    const [key, entry] = [...f.entities.entries()].find(([, row]) => row.data.kind !== 'delivery');
+    delete entry.data.admissionOwner;
+    f.entities.set(key, entry);
+    await f.flush(f.makeBridge());
+    const row = f.rows().find(row => row.kind !== 'delivery');
+    assert.equal(row.phase, expectedPhase);
+    assert.equal(row.replyMessageId, 'feishu_reply_a');
+    assert.equal(probes, 1);
+    assert.equal(f.replies.length, 1);
+  }
 });
 
 test('duplicate events, including concurrent delivery and restart, submit exactly once', async () => {

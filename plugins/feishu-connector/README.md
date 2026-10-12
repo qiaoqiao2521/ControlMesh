@@ -70,13 +70,24 @@ CLI 会检查实际 Board 用户，拒绝符号链接和不安全的配置权限
 
 绑定必须对应同公司、同 Agent 的已有明确 `chat` 或 `user` 路由。
 `default` 路由不能证明私聊身份。
+路由 `replyMode` 使用 `message`；该版本只接受 `none`、`message`、`thread`。
+`senderOpenId` 必须来自此机器人 App 的身份绑定或官方成员回读。
+本机 user CLI 的 OpenID 属于另一个 App，不能直接复制到机器人配对。
 通过原生实验设置 API 启用 `enableAgentChat`；CLI 不自动启用。
 每个公司、Agent、Board 用户只接一个选定私聊，避免合并不同会话。
+
+凭据被上游明确拒绝时，在保留现有公司配置的前提下设
+`enableEventSubscriber=false`，回读无活跃订阅器，避免持续失败重连。
+`eventSubscriberEnabled` 是状态结果字段，不能用作配置开关。
+修复原 App 凭据后再启用并验收新消息，不以插件 `ready` 判断恢复。
 
 ## 行为与边界
 
 - 新消息通过原生 chat/comment API 进入同一对话。Paperclip 负责持久会话、排队、唤醒与运行。
 - 飞书消息 ID 产生稳定 `clientRequestId`。重复事件不产生第二次模型派发。
+- compat.8 先查原生回执，再只读核对旧 session 和 dedup。旧入口已接纳的消息仍由旧入口负责；未知送达不自动转为新任务。
+- 升级前误入原生 pending 的旧消息，核对原绑定后记为 `legacy_retained`，保留实体与历史，不新增状态调用或回复。已确认的原生 ACK 继续原恢复。
+- 旧 Agent 已迁移时，通过官方只读 Agent/Issue API 核对原公司归属；缺失、跨公司或无权限时拒绝，不改写旧 ownership。
 - 普通私聊回复留在主聊天流。多个源消息共享同一原生回复时，只发送一次。
 - 回执核对公司、用户、Agent、原评论、运行和 generation。不能只按时间找最近回复。
 - `/new` 使用原生重置逻辑，保留历史，不手动清空提供商会话文件。
@@ -104,3 +115,4 @@ node plugins/feishu-connector/tests/worker-rpc.test.mjs /absolute/build/output
 单元与 RPC 验证不代表真实飞书交付。
 真实 Paperclip API、生产插件健康和用户新消息验收分别留证据。
 当前任务进度见 [SpecMesh 交接](../../plans/feishu-native-conversation-20261006/progress.md)。
+六机接入与单机诊断见 [2026-10-12 证据](../../plans/feishu-native-conversation-20261006/evidence/fleet-live-20261012.md)。
