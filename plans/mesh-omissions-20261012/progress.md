@@ -11,6 +11,7 @@
 - 当前总览归纳飞书持续对话、callback 与治理来源；修正架构页仍称完成钩子未接通的过时说明。同步一致不证明来源新鲜，接收关系必须显式维护。
 - 新 cm-codex-task launch/reconcile 复用 bind、native-watch、原生 API 和 notify；私有 attempt 在派发前独占落盘，未知响应不重发。入口已安装，symlink help 实测通过。
 - QIA-100 五项内容修订按官方 Linux/build/server/FAQ/context 复审接受；修订 report/research/acceptance 私有保存，原四份产物与 handoff 哈希不变。原生 in_review → done 读回；接受范围仅资料研究，一次性 Agent 仍 paused。
+- 最终补查修订 JSON 格式：修正不受支持的 kind 标签及缺少来源摘要，原手工修订和回执保留检查前快照。复用 night-lab/run.py 的 validate_research，4 claims / 5 sources 校验通过；新修订哈希、原模型产物与 handoff 再次核对一致。来源摘要是协调者官方文档读回，不冒充新模型 webfetch 回执。
 - 使用原 QIA-100 run 实测 reconcile：replayed=true，前后完整 callback status 一致；原 handoff 未改写，无新 callback、任务重派发或模型重跑。
 - 31 项 Node 启动顺序、误归属、未就绪、绑定拒绝、未知派发、篡改与恢复测试通过；51 项 Python（36 callback、15 closeout）通过。两入口 Node 语法与已安装 help 通过。
 - 来源修复提交 bd4e6d0b0039f638db712c75e65dd600159b1ece 已推送到既有公开 ControlMesh main；CapMesh 修复提交 1773cf181d14049d3308d5e2444c625cbc7fba58 已推送到既有私有 CapMesh main。隔离账号与两个远端 main 通过 GitHub API 读回一致。最终进度修订同批交付，以本文件 Git 历史为准。
