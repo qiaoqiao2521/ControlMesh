@@ -238,8 +238,12 @@ def handoff_record(filename, binding):
 
 
 def followup_for(event, binding):
+    # Receipt identity includes this text. Keep old versions stable for reconciliation.
+    version = event.get("followup_version", 1)
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError("followup_version_invalid")
     artifact = event["handoff"]
-    return (
+    followup = (
         f"CM completion for original Codex thread {binding['thread_id']}. "
         f"company_id={event['company_id']}; issue_id={event['issue_id']}; "
         f"run_id={event['run_id']}; outcome={event['outcome']}. "
@@ -250,10 +254,21 @@ def followup_for(event, binding):
         "A callback receipt is not business acceptance. Do not create or send another "
         "callback for this event."
     )
+    if version == 2:
+        followup += (
+            " Before continuing, read the bound project's current AGENTS.md, PROJECT.md "
+            "and only the relevant task plan. Follow the latest user scope. "
+            "Before adding capabilities, compare existing project code, installed tools "
+            "and upstream implementations; reuse them or add only a verified thin adapter. "
+            "Keep verification proportional to this task. A useful partial result or human "
+            "handoff may be sufficient; do not add work just to complete a formal closed loop."
+        )
+    return followup
 
 
 def callback_receipt(event_dir, event, binding):
     """Recover a single existing community callback; never create or restart one."""
+    expected_followup = followup_for(event, binding)
     callbacks = private_directory(event_dir / "callbacks")
     entries = list(callbacks.iterdir())
     if not entries:
@@ -280,7 +295,7 @@ def callback_receipt(event_dir, event, binding):
             "cwd": binding["cwd"],
             "socket_path": event["callback_socket_path"],
             "outcome": event["outcome"],
-            "followup": followup_for(event, binding),
+            "followup": expected_followup,
             "command": None,
         }.items()
     ):
@@ -318,6 +333,7 @@ def summary(event_dir, event, binding, *, replayed=False):
         "run_id": event["run_id"],
         "thread_id": binding["thread_id"],
         "outcome": event["outcome"],
+        "followup_version": event.get("followup_version", 1),
         "handoff": event["handoff"],
         "phase": "callback_created" if creation_confirmed else "needs_reconciliation",
         "callback": found[1] if found else {"status": "unknown"},
@@ -358,6 +374,7 @@ def notify_completion(company_id, issue_id, run_id, outcome, handoff, *, state_d
         event = {
             "schema": "cm.codex_callback.event.v1",
             **facts,
+            "followup_version": 2,
             "phase": "creating",
             "created_at": time.time(),
             "callback_directory": None,

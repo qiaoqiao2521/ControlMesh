@@ -151,8 +151,68 @@ class BridgeTests(unittest.TestCase):
         state = jobs.read_status(self.callback())
         self.assertEqual(state["thread_id"], THREAD)
         self.assertIn(first["handoff"]["sha256"], state["followup"])
+        self.assertEqual(first["followup_version"], 2)
+        self.assertIn("AGENTS.md, PROJECT.md", state["followup"])
+        self.assertIn("reuse them", state["followup"])
+        self.assertIn("partial result or human", state["followup"])
         self.assertFalse(first["business_accepted"])
         self.assertFalse(first["followup_complete"])
+
+    def test_legacy_receipt_reconciles_without_upgrading_or_resending(self):
+        self.bind()
+        self.send()
+        event_path = self.event_directory() / "event.json"
+        event = json.loads(event_path.read_text())
+        event.pop("followup_version")
+        m.save(event_path, event)
+        artifact = event["handoff"]
+        state = jobs.read_status(self.callback())
+        # Exact text emitted before versioned project reminders existed.
+        state["followup"] = (
+            f"CM completion for original Codex thread {THREAD}. "
+            f"company_id={COMPANY}; issue_id={ISSUE}; "
+            f"run_id={RUN}; outcome=completed. "
+            f"Read handoff {artifact['path']}; expected SHA256={artifact['sha256']}. "
+            "Check the actual CODEX_THREAD_ID matches the original thread above "
+            "and recompute the hash. Independently verify the handoff, CM identity, "
+            "evidence and pending review in this original conversation. "
+            "A callback receipt is not business acceptance. Do not create or send another "
+            "callback for this event."
+        )
+        state["callback"].update(status="started", queue_id="queue-old", turn_id="turn-old")
+        jobs.save_status(state)
+        before_receipt = (self.callback() / "status.json").read_bytes()
+        before_event = event_path.read_bytes()
+        before_handoff = self.handoff.read_bytes()
+        status = m.status(COMPANY, ISSUE, RUN, state_dir=self.state)
+        self.assertEqual(status["followup_version"], 1)
+        self.assertEqual(event_path.read_bytes(), before_event)
+        result = self.send()
+        self.assertTrue(result["replayed"])
+        self.assertEqual(result["callback"]["turn_id"], "turn-old")
+        self.assertNotIn("followup_version", json.loads(event_path.read_text()))
+        self.assertEqual((self.callback() / "status.json").read_bytes(), before_receipt)
+        self.assertEqual(self.handoff.read_bytes(), before_handoff)
+        self.notify.assert_called_once()
+        self.spawn.assert_called_once()
+
+    def test_invalid_followup_version_refuses_reconciliation_without_resend(self):
+        self.bind()
+        self.send()
+        event_path = self.event_directory() / "event.json"
+        event = json.loads(event_path.read_text())
+        for version in (3, "2", None, True):
+            with self.subTest(version=version):
+                event["followup_version"] = version
+                m.save(event_path, event)
+                before = event_path.read_bytes()
+                with self.assertRaisesRegex(ValueError, "followup_version_invalid"):
+                    m.status(COMPANY, ISSUE, RUN, state_dir=self.state)
+                with self.assertRaisesRegex(ValueError, "followup_version_invalid"):
+                    self.send()
+                self.assertEqual(event_path.read_bytes(), before)
+        self.notify.assert_called_once()
+        self.spawn.assert_called_once()
 
     def test_notify_rejects_changed_completion_or_handoff(self):
         self.bind()

@@ -25,6 +25,14 @@ Then read only what the task requires:
 Do not load unrelated documentation by default. `docs/README.md` is a catalog, not a
 required reading list.
 
+## 复用与流程成本
+
+遵循 [SpecMesh §8 的复用与流程成本](https://github.com/qiaoqiao2521/specmesh/blob/main/SPEC.md#复用与流程成本)。本机标准入口为 `~/.agents/standards/specmesh.md`；缺少该入口时按以下准则继续，不增加运行依赖。
+
+- 新增能力前，按任务规模检查项目已有实现、已安装工具及官方或社区实现。优先使用、配置、组合或小补丁；自研仅补已核实缺口，说明无法复用的原因，未核实能力标为待核实。
+- 自动化以本次有效产出为目标。允许部分自动化或人工交接；不为形式上的完整闭环增加卡片、服务、审查环节或强制知识写回。验证与变动和风险相称，保留既有身份、去重与恢复要求。
+- Codex queue 接续先读当前项目入口和相关计划。派发 CM worker 时，由协调 Agent 将选定项目准则、交付物与停止条件放进已有原生任务材料；queue 不负责向外部 worker 自动加载文档。具体边界见 [回调说明](docs/codex-callback.md#准则继承与任务范围)。
+
 ## Project Memory
 
 Conversation history is context, not project memory.

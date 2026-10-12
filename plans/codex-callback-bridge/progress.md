@@ -2,12 +2,15 @@
 
 ## Current
 
+2026-10-12 准则继承修复：CM 项目入口明确复用与流程成本；新 callback 保存提示版本 2，提醒原会话重读当前项目，watcher 默认说明改为通用任务范围。38 项 Python、32 项 Node 隔离测试通过；不将提示出现宣称为 Agent 实际采用。共享工作区飞书六机任务与历史遗留保留，本次不操作服务器、投递真实 callback 或派发模型。
+
 2026-10-12：只接本机。QIA-99 补发与 QIA-100 的原生派发 → 完成事件 → queue → 原会话接续 → 文件核验已通过。QIA-100 五项研究修订已独立复审接受，原生 issue=done 读回；原件保留，一次性 Agent 仍 paused。接受范围是官方资料研究，未安装模型。
 
 新增 `cm-codex-task launch/reconcile` 组合既有绑定、就绪订阅、派发与去重通知；31 项 Node 测试通过。用 QIA-100 原运行实测终态对账，原 callback/status 完全一致，原 handoff 未改写，无重派发或新 callback。新 launch 的整体真实派发、长期服务与普通 App 重启仍未独立验收。来源见 [遗漏修复](../mesh-omissions-20261012/progress.md)。
 
 ## Done
 
+- 2026-10-12：新提示写入社区 callback 私有状态；旧无版本事件继续按原文对账，状态查询不改事件，重放不升级或重发。未知版本拒绝；显式任务 followup 与既有 handoff 字节保留。70 项隔离测试、Python AST、入口与测试的 Ruff E/F（忽略 E402）、Node 语法和 62 个本地文档链接／锚点、diff 检查通过。独立代码审查无阻碍，指出的 SpecMesh 链接锚点已修正。
 - 2026-10-12：根 Codex 按官方 Linux/build/server/FAQ/context 页面修复 C1/C2/C3/C4/takeaways；修订报告 SHA256 为 26f4c8bbfdf57783aa60c991cb634b10053c1df7ebbba1fe36113344b746240c。原四份产物和 handoff 哈希复算一致；revision-acceptance 与原生 done 读回私有保存。未收费重跑或安装模型。
 - 2026-10-12：补齐本机启动与终态恢复入口，派发前独占落盘，响应未知不重发，恢复复用身份/产物/去重检查。QIA-100 原运行实测 result.replayed=true，前后完整 status 相同；只新增恢复回执，原交接不变。51 项 Python（36 项 callback、15 项 closeout）和 31 项 Node 测试通过。
 
@@ -39,6 +42,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
+- 提示传递已隔离验证，实际 Agent 采用待下一项已有授权任务观察。协调 Agent 负责把目标项目选定准则、交付物和停止条件放入原生任务材料；启动器不会替外部 worker 生成 prompt。owner 根 Codex，最短入口为 docs/codex-callback.md 的准则继承与任务范围；不新增验证任务。
 - QIA-100 研究修订已接受；原 requires_revision 记录作为历史保留，最新结果见私有 revision-acceptance.json 与 revision-native-readback.json。
 - 入口与单个原运行对账已验收；新 launch 完整真实派发与长期后台服务仍需在下一个授权任务验收。owner 根 Codex，最短入口为 docs/codex-callback.md 的本机任务启动与恢复。
 - App 下次普通启动的持久连接仍需独立验收。
@@ -49,6 +53,8 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 开工遗留的 Orca、未接受 cron 提案及历史部署材料继续保留；具体阻碍与最短接续入口见 [Handover & Retained Legacy](../repository-closeout-policy/progress.md#handover--retained-legacy-移交根-codex-独立审批与接续)。接续 owner 为根 Codex，不将未接受成果混入本次提交。
 
+2026-10-12 共享工作区的飞书插件与六机 SDK／归属修复仍在进行。已向同项目对话“提出难以回答的问题”（01a0e21d-aa34-76c0-918a-17c9aaa5d736）协调，本次在隔离 worktree 验证并只串行整合上述 callback 与文档文件。飞书成果由该对话继续验收交付；旧 CLI／Orca 等保留项仍按上述根 Codex 交接，不混入未核实运行态。
+
 ## Next
 
 未来明确绑定的本机新任务使用 cm-codex-task launch；未知或断线结果用 reconcile 读取原 run。原会话仍独立验收业务；不重复派发旧任务来测试。
@@ -56,3 +62,5 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 ## Knowledge closeout
 
 already_covered：采用 Obsidian Wiki/自动化开发范式与智能体协作.md 的“远端任务恢复：先确认提交边界”，保留未知提交结果并先对账，避免重复触发。CapMesh 的复用原则也已覆盖本次选择。社区竞态补丁与具体命令保留在本项目，无需重复创建共享知识页。
+
+2026-10-12 already_covered：按 Wiki/开发知识入口.md 的“换 Agent／中断恢复”和“Agent 完成／实际交付”路由，核对 Wiki/自动化开发范式与智能体协作.md 的“按当前任务选择验收依据”及 SpecMesh SPEC.md §8、CapMesh D021。共享原则已有准确覆盖；提示版本兼容与 worker 传递边界只影响本项目，写回现有 AGENTS、PROJECT、回调说明与决策，无新增共享知识页。

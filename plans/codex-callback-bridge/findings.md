@@ -1,5 +1,7 @@
 # Findings
 
+- 2026-10-12 准则继承审计：native thread/resume 恢复原线程，不显式重载项目入口。CM callback 的 followup 被纳入回执精确身份比对，直接改默认文字会破坏旧事件对账；新事件固定提示版本，旧事件保留原文。watcher 原默认提示属于 QIA-100 研究任务，应只留在历史交接。启动器不生成 worker prompt，协调 Agent 仍需通过已有任务材料传递准则。
+- 采用 SpecMesh SPEC.md §8 与 CapMesh docs/DECISIONS.md D021 的复用和流程成本准则：已有 Paperclip 生命周期和 codex_callback 传输继续复用，只补 CM 自有提示与兼容边界。共享知识入口已覆盖“换 Agent／中断恢复”和“按当前任务选择验收依据”，不新建知识卡或策略数据库。
 - 2026-10-11 用户明确选用 codex_callback，非 wake-codex。社区代码固定 commit 5193e2ece5caf2ac1805800575e5567a972f657c；notify() 不接管 CM 执行。
 - notify() 每次生成新 UUID，外部重复事件需要在调用边界去重。采用单 run 私有目录和 OS 文件锁，保存调用前保留记录；结果未知时先对账已有目录，不能重新调用 notify()。
 - 历史两事件验收已通过；原 reference 不改动。新 runtime 放 vendor/codex_callback，许可和最小 patch 单独标明。

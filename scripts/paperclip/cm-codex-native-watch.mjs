@@ -80,7 +80,7 @@ export function completeNative(spec, event, run, issue, links, {
     business_outcome: receipt?.business_outcome ?? 'no_worker_receipt', artifacts,
     worker_receipt: receipt ? { path: receiptPath, sha256: digest(readFileSync(receiptPath)) } : null,
     acceptance_directory: spec.directory,
-    followup: spec.followup ?? 'Verify actual CODEX_THREAD_ID, handoff/artifact hashes, native event/run/task ownership and one matching persisted callback turn. Read report.md and research.json; independently review source receipts and conclusions. Save acceptance.json here, report the deployment research and whether dispatch -> native completion event -> queue -> original chat continuation passed. Do not create another callback or rerun the model. Pause only this one-shot agent after verification. Task output is a research draft, not an installed model or deployment benchmark.',
+    followup: spec.followup ?? 'Read the current project AGENTS.md, PROJECT.md and relevant task plan; follow the latest user scope. Verify the original CODEX_THREAD_ID, native run/task ownership and handoff/artifact hashes. Independently review the requested result and report accepted work, failures and remaining work using this project\'s existing records. Reuse existing tools and upstream implementations before adding capabilities. Keep verification proportional; a useful partial result or human handoff may satisfy the task. Do not add work solely to complete a formal closed loop, create another callback or rerun the original task.',
   };
   const handoffPath = resolve(spec.directory, 'handoff.json');
   if (existsSync(handoffPath)) {

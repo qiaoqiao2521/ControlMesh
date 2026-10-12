@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-10-12 — Carry project principles through existing Codex continuation
+
+Decision: CM 项目入口明确复用优先与适度自动化；新 callback 提醒原 Agent 重读当前项目，watcher 默认接续说明改为通用任务范围。
+Why: SpecMesh 更新不会自动进入旧原线程；原默认说明混入了单次部署研究的专用步骤。
+Boundary: 使用现有队列、原生任务材料与日志，不修改社区 runtime，不增加策略服务或强制闭环关卡。外部 worker 的准则由协调 Agent 传递，消息出现不证明行为采用。
+Compatibility: 新私有事件固定 followup_version=2；无版本的旧事件保持原文与原回执，恢复不升级或重发。
+Entry: [准则继承](codex-callback.md#准则继承与任务范围)、[进度](../plans/codex-callback-bridge/progress.md)。
+
 ## 2026-10-12 — Combine existing local callback steps and reconcile original runs
 
 Decision: cm-codex-task 组合既有 bind、native-watch、Paperclip PATCH 与 notify；恢复读取明确的原 run，不重派发。

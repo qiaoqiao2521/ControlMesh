@@ -112,6 +112,24 @@ test('reconcile completes a missed terminal event through the same artifact admi
   const handoff = JSON.parse(readFileSync(join(f.directory, 'handoff.json')));
   assert.equal(handoff.mode, 'native_terminal_readback'); assert.equal(handoff.event.id, null);
   assert.equal(handoff.business_accepted, false); assert.deepEqual(f.order, ['notify']);
+  assert.match(handoff.followup, /AGENTS\.md, PROJECT\.md/);
+  assert.match(handoff.followup, /Reuse existing tools and upstream/);
+  assert.match(handoff.followup, /useful partial result or human handoff/);
+  assert.doesNotMatch(handoff.followup, /research\.json|acceptance\.json|Pause only/);
+}));
+test('explicit task followup survives event completion and changed-spec reconciliation', async () => withFixture(async f => {
+  f.spec.followup = 'Review the requested game controls using the project acceptance notes.';
+  writeFileSync(f.path, JSON.stringify(f.spec)); artifacts(f);
+  const event = { companyId: f.spec.company_id, type: 'heartbeat.run.status', id: 'original-event',
+    payload: { runId, issueId: f.spec.issue_id, agentId: f.spec.agent_id, status: 'succeeded' } };
+  completeNative(f.spec, event, f.run, f.issue, f.links, { notify: f.dep.callback });
+  const handoffPath = join(f.directory, 'handoff.json');
+  const before = readFileSync(handoffPath);
+  assert.equal(JSON.parse(before).followup, f.spec.followup);
+  delete f.spec.followup; writeFileSync(f.path, JSON.stringify(f.spec));
+  await reconcileTask(f.path, runId, f.dep);
+  assert.deepEqual(readFileSync(handoffPath), before);
+  assert.deepEqual(f.order, ['notify', 'notify']);
 }));
 test('event completion and reconciliation retain identical handoff bytes', async () => withFixture(async f => {
   artifacts(f);

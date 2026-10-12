@@ -102,6 +102,8 @@ without loading the whole repository or asking the user to repeat established co
 
 ## Constraints
 
+新增能力与任务接续遵循 [AGENTS.md 的复用与流程成本](AGENTS.md#复用与流程成本)。协调 Agent 向 CM worker 传递当前项目的选定准则与停止条件；Codex queue 只传递接续消息，不替外部 worker 加载项目文件。有效的部分自动化或人工交接可以满足任务，不把形式上的完整闭环作为通用交付目标。
+
 Development knowledge is an optional planning/closeout input through [AGENTS.md](AGENTS.md).
 Obsidian keeps reusable explanations; SpecMesh project files keep current facts, CapMesh keeps
 capability decisions, and History keeps source evidence. This file-based convention does not
