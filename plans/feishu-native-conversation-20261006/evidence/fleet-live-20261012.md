@@ -124,15 +124,42 @@ enableEventSubscriber=false，活跃订阅器0；本轮不发送无效验收消�
 ## 本机旧入口误用与纠正
 
 一次审查误用旧 `cm plugin health`，短暂启动旧 Python CM 并改写其私有工作区规则。
-本次启动的旧进程已停止；原 controlmesh.service 已 inactive/disabled。
-30个 AGENTS.md/GEMINI.md 在 `~/.controlmesh` 内被旧模板写入。缺写入前内容快照，不能声称已恢复原文。
-三个旧 skill-creator 链接缺失，原状态未知；系统官方 Skill Creator 仍可用，不猜测恢复。
-私有遗留留在原位置，由根 Codex 按原任务证据核对；不将其当作当前默认入口。
+本次启动的旧进程已停止；原 controlmesh.service 已 inactive/disabled，无旧 CM 进程在跑。
 
-精确修正本机 cm/controlmesh alias，转发到现有官方 Paperclip CLI，使用安装目录的 Node24。
-`cm health --api-base http://127.0.0.1:3100 --json` 实际返回 status=ok、version=2026.916.1。
-Paperclip PID2901保持；未新增 daemon、cron 或自动模型检查。
-旧服务停止与 CLI 纠正已验收，旧私有规则恢复未验收，两者分别报告。
+### 30 份规则的取证结论（本次结清）
+
+`~/.controlmesh/logs/agent.log` 记录 2026-10-12 实际 5 次规则部署：16:25:42、16:26:53（两次）、17:23:13、17:23:17。
+历史累计 52 次 `Deployed 30 rule files`，跨 9/29、9/30、10/1、10/2、10/4、10/5、10/6、10/9、10/12。
+即旧 CM 每次启动都重写这批文件，本轮不是首次改写。
+
+部署器是 `controlmesh.workspace.rules_selector`，第 217 行用 `shutil.copy2(template, destination)`。
+copy2 保留模板 mtime，所以 30 份里多数文件 mtime 停在 2026-09-11 08:28（uv 安装时刻），只看 mtime 会漏判。
+真实写入由 ctime 暴露：非任务规则文件 ctime 均为 2026-10-12 17:23:17，任务子目录文件未被本次触碰。
+
+逐字节比对 29 个非任务规则文件与包内 `_home_defaults/**/RULES*.md`：
+27 份完全一致；仅 `workspace/AGENTS.md` 与 `workspace/GEMINI.md` 不同。
+两份的差异只是模板 `{{CONTROLMESH_TASK_DELEGATION_POLICY}}`（模板第 90 行）被现有配置展开填充，
+属同一渲染流程的确定性输出，不是另一份内容。
+
+结论：这 30 份是包管理产物，每次启动按同一模板加同一配置重新渲染，本次未产生独有内容损失。
+此前"缺写入前内容快照、不能声称已恢复原文"的前提不成立，该遗留项按取证结清，不再挂起。
+
+本轮 41 份规则文件已快照到 `~/.controlmesh/_rewrite-snapshot-20261012/`（保留原权限与 mtime），供后续比对。
+
+真正无法从模板复原的只有 17:23:14 `skill_sync` 删除的三个 symlink：
+`~/.claude/skills/skill-creator`、`~/.codex/skills/skill-creator`、`~/.gemini/skills/skill-creator`。
+它们指向旧 CM 包，旧 CM 退役后本就不适用；系统官方 Skill Creator 仍可用，不重建旧链接。
+
+### 复发入口已消除
+
+本机 cm/controlmesh alias 已修正到官方 Paperclip CLI，`cm health` 实际返回 status=ok、version=2026.916.1。
+旧 Python CM 包 `~/.local/share/uv/tools/controlmesh`（controlmesh 0.43.0，146MB）经本人确认后移除，
+与其他五机口径一致。移除前已核实无依赖：crontab、systemd 用户单元、`~/.config`、`~/.local/bin` 脚本均不引用该 venv；
+唯一关联的 `controlmesh.service` 已 disabled 且 ExecStart 指向 `/home/muqiao/.local/bin/controlmesh`，
+该路径早已改指 Paperclip，删除后不会留下可执行旧入口。
+
+移除后复核：目标路径已不存在，`~/.local/share/uv/tools/` 只剩 ansible-core、google-colab-cli、huggingface-hub；
+`cm health` 仍返回 2026.916.1；controlmesh.service 仍 inactive/disabled；无旧 CM 进程。
 
 ## 接续与知识收尾
 
@@ -140,6 +167,11 @@ Paperclip PID2901保持；未新增 daemon、cron 或自动模型检查。
 Cy 已过期 flow 保留；app.json 不存在，不把过期当作创建成功。本人准备好后按单机流程重新开始。
 原 owner-event 链继续保持；独立 CM 接入不能抢占已有 WebSocket。
 Ops 当前六机表和问题清单同步更新。新消息送达、旧遗留恢复和 AGY AUTH 各有边界。
+
+2026-10-12 续跑复核：上述四项远端状态与交接一致，已实测 Moon 上 `/opt/cm-feishu-moonrise/rebind_secret.py`
+存在且 paperclip feishu worker 在跑；Cy 上无 `/opt/cm-feishu-cyrise/`、无 app.json，确认过期未产出。
+本机 30 份规则的"不可恢复"遗留项已按上节取证结清，接续清单不再挂起该项。
+待本人决定的只剩两件：删除本机旧 Python CM 包以消除复发入口，以及 Moon Secret 输入与 Cy 重新扫码。
 
 already_covered：沿用 Wiki「跨机器迁移：先判断资料属于哪一层」「按当前任务选择验收依据」与「远端任务恢复：先确认提交边界」。
 单机状态留在 Ops，版本补丁与合成消息证据留在 CM；本轮不新增知识机制。
