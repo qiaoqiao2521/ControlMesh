@@ -3,7 +3,10 @@
 ## Current
 会审 v1 薄适配实现与本机无模型原生协议验收完成，实现提交 `0e02b02` 已推送 qiaoqiao2521/ControlMesh main。不是供应商模型效果、成本硬上限或跨机恢复验收。
 
+2026-10-13：新会审的互补视角已实现，复用已有 purpose；旧回执恢复兼容检查通过。本轮未派发真实咨询，视角对模型判断的实际作用待真实任务观察。
+
 ## Done
+- 2026-10-13：新会审分别核对来源/假设与反证/失败条件；共用冻结事实，原结果协议、2+1 预算、归属及唤醒机制不变。使用说明明确选定准则、来源、产物和停止条件由协调者传递。
 - 定位指定会审的原文和已提交摘要；只审查流程，不重评技术路线。
 - 新增 `scripts/paperclip/cm-consult`；薄入口 `cm-paperclip consult` 路由同一脚本。本机独立 `cm-consult` 链接可用，旧 Python cm 未替换。
 - 冻结输入/初判，两个独立咨询槽和唯一补充槽；原生 child/blockers/事件，无后台循环。创建结果不明时保留槽位，不自动再次创建；可严格绑定原 Issue。
@@ -11,6 +14,8 @@
 - 裁决引用当前原生证据摘要，保留分歧和下一步，不自动发布、不自动完成父任务、不写其他项目代码或记忆。
 
 ## Verification
+- 2026-10-13：现有 Paperclip 适配专项 193 passed、16 subtests passed（18.50s），Ruff 通过。检查实际派发材料的视角差异、共同事实、初判隐藏；新增旧 purpose 回执重开、无重复派发、原生子项完成后 collect 就绪的行为回归。fake API 不等于新原生任务或模型效果验收。
+- 本轮独立 diff 审查通过；与 SpecMesh/CapMesh 共 53 个相关本地 Markdown 链接及锚点检查通过。知识回写 `updated`：CapMesh 原借鉴研究的 Hermes 方法采用段；Obsidian 原“技能触发日志”和“开发协作接入”对日志作用与知识归属 `already_covered`，不复制一份选型清单。
 - `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider --confcutdir=tests/paperclip_adapters tests/paperclip_adapters`：129 passed、12 subtests passed（含新增22项）。
 - 正常仓库测试入口 `uv run pytest -q tests/paperclip_adapters`：129 passed、12 subtests passed（5.14s），不是仅绕过根配置的专项结果。
 - 本次文档新增/修改区域的9个本地链接均存在；未扩展为历史全仓链接修复。

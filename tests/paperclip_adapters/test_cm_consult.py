@@ -149,10 +149,35 @@ def test_dispatch_independence_wait_order_and_replay(setup):
     assert [c[2]["status"] for c in writes] == ["backlog", "backlog", "blocked", "todo", "todo"]
     assert all(c[2]["blockParentUntilDone"] for c in writes[:2])
     assert "PRIVATE INITIAL OPINION" not in json.dumps(writes)
+    briefs = [json.loads(c[2]["description"].removeprefix(m.PREFIX)) for c in writes[:2]]
+    assert briefs[0]["purpose"] != briefs[1]["purpose"]
+    assert briefs[0]["packet"] == briefs[1]["packet"]
+    assert briefs[0]["revision"] == briefs[1]["revision"]
     n = len(writes)
     consult.dispatch()
     assert len([c for c in native.calls if c[0] != "GET"]) == n
     assert consult.path.stat().st_mode & 0o777 == 0o600
+
+
+def test_legacy_purposes_survive_reopen_without_redispatch(setup):
+    consult, native = setup
+    receipt = m.read(consult.path)
+    for entry in receipt["slots"].values():
+        entry["purpose"] = "independent initial consultation"
+    m.write(consult.path, receipt)
+    consult.dispatch()
+    original = {key: issue["description"] for key, issue in native.issues.items() if key != "parent"}
+    writes = len([call for call in native.calls if call[0] != "GET"])
+
+    reopened = m.Consultation(consult.root, native)
+    reopened.dispatch()
+    assert len([call for call in native.calls if call[0] != "GET"]) == writes
+    for key, description in original.items():
+        assert native.issues[key]["description"] == description
+        assert json.loads(description.removeprefix(m.PREFIX))["purpose"] == "independent initial consultation"
+    finish(reopened, native, "initial-1")
+    finish(reopened, native, "initial-2")
+    assert reopened.collect()["ready"]
 
 
 def test_unknown_creation_is_never_retried_and_can_bind(setup):

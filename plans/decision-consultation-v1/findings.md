@@ -22,3 +22,11 @@ CapMesh PIT-002 用于限制接口范围：只接当前 children/comments/run，
 
 ## Preserved work
 基线有旧 Orca 接线/测试、cron 提案、436 bootstrap、.gitignore 与 tau-bench/experiments 进行中材料；不覆盖。原 owner/验证入口见 repository-closeout-policy/progress.md 与 tau-bench-20261001，根 Codex 接续未验收项。
+
+## 2026-10-13 借鉴范围
+- 用户确认开始借鉴。现有 2+1 槽位、冻结版本、原生 children/wake、身份与旧结果拒绝已覆盖，不重做。
+- 唯一代码缺口是两个初始 purpose 相同。借 Hermes sdlc-review 的互补审查视角，复用已持久化字段；不是已证实的质量故障，也不承诺提高决策质量。
+- 新会审分别核对依据与寻找反例，保持同一问题、基线、事实和约束。旧回执继续使用原 purpose，不升级任务、不重发咨询。
+- 默认视角写入新回执，不新增 spec 字段、结果协议或运行依赖。回调准则传递已有约定，不另写 prompt 生成器。
+- 保留项重新核对仍为原 Orca/cron/bootstrap 交接及 tau-bench/experiments 候选，接续 owner 与最短检查沿用上节；本次不把它们直接并入 Paperclip 默认路径。
+- 收口发现本地未推送提交 8e26972 的规则取证报告将当前模板一致推断为没有历史损失。修正原报告的证据范围，并去掉已记录移除项的重复待办；其余操作保留原任务报告身份，本轮不重新操作设备或远端。历史内容恢复仍由根 Codex 查原快照与来源，不能被本次会审测试替代。

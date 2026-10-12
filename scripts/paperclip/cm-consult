@@ -469,14 +469,21 @@ def initialize(directory, spec) -> dict:
     validate_spec(spec)
     root = Path(directory)
     root.mkdir(mode=0o700, parents=True, exist_ok=False)
+    # Persist the lenses once; existing receipts retain their original descriptions.
+    purposes = (
+        "Verify cited sources, the frozen baseline and assumptions. "
+        "Separate facts from inference and answer the original question independently.",
+        "Look for counter-evidence, failure conditions and missing alternatives. "
+        "Report what survives scrutiny and answer the original question independently.",
+    )
     write(
         root / "receipt.json",
         {
             "spec": spec,
             "revision": digest(spec),
             "slots": {
-                f"initial-{n}": {"agent_id": agent, "purpose": "independent initial consultation"}
-                for n, agent in enumerate(spec["workers"], 1)
+                f"initial-{n}": {"agent_id": agent, "purpose": purpose}
+                for n, (agent, purpose) in enumerate(zip(spec["workers"], purposes, strict=True), 1)
             },
         },
     )

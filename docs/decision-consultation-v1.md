@@ -16,6 +16,8 @@ CM 是工作流与薄适配，Paperclip 是运行底座。本功能不是通用 
   使用已配置的有超时与权限限制的 Agent；其内部重试/费用策略须独立核验。
 - 初判不发给首轮工作者，同一事实包与冻结基线发给两者。这是上下文分离，不是进程/文件隔离；
   共享身份/工作区仍可能读取彼此材料。无写权限要求应由实际执行环境落实，不能靠提示词保证。
+- 新会审的第一位先核对来源、基线和假设，第二位先找反证、失败条件和遗漏方案；两者独立回答同一问题。
+  视角在初始化时写入原 purpose 字段。旧回执按已保存的 purpose 继续生成原描述，不升级或重发旧咨询；唯一追加仍回答协调者指定的问题。
 - 只复用 Paperclip `children`、`blockParentUntilDone`、Issue、comments、heartbeat runs。
   原生任务负责等待与唤醒，命令一次性返回，不轮询、不调用模型、不新建任务生命周期。
 - `done` 表示交接完成。汇总核对公司、父子 Issue、分配 Agent、冻结描述、评论作者与 run 归属；
@@ -37,6 +39,8 @@ sh scripts/paperclip/cm-paperclip consult --help
 本机独立命令 `cm-consult --help` 对应同一脚本；后文 `cm consult` 可直接替换为 `cm-consult`。
 
 先通过 Paperclip 原生入口创建专属父 Issue 并分配协调者；选定两个不同的既有 Agent。
+协调者先读选定项目的入口，将实际采用的准则短段、来源修订、产物和停止条件写进 facts/constraints。
+保留事实与约束的区别；不要只给 worker 一个本机绝对路径，也不要把初判夹进事实包。
 准备私有 `spec.json`，不要提交真实咨询或凭据：
 
 ```json
@@ -129,3 +133,7 @@ uv run ruff check scripts/paperclip/cm-consult tests/paperclip_adapters/test_cm_
 原生无模型协议探针需显式运行，会创建独立测试公司/3 个 process Agent/任务，最后暂停测试 Agent；
 不要对已有公司测试或将它当日常命令。入口 `tests/paperclip_adapters/consult_native_probe.py probe <private-dir>`。
 真实验证结果与未覆盖边界见[任务进度](../plans/decision-consultation-v1/progress.md)。
+
+审查视角借鉴 Hermes 固定修订 eefdfe0692207a7520b3a8c764fe510024f552a1 的
+[sdlc-review](https://github.com/NousResearch/hermes-agent/blob/eefdfe0692207a7520b3a8c764fe510024f552a1/skills/devops/sdlc-review/SKILL.md)；
+仅采用检查角度，不复制 Kanban 路由或技能实现。不同提示不保证意见独立或决策质量更好，实际作用需从真实任务的证据与纠正判断。
