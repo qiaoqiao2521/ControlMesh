@@ -1,7 +1,7 @@
 # Progress
 
 ## Current
-2026-10-12：CapMesh 常用 main 入口已恢复，旧实验现场完整保留。CM 当前来源、架构说明和 callback 启动/恢复已修正；QIA-100 研究修订接受，原生 done 读回。代码验证完成，正在提交来源并同步交付。
+2026-10-12：本轮确认的遗漏已修复交付。CapMesh 常用 main 入口恢复，旧现场完整保留；两条当前状态引用同步一致。QIA-100 研究修订接受，原生 done 读回；本机启动/恢复入口已安装并验证。CM 与 CapMesh 已提交推送，远端 main SHA 独立读回一致。
 
 ## Done
 核对隔离 GitHub 身份 qiaoqiao2521 / 238822818；CapMesh 为其既有私有仓库。
@@ -13,9 +13,12 @@
 - QIA-100 五项内容修订按官方 Linux/build/server/FAQ/context 复审接受；修订 report/research/acceptance 私有保存，原四份产物与 handoff 哈希不变。原生 in_review → done 读回；接受范围仅资料研究，一次性 Agent 仍 paused。
 - 使用原 QIA-100 run 实测 reconcile：replayed=true，前后完整 callback status 一致；原 handoff 未改写，无新 callback、任务重派发或模型重跑。
 - 31 项 Node 启动顺序、误归属、未就绪、绑定拒绝、未知派发、篡改与恢复测试通过；51 项 Python（36 callback、15 closeout）通过。两入口 Node 语法与已安装 help 通过。
+- 来源修复提交 bd4e6d0b0039f638db712c75e65dd600159b1ece 已推送到既有公开 ControlMesh main；CapMesh 修复提交 1773cf181d14049d3308d5e2444c625cbc7fba58 已推送到既有私有 CapMesh main。隔离账号与两个远端 main 通过 GitHub API 读回一致。最终进度修订同批交付，以本文件 Git 历史为准。
+- cm-closeout 首次 check 显示两项待同步；sync 更新两项，后续 check=已一致。CM 116 个与 CapMesh 35 个相对文档链接按 Git 跟踪目标检查，暂存 diff 与凭据模式检查通过；未提交运行数据。
+- 最终再次核对 legacy 的 162 文件哈希/权限、原 HEAD/分支与相同模式的 git status 一致。CapMesh main 工作区干净；CM 只保留下方已登记遗留。
 
 ## Remaining
-提交已验证的来源，执行两条 closeout 同步并核对，按范围交付既有远端。新 launch 完整真实派发、长期后台服务及普通 App 重启仍待对应授权任务验收；owner 根 Codex，入口 docs/codex-callback.md。
+本轮遗漏修复没有未完成步骤。新 launch 完整真实派发、长期后台服务及普通 App 重启仍待对应授权任务验收；owner 根 Codex，入口 docs/codex-callback.md。它们没有被这次隔离测试或原运行对账冒充通过。
 
 ## Issues
 ## Retained work and handover
@@ -31,7 +34,7 @@
 - 自媒体仓库现有内容/游戏/Night Lab 变动保持原归属；该仓库没有既有 Git remote。QIA-100 修订放原忽略目录，不把运行日志或会话状态加入 Git。后续内容交付先读对应 task plan，不能为此次修订擅自新建远端。
 
 ## Next
-先提交 CM 来源，再用已安装 cm-closeout 同步 CapMesh；仅提交逐项审查过的文件，用隔离新账号推送并读回远端 SHA。
+下一次明确绑定的本机任务采用已安装 launch；出现未知或断线结果先 reconcile 原 run，再由原会话独立接受业务。无需重派发 QIA-100 或重跑模型来重复本次验收。
 
 ## Knowledge closeout
 already_covered：实际采用 Wiki/自动化开发范式与智能体协作.md 的分层验收和未知提交先对账；遵循 Wiki/开发协作接入.md 的来源责任。具体新入口和来源覆盖修正维护在 CM 文档与 CapMesh D018，不重复创建共享页。
