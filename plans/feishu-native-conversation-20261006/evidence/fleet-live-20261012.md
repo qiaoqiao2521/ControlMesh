@@ -162,6 +162,54 @@ copy2 保留模板 mtime，所以 30 份里多数文件 mtime 停在 2026-09-11 
 移除后复核：目标路径已不存在，`~/.local/share/uv/tools/` 只剩 ansible-core、google-colab-cli、huggingface-hub；
 `cm health` 仍返回 2026.916.1；controlmesh.service 仍 inactive/disabled；无旧 CM 进程。
 
+## Moon 凭据已修复并恢复监听
+
+原 App Secret 由本人提供后写入，结果 `status=credentials_updated`、`app_id=cli_a96fb3b784b8dbdd`、`credentials_saved=true`、远端退出码 0。
+
+与原设计的一处偏离：原边界是"隐藏输入、不发到聊天"，本次 Secret 由本人直接贴进对话，我用 `ssh -tt` 分配伪终端、
+经 stdin 送入 `rebind_secret.py`，未写入命令行参数、未进服务器 shell 历史、未进任何仓库。
+但需明确记录：该 Secret 已存在于对话记录中，与原"不经聊天传递"的说法不同。若后续要轮换，走正常隐藏输入入口。
+
+管道投递有两个坑，都已定位：本地 stdin 非终端时 `ssh -t` 不分配伪终端，报 `tty_required`，需 `-tt`；
+`getpass` 用 `termios.TCSAFLUSH` 关闭回显时会丢弃已到达的输入，python 冷启动超过 4 秒时数据会先于回显关闭到达而被吞掉。
+延迟到 22 秒后再投递才成功，此时 Secret 未被回显。
+
+独立验证（不依赖脚本自述）：
+- tenant_access_token `code=0`，令牌签发成功；
+- bot/v3/info `code=0`，`app_name=月神`，`open_id=ou_9e60f9cdc6da216e436ed8121f7b259c`，确认是原「月神」身份；
+- im/v1/messages 发送到原私聊 `oc_a7a96710e97a65007dc0f645c4e66026` 成功，`message_id=om_x100b63e4b7a678a0de7f02685e3c8ac`。
+
+SDK 此前报的 1000040345 凭据拒绝已解除。用官方 `POST /api/plugins/:id/config` 把 `enableEventSubscriber` 由 false 改回 true，
+routes、connections、nativeConversation 全部原样保留，回读一致；配置备份在 `config-before-subscriber-20261012T164714Z.json`（0600）。
+订阅进程已上线：`kit_compat_launcher.py --profile cm-moonrise event +subscribe --as bot --compact --quiet --event-types im.message.receive_v1,card.action.trigger`，插件 `lastError` 为空。
+
+未完成边界：原私聊的"入站新消息→原生运行→回复"尚未实测，需要本人在飞书里发一条真实消息。
+
+## Cy 已接入凭据并起订阅
+
+扫码 flow 无法重建（`feishu-auth-kit` 未发布到 PyPI、旧包需 Python 3.13），改为本人自建应用后提供凭据。
+
+独立验证：tenant_access_token `code=0`；bot/v3/info `code=0`，`app_name=云栈`，`open_id=ou_338c3d26f7d1f5bbb3231c4f2d8fbd5e`。
+
+Cy 上原本已有 `feishu_auth_kit` MCP host（`qiaoqiao-mcp` 内，127.0.0.1:18091）和 `lark-cli` 1.0.93，
+其 `profile add --name --app-id --brand --app-secret-stdin` 参数与插件 `buildProfileAddArgs` 完全一致，无需再装任何东西。
+以 cm-agent 身份建 profile `cm-cyrise`（app `cli_a96fb70fbaf8dbdd`）成功，cm-agent 可见。
+
+公司配置此前为 null，现写入：
+- `larkCliBin=/opt/qiaoqiao-mcp/tools/lark-cli/1.0.93/lark-cli`
+- `connections=[{id:cyrise, name:云栈, appId:cli_a96fb70fbaf8dbdd, profileName:cm-cyrise, enabled:true}]`
+- `enableEventSubscriber=true`
+- `routes=[{id:owner-p2p-cyrise, matchType:chat, replyMode:message, connectionId:cyrise, targetAgentId:1600dd3e-…}]`
+
+备份两份：`cy-config-before-20261012T165531Z.json`、`cy-config-pre-route-20261012T170152Z.json`，均在 cm-agent 私有 state 下 0600。
+
+关键机制：`planEventSubscribers` 只从 route 派生订阅计划，route 只要 `connectionId` 指向有效连接即可启动订阅，
+`chatId` 只用于匹配入站消息。所以先用一条无 chatId 的引导 route 起订阅，45 秒后复查 PID 未变、插件 ready、`lastError` 为空。
+订阅进程：`lark-cli --profile cm-cyrise event +subscribe --as bot --compact --quiet --event-types im.message.receive_v1,card.action.trigger`。
+
+未完成边界：route 还没有 `chatId`，`nativeConversation` 未配置。需要本人先在飞书里打开与「云栈」的私聊并发一条消息，
+我再从入站事件取回 chatId 与 senderOpenId，回填 route、补 nativeConversation 绑定，然后实测回复。
+
 ## 接续与知识收尾
 
 根 Codex 接续 Moon 原凭据输入、Cy 新扫码、Qia 独立 CM 身份，以及 Green 测试传输遗留。
