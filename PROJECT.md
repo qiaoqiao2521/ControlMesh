@@ -130,6 +130,8 @@ change runtime ownership, auto-load a vault into workers, or require a knowledge
 
 ## Current State
 
+2026-10-12：当前进展从 [Paperclip 当前总览](plans/paperclip-based-cm/progress.md)进入。总览链接飞书持续对话、本机 Codex 原会话回传和运行归属；各路径验收回源对应计划，历史八机/63 schedules 不作为当前数量。本次[遗漏修复](plans/mesh-omissions-20261012/progress.md)统一 CapMesh 入口与状态引用，保留业务返工和持续连接的独立边界。
+
 2026-10-01 用户将[迁移复盘](plans/436-paperclip-feishu/migration-review-20261001.md)中的次日安排提前到现在。8 台 AGY 程序更新、默认 CLI 与 63 项有效定时任务接管已接受，最新逐机状态见[批量进度](plans/fleet-paperclip-agy-20261001/progress.md)。登录按用户安排后置，每机不同账号；业务可用与文章 QA、特定消息验收分开记录。
 
 436 的当前入口与限制见 [运行说明](docs/paperclip-436.md) 和 [验收进度](plans/436-paperclip-feishu/progress.md)。
@@ -228,6 +230,8 @@ and reconnect cancel exactly the in-flight attempt, superseded connections canno
 to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, or sockets.
 
 ## Current Priority
+
+2026-10-12：先完成[已核实遗漏修复](plans/mesh-omissions-20261012/task_plan.md)，复用已验收的派发、回传与收尾工具；新业务按其原计划继续，不恢复历史建设队列。
 
 2026-10-01：按需启用[关键决策会审 v1](docs/decision-consultation-v1.md)：两位独立咨询者、一次可选补充、引用与分歧保留、协调者独立判断；Paperclip 仍拥有运行生命周期。不是所有任务的必经流程，也不是自动实施批准。实现与验收见[进度](plans/decision-consultation-v1/progress.md)。
 

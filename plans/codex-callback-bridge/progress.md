@@ -2,9 +2,14 @@
 
 ## Current
 
-2026-10-11：只接本机。QIA-99 真实结果补发已通过。QIA-100 新任务的原生派发 → 完成事件 → queue → 原会话自动接续 → 文件独立核验闭环已通过。研究草稿需要修订，原生 issue 保持 in_review；本次一次性 Agent 已暂停并读回确认。
+2026-10-12：只接本机。QIA-99 补发与 QIA-100 的原生派发 → 完成事件 → queue → 原会话接续 → 文件核验已通过。QIA-100 五项研究修订已独立复审接受，原生 issue=done 读回；原件保留，一次性 Agent 仍 paused。接受范围是官方资料研究，未安装模型。
+
+新增 `cm-codex-task launch/reconcile` 组合既有绑定、就绪订阅、派发与去重通知；31 项 Node 测试通过。用 QIA-100 原运行实测终态对账，原 callback/status 完全一致，原 handoff 未改写，无重派发或新 callback。新 launch 的整体真实派发、长期服务与普通 App 重启仍未独立验收。来源见 [遗漏修复](../mesh-omissions-20261012/progress.md)。
 
 ## Done
+
+- 2026-10-12：根 Codex 按官方 Linux/build/server/FAQ/context 页面修复 C1/C2/C3/C4/takeaways；修订报告 SHA256 为 26f4c8bbfdf57783aa60c991cb634b10053c1df7ebbba1fe36113344b746240c。原四份产物和 handoff 哈希复算一致；revision-acceptance 与原生 done 读回私有保存。未收费重跑或安装模型。
+- 2026-10-12：补齐本机启动与终态恢复入口，派发前独占落盘，响应未知不重发，恢复复用身份/产物/去重检查。QIA-100 原运行实测 result.replayed=true，前后完整 status 相同；只新增恢复回执，原交接不变。51 项 Python（36 项 callback、15 项 closeout）和 31 项 Node 测试通过。
 
 - 固定 codex_callback commit 5193e2ece5caf2ac1805800575e5567a972f657c，保留 MIT、来源与文件哈希。仅对 queue/start 消费竞态补历史回执对账。
 - 实现 bind/notify/status；绑定原线程与同 daemon，对外部 run 去重。创建结果未知时保留事实，pending 文件不能单独证明 worker 已启动。queued/started 不能当作业务验收。
@@ -34,8 +39,8 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
-- QIA-100 回传验证已结束。草稿修订仍待独立研究任务，不自动重试收费阶段。根 Codex 为待审接续 owner；最短入口为本次私有目录 review.md 与 operator-review.json。
-- 该订阅仅覆盖本次明确绑定任务，不代表所有后续 CM 任务已经自动绑定，也不代表断线恢复或长期后台服务通过。
+- QIA-100 研究修订已接受；原 requires_revision 记录作为历史保留，最新结果见私有 revision-acceptance.json 与 revision-native-readback.json。
+- 入口与单个原运行对账已验收；新 launch 完整真实派发与长期后台服务仍需在下一个授权任务验收。owner 根 Codex，最短入口为 docs/codex-callback.md 的本机任务启动与恢复。
 - App 下次普通启动的持久连接仍需独立验收。
 
 ## Issues
@@ -46,7 +51,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-本次闭环验收停止，不重复派发或重跑模型。未来新任务沿既有 bind → 订阅就绪 → 原生派发 → 完成事件 notify → 原会话独立验收的顺序。业务待审与传输回执分别记录；本次草稿修订要求已交接给根 Codex。
+未来明确绑定的本机新任务使用 cm-codex-task launch；未知或断线结果用 reconcile 读取原 run。原会话仍独立验收业务；不重复派发旧任务来测试。
 
 ## Knowledge closeout
 

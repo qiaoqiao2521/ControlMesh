@@ -6,8 +6,11 @@ Codex original-chat callbacks use the pinned [community runtime](../vendor/codex
 through [cm-codex-callback](codex-callback.md). The local adapter freezes a CM issue's original
 thread and daemon, deduplicates completion runs, and exposes queue/turn receipts.
 Paperclip owns dispatch and lifecycle; Codex independently reviews the handoff.
-The adapter adds no scheduler. The local completion hook remains unconnected;
-adapter verification does not establish delivery from an actual CM task.
+The adapter adds no scheduler. QIA-100 verified native completion delivery and original-chat
+continuation. Its research revision was accepted on 2026-10-12; no model was installed.
+The local [task entry](../scripts/paperclip/cm-codex-task.mjs) combines binding, ready subscription
+and native dispatch. Recovery reads an original terminal run through the same admission checks.
+New-entry live dispatch, long-lived service and ordinary App relaunch remain unverified.
 
 Current ordinary private-chat path (2026-10-07): the external [Feishu connector](../plugins/feishu-connector/README.md)
 maps one explicitly paired owner/chat to native Paperclip Agent Chat. A stdlib CLI calls the

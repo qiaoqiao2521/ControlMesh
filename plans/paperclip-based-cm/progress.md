@@ -1,6 +1,14 @@
 # Progress
 
 ## Current
+2026-10-12：当前采用 Paperclip 原生生命周期与 CM 薄适配。最新入口按路径分别验收：
+
+- [持续飞书私聊](../feishu-native-conversation-20261006/progress.md)：2026-10-07 本机与 436 的两条新消息连续对话已接受；问题卡/UI continuation、其他主机各自保留边界。
+- [Codex 原会话回传](../codex-callback-bridge/progress.md)：2026-10-11 QIA-100 的原生派发、完成事件、queue、原会话接续和文件核验通过；研究业务接受与回传回执分别记录。
+- [运行归属与治理](../../PROJECT.md)：2026-10-08 的已记录范围为六台 VPS；当前运行事实回源 Ops，不将历史八机与 63 个 schedule 当作实时数量。
+- [本次遗漏修复](../mesh-omissions-20261012/progress.md)：恢复 CapMesh 常用 main 入口，补齐当前状态引用与待返工接续；不恢复已取消的 Orca 或联合发行任务。
+
+## Historical acceptance — 2026-10-01
 2026-10-01：CM 使用 Paperclip 底座与薄适配，不修改上游核心。[全服务器迭代](../fleet-paperclip-agy-20261001/progress.md)已接受：8 台默认 cm/controlmesh 绑定各机独立 context/company，63 项有效 CM 定时任务转为 native active schedule；新服务持久启动，旧消费者停止。8 台 AGY 1.2.14 程序更新接受，各机不同账号，用户选择登录后置。
 
 436 的默认 cm/controlmesh 与飞书消费者已迁移，旧 Python CM 停止并禁用，公众号 timer 保留。用户确认公众号协作用于日常产出、网站入口有进展；内容 QA、真实消息与运行时分别验收。436 post 消息复测状态见[对应进度](../436-paperclip-feishu/progress.md)。

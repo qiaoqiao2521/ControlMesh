@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-10-12 — Combine existing local callback steps and reconcile original runs
+
+Decision: cm-codex-task 组合既有 bind、native-watch、Paperclip PATCH 与 notify；恢复读取明确的原 run，不重派发。
+Why: 单次人工接线未提供后续任务入口；终态事件丢失需要保留身份与产物校验的恢复路径。
+Boundary: 只支持当前本机 local_trusted 单任务与现有 worker 回执契约，不增加调度器、长期服务或跨机传输。
+Acceptance: 31 项 Node 与 51 项 Python 测试通过；原 QIA-100 对账保留同一 callback 与 handoff。新入口整体真实派发和普通 App 重启未验收。
+Entry: [使用说明](codex-callback.md)、[遗漏修复](../plans/mesh-omissions-20261012/progress.md)。
+
 ## 2026-10-11 — Reuse codex_callback for original Codex chat continuation
 
 Decision: 用户选用 codex_callback 的外部完成通知、原会话 native queue 和接续回执查询。

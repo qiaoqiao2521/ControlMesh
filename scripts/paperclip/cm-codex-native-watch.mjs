@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // One bound task's native terminal event -> existing local callback CLI.
-import { readFileSync, openSync, writeSync, fsyncSync, closeSync, realpathSync } from 'node:fs';
+import { readFileSync, existsSync, openSync, writeSync, fsyncSync, closeSync, realpathSync } from 'node:fs';
 import { dirname, resolve, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
 const BASE = 'http://127.0.0.1:3100';
@@ -12,7 +12,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 function check(ok, code) { if (!ok) throw new Error(code); }
 function json(path) { return JSON.parse(readFileSync(path, 'utf8')); }
-function exclusive(path, value) {
+export function exclusive(path, value) {
   const fd = openSync(path, 'wx', 0o600);
   try { writeSync(fd, JSON.stringify(value, null, 2) + '\n'); fsyncSync(fd); }
   finally { closeSync(fd); }
@@ -49,6 +49,54 @@ export function verifyArtifacts(spec, receipt, runId) {
     check(bytes.length <= 2 * 1024 * 1024 && digest(bytes) === item.sha256, 'artifact_hash_mismatch');
     return { path, sha256: item.sha256 };
   });
+}
+
+export function invokeCallback(args) {
+  const command = resolve(dirname(fileURLToPath(import.meta.url)), 'cm-codex-callback');
+  return JSON.parse(execFileSync(command, args, { encoding: 'utf8', timeout: 30000,
+    env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
+}
+
+// The event route and explicit terminal readback share identity/artifact admission.
+export function completeNative(spec, event, run, issue, links, {
+  notify = invokeCallback, mode = 'native_terminal_event',
+} = {}) {
+  const p = event.payload;
+  const outcome = validateNative(spec, event, run, issue, links);
+  const receiptPath = resolve(spec.directory, 'worker-receipt.json');
+  let receipt;
+  try { receipt = json(receiptPath); }
+  catch { check(outcome !== 'completed', 'successful_run_without_handoff'); }
+  const artifacts = receipt ? verifyArtifacts(spec, receipt, p.runId) : [];
+  check(outcome !== 'completed' || receipt.business_outcome === 'draft_for_review' && artifacts.length >= 2, 'successful_run_without_artifacts');
+  const handoff = {
+    schema: 'cm.codex_callback.native_completion.v1', mode,
+    native_base: BASE, company_id: spec.company_id, issue_id: spec.issue_id,
+    identifier: issue.identifier, agent_id: spec.agent_id, run_id: run.id, thread_id: spec.thread_id,
+    native_status: run.status, native_exit_code: run.exitCode, native_finished_at: run.finishedAt,
+    event: { id: event.id, type: event.type, createdAt: event.createdAt, payload: {
+      runId: p.runId, issueId: p.issueId, agentId: p.agentId, status: p.status,
+    } }, outcome, issue_status: issue.status, business_accepted: false,
+    business_outcome: receipt?.business_outcome ?? 'no_worker_receipt', artifacts,
+    worker_receipt: receipt ? { path: receiptPath, sha256: digest(readFileSync(receiptPath)) } : null,
+    acceptance_directory: spec.directory,
+    followup: spec.followup ?? 'Verify actual CODEX_THREAD_ID, handoff/artifact hashes, native event/run/task ownership and one matching persisted callback turn. Read report.md and research.json; independently review source receipts and conclusions. Save acceptance.json here, report the deployment research and whether dispatch -> native completion event -> queue -> original chat continuation passed. Do not create another callback or rerun the model. Pause only this one-shot agent after verification. Task output is a research draft, not an installed model or deployment benchmark.',
+  };
+  const handoffPath = resolve(spec.directory, 'handoff.json');
+  if (existsSync(handoffPath)) {
+    check(mode === 'native_terminal_readback', 'existing_handoff_requires_reconciliation');
+    const saved = json(handoffPath);
+    for (const key of ['company_id', 'issue_id', 'agent_id', 'run_id', 'thread_id', 'native_status', 'outcome']) {
+      check(saved[key] === handoff[key], 'retained_handoff_identity_mismatch');
+    }
+    check(JSON.stringify(saved.artifacts) === JSON.stringify(handoff.artifacts) &&
+      JSON.stringify(saved.worker_receipt) === JSON.stringify(handoff.worker_receipt), 'retained_handoff_artifacts_changed');
+  } else exclusive(handoffPath, handoff);
+  const result = notify(['notify', '--company-id', spec.company_id,
+    '--issue-id', spec.issue_id, '--run-id', run.id, '--outcome', outcome, '--handoff', handoffPath]);
+  const name = mode === 'native_terminal_event' ? 'notification-receipt.json' : `reconciliation-${randomUUID()}.json`;
+  exclusive(resolve(spec.directory, name), result);
+  return result;
 }
 
 async function watch(specPath) {
@@ -90,34 +138,7 @@ async function watch(specPath) {
         api('heartbeat-runs/' + p.runId), api('issues/' + spec.issue_id),
         api('heartbeat-runs/' + p.runId + '/issues'),
       ]);
-      const outcome = validateNative(spec, event, run, issue, links);
-      const receiptPath = resolve(spec.directory, 'worker-receipt.json');
-      let receipt;
-      try { receipt = json(receiptPath); }
-      catch { check(outcome !== 'completed', 'successful_run_without_handoff'); }
-      const artifacts = receipt ? verifyArtifacts(spec, receipt, p.runId) : [];
-      check(outcome !== 'completed' || receipt.business_outcome === 'draft_for_review' && artifacts.length >= 2, 'successful_run_without_artifacts');
-      const handoff = {
-        schema: 'cm.codex_callback.native_completion.v1', mode: 'native_terminal_event',
-        native_base: BASE, company_id: spec.company_id, issue_id: spec.issue_id,
-        identifier: issue.identifier, agent_id: spec.agent_id, run_id: run.id, thread_id: spec.thread_id,
-        native_status: run.status, native_exit_code: run.exitCode, native_finished_at: run.finishedAt,
-        event: { id: event.id, type: event.type, createdAt: event.createdAt, payload: {
-          runId: p.runId, issueId: p.issueId, agentId: p.agentId, status: p.status,
-        } }, outcome, issue_status: issue.status, business_accepted: false,
-        business_outcome: receipt?.business_outcome ?? 'no_worker_receipt', artifacts,
-        worker_receipt: receipt ? { path: receiptPath, sha256: digest(readFileSync(receiptPath)) } : null,
-        acceptance_directory: spec.directory,
-        followup: spec.followup ?? 'Verify actual CODEX_THREAD_ID, handoff/artifact hashes, native event/run/task ownership and one matching persisted callback turn. Read report.md and research.json; independently review source receipts and conclusions. Save acceptance.json here, report the deployment research and whether dispatch -> native completion event -> queue -> original chat continuation passed. Do not create another callback or rerun the model. Pause only this one-shot agent after verification. Task output is a research draft, not an installed model or deployment benchmark.',
-      };
-      const handoffPath = resolve(spec.directory, 'handoff.json');
-      exclusive(handoffPath, handoff);
-      const command = resolve(dirname(fileURLToPath(import.meta.url)), 'cm-codex-callback');
-      const output = execFileSync(command, ['notify', '--company-id', spec.company_id,
-        '--issue-id', spec.issue_id, '--run-id', run.id, '--outcome', outcome,
-        '--handoff', handoffPath], { encoding: 'utf8', timeout: 30000,
-        env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
-      exclusive(resolve(spec.directory, 'notification-receipt.json'), JSON.parse(output));
+      completeNative(spec, event, run, issue, links);
       done = true; clearTimeout(timer); socket.close();
     } catch (error) { fail(/^[a-z_]+$/.test(error.message) ? error.message : 'native_notification_uncertain'); }
   });

@@ -69,7 +69,11 @@ discoveries in task findings; promote only durable knowledge into project docume
   As confirmed on 2026-09-30, the next CM is
   based on Paperclip; start at `plans/paperclip-based-cm/`. The Orca bridge and full-TypeScript
   candidate are retained evidence, not the default execution queue. The local CLI
-  dispatch/idle/event-wake/review path and local Feishu text closed-loop are verified; fleet migration is not.
+  dispatch/idle/event-wake/review path and selected Feishu text paths are verified. Fleet
+  migration and later governance have dated acceptance in the current overview; each host,
+  callback route and business result retains its own acceptance boundary.
+  For explicitly bound local Codex tasks, follow `docs/codex-callback.md` and use
+  `cm-codex-task launch` before dispatch. Reconcile original runs; never retry uncertain submissions.
   Reuse upstream lifecycle ownership; do not add a parallel scheduler or migrate tasks from
   a plan alone. Existing JSON Schema contracts and private-runtime boundaries remain.
   Keep Paperclip upstream source unmodified; CM-specific behavior belongs in a thin external

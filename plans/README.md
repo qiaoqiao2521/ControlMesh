@@ -27,7 +27,10 @@ The operating rule is:
 - review evidence before promotion
 - update canonical state only after adjudication
 
-## Current work (2026-10-01)
+## Current work (2026-10-12)
+
+- Mesh omissions: [plan](mesh-omissions-20261012/task_plan.md), [acceptance](mesh-omissions-20261012/progress.md). Canonical CapMesh entry, current-state sources, research revision and local callback recovery.
+- Current overview: [Paperclip-based CM](paperclip-based-cm/progress.md). Dated entries below retain their original acceptance scope; later Feishu conversation acceptance is in [2026-10-07 progress](feishu-native-conversation-20261006/progress.md).
 
 - Codex original-chat callback (2026-10-11): [usage](../docs/codex-callback.md), [plan](codex-callback-bridge/task_plan.md), [status](codex-callback-bridge/progress.md). Reuse codex_callback; local adapter verification and actual CM completion delivery have separate acceptance boundaries.
 

@@ -88,8 +88,36 @@ QIA-100 试用 [cm-local-model-research](../scripts/paperclip/cm-local-model-res
 
 本次真实试用已通过原生派发、完成事件自动 notify、忙时入队、同原会话唯一持久 turn 与文件独立读回。草稿独立审查需要修订，issue 保持 in_review；一次性 Agent 已暂停。验收与审查证据私有保存。该结果只覆盖本次明确绑定任务，不扩展为后续任务自动绑定、断线恢复或模型部署通过。
 
+上述是 2026-10-11 首次审查记录。2026-10-12 已逐项修复并接受研究修订，issue=done 读回；原草稿与回传证据未改写。恢复入口也在原 QIA-100 运行对账通过，已有 callback 回执完全一致。当前边界见 [进度](../plans/codex-callback-bridge/progress.md)。
+
 独立事件边界测试：
 
 ```sh
 node --test tests/paperclip_adapters/test_codex_native_watch.mjs
+```
+
+## 本机任务启动与恢复
+
+2026-10-12 补齐 [cm-codex-task.mjs](../scripts/paperclip/cm-codex-task.mjs)。它组合既有 bind、原生订阅、Paperclip 派发与 notify，不创建任务或替代调度器。仅适用于上述本机实例、已明确绑定的单任务与 worker 回执契约。
+
+条件：任务已创建为 backlog，spec.json 在本机工作目录内；当前 Codex 会话是 spec 指定的原会话。
+
+```sh
+cm-codex-task launch /absolute/task/spec.json
+```
+
+spec 必须包含 `native_base`、`company_id`、`issue_id`、`agent_id`、`thread_id`、`directory`。directory 必须是 spec 所在真实目录，并处于当前工作目录内。可选 followup 说明业务独立验收。此命令先检查 native 归属和原线程，保存绑定并订阅；只有就绪与任务归属再次确认后才把原任务改为 todo。命令等待本次 watcher 结束，回执不自动接受业务结果。
+
+派发前落盘独占 attempt 并 fsync；响应丢失保留 unknown，继续已有订阅，不自动再次派发。已存在任何 attempt 的启动会被拒绝。普通 App 重启、持久后台服务和跨机恢复仍未验收。
+
+条件：已确认原来的 run ID，运行已终止；订阅中断或缺失终态事件。
+
+```sh
+cm-codex-task reconcile /absolute/task/spec.json ORIGINAL_RUN_ID
+```
+
+恢复只读取原生 run、issue 及关联记录，复核原 worker 文件和哈希，再调用既有去重通知。它不 PATCH 任务，不执行模型。交接证据标记 `native_terminal_readback`，不冒充收到 WebSocket 事件。已存在交接文件必须身份与哈希一致，原件不改写；未知 queue 结果仍按原适配器保留待对账。
+
+```sh
+node --test tests/paperclip_adapters/test_codex_native_watch.mjs tests/paperclip_adapters/test_codex_task.mjs
 ```
