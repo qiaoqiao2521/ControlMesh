@@ -3,7 +3,7 @@
 ## Current
 2026-10-13：当前采用 Paperclip 原生生命周期与 CM 薄适配。最新入口按路径分别验收：
 
-- [持续飞书私聊](../feishu-native-conversation-20261006/progress.md)：2026-10-12 记录原插件统一 compat.8，436/BF/Green 已有连续私聊验收；Moon 原 App 凭据被拒、Cy 扫码过期、qiaobird 独立 CM 接入仍待完成。问题卡/UI continuation 保留原边界，本次未复测现场。
+- [持续飞书私聊](../feishu-native-conversation-20261006/progress.md)：原插件统一 compat.8，436/BF/Green 已有连续私聊验收；2026-10-13 的[现场记录](../feishu-native-conversation-20261006/evidence/fleet-live-20261012.md)补充 Moon 凭据修复并恢复监听，Cy 新应用凭据与订阅已接入。Moon 入站对话、Cy route/nativeConversation 绑定及真实回复、qiaobird 独立 CM 接入仍待完成。问题卡/UI continuation 保留原边界，本次未复测现场。
 - [Codex 原会话回传](../codex-callback-bridge/progress.md)：2026-10-11 QIA-100 的原生派发、完成事件、queue、原会话接续和文件核验通过；研究业务接受与回传回执分别记录。
 - [运行归属与治理](../../PROJECT.md)：2026-10-08 的已记录范围为六台 VPS；当前运行事实回源 Ops，不将历史八机与 63 个 schedule 当作实时数量。
 - [本次遗漏修复](../mesh-omissions-20261012/progress.md)：恢复 CapMesh 常用 main 入口，补齐当前状态引用与待返工接续；不恢复已取消的 Orca 或联合发行任务。
