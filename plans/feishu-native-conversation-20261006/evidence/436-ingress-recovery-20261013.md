@@ -58,3 +58,15 @@ Paperclip 主进程与启动时间保持；23:38:29 原公司配置已应用，�
 
 知识收尾 already_covered：沿用 Wiki「远端任务恢复：先确认提交边界」「诊断信息：保留代码位置和必要计数」「按当前任务选择验收依据」。
 根 Codex 负责本轮原消息交付与文档收口；宿主回放具体失败点仍为未确定，不扩展成新调度/巡检机制。
+
+## 原任务后续状态
+
+23:53:28，原运行 `2bb35fd4-dd8e-4db8-96a0-3ddabc1a36aa` 以 timed_out/exit143/errorCode=timeout结束。
+23:54:08，Paperclip 自动创建原生接续 `e3c53fc2-a451-47f1-8da5-8f3074a98bb4`。
+完整 context 显示 wakeReason=transient_failure_retry、retryOfRunId为前述原运行、wakeCommentId为同一源评论；invocationSource=automation、triggerDetail=system。
+根 Codex 没有第二次投递或启动新源。原生 CLI 按最新关联运行返回 pending，未把旧超时当作当前运行的最终回复。
+23:57回读该接续仍 running。业务任务暂无最终评论或实际答复；不能将合成验收成功提升为原任务完成。
+接续 owner为原436 CM Agent与Paperclip原生队列。根 Codex负责恢复边界的独立复核；不在本次收件恢复中反复投递原任务或改模型/运行预算。
+
+本批普通文档本地链接与diff检查通过。Ops完整pre-commit的11个hook通过，更新既有436手册后重新生成两份既有索引。
+CM/Ops恢复材料已分别提交推送，远端main回读一致；本次补记仅修正原任务状态，不改变运行策略。
