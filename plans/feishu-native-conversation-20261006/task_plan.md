@@ -23,6 +23,8 @@
 4. 独立审查、受控部署、更新交接并提交推送。（completed）
 
 ## Next Step
+2026-10-13：436 未应用持久配置的 worker 已恢复，新的真实回复通过；根 Codex 回读原23:25消息按原 ID 的接续结果。升级后的实际应用与监听检查已补入，不改 Paperclip 核心。
+
 本机和六机插件已统一 compat.8。接续结果见 [当前进度](progress.md)：Green 两轮记忆与送达通过，接续一条测试遗留；Moon 待安全输入原 App 凭据；Cy 扫码过期，待本人准备后重新开始；qiaobird 保留 Codex App 链，独立 CM 机器人按顺序创建。交互卡和执行任务主管唤醒按独立需求接续。
 
 ## Adopted Knowledge

@@ -28,6 +28,13 @@ python3 plugins/feishu-connector/build.py --output /tmp/cm-feishu-native-build
 先验证安装目标、当前活跃运行和旧产物哈希。
 如当前 worker 带有额外生产修复，变换该 worker，禁止覆盖为基础重建版本。
 
+升级后分别核对持久配置和新 worker 的实际应用状态。注册 `ready`、静态 health、配置哈希一致只证明对应一层。
+先通过公司级只读 `catalog` 桥确认 worker 已建立公司上下文，再核对唯一监听进程与恢复检查时间。
+`status` 数据桥会调用 subscriber reconcile，属于恢复动作；不要用它掩盖检查前的缺失现场。
+若持久配置正确而 worker 未应用，在确认原 App、公司、路由和在途状态后，经官方公司配置 API 原样重新应用 `configJson`。
+回读完整 `configJson` 哈希不变、主进程不变，并验证新消息实际送达，才接受升级后的收件链。
+宿主源码有 best-effort 配置回放，也不能免去现场验收；回放失败的确切原因未知时保留未知。
+
 在运行用户拥有的目录中创建权限为 `0600` 的配对文件：
 
 ```json
