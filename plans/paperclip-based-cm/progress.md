@@ -1,6 +1,10 @@
 # Progress
 
 ## Current
+2026-10-14：最新运行恢复见[飞书本轮进度](../feishu-native-conversation-20261006/progress.md)。本机和六机插件已统一compat.9，436在途工作自然结束后接续；七处统一纯代码check/sync。BF同型缺监听已修复，本机worker-only重启恢复通过，本机/BF/436/Green/Moon/Cy新回复通过。Qia独立CM未配置，原Codex App桥保留。当前服务器事实仍回源Ops，不把版本统一当作全部业务闭环。
+
+以下10月13日及更早内容保留历史验收范围。
+
 2026-10-13：当前采用 Paperclip 原生生命周期与 CM 薄适配。最新入口按路径分别验收：
 
 - [持续飞书私聊](../feishu-native-conversation-20261006/progress.md)：原插件统一 compat.8，436/BF/Green 已有连续私聊验收；2026-10-13 的[现场记录](../feishu-native-conversation-20261006/evidence/fleet-live-20261012.md)补充 Moon 凭据修复并恢复监听，Cy 新应用凭据与订阅已接入。Moon 入站对话、Cy route/nativeConversation 绑定及真实回复、qiaobird 独立 CM 接入仍待完成。问题卡/UI continuation 保留原边界，本次未复测现场。
@@ -30,7 +34,7 @@ bf2025 原有只读 cron CMB-7 经原 Claude/sonnet 真执行后 done/succeeded/
 - 初始方向记录曾完成 CM/CapMesh 文档检查；后续真实 CLI 与飞书试验、此次收尾分别记录在对应计划，不能沿用初始“未运行模型任务或产品测试”的边界。
 
 ## Remaining
-436 的 post 消息复测、六台独立飞书绑定、各机 AGY 登录、运维风险判读/异常投递与业务外部目标分别接续；既有 CLI/63 个 schedule 的接管已经接受，不重复做候选部署。不要求 Telegram HTTPS。
+Qia独立CM和普通用户AGY AUTH分别接续。Cy旧legacy运行已成功但未送达，保留核对、不重派。当前63项已退役、trigger为空，历史接管不作为实时调度状态。当前CLI入口不重复部署，业务和问题卡的独立验收边界保持。
 
 执行前方向核对保持“待选用”，范围、采用/停止条件见 task_plan；不自动进入实施队列。
 

@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""Check a bound Feishu worker; sync only public identity and native reload."""
+import argparse
+from datetime import datetime, timezone
+from decimal import Decimal
+import hashlib
+import json
+import os
+from pathlib import Path
+import pwd
+import re
+import stat
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+
+KEY = "paperclipai.feishu-connector"
+SCHEMA = "cm.feishu.deployment.v1"
+LIMIT = 512 * 1024
+
+
+class Rejected(Exception):
+    def __init__(self, reason, code=1):
+        self.reason, self.code = reason, code
+
+
+def require(condition, reason, code=1):
+    if not condition:
+        raise Rejected(reason, code)
+
+
+def parse(raw, limit=LIMIT):
+    require(len(raw) <= limit, "json_too_large")
+    def constant(_):
+        raise Rejected("nonfinite_json")
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            require(key not in result, "duplicate_json_key")
+            result[key] = value
+        return result
+    try:
+        return json.loads(raw.decode("utf-8"), parse_float=Decimal,
+                          parse_constant=constant, object_pairs_hook=pairs)
+    except (ValueError, UnicodeError, ArithmeticError, RecursionError):
+        raise Rejected("invalid_json") from None
+
+
+def canonical(value):
+    if isinstance(value, dict):
+        keys = sorted(value, key=lambda key: key.encode("utf-16-be", errors="surrogatepass"))
+        return "{" + ",".join(canonical(key) + ":" + canonical(value[key]) for key in keys) + "}"
+    if isinstance(value, list):
+        return "[" + ",".join(map(canonical, value)) + "]"
+    if isinstance(value, (int, float, Decimal)) and not isinstance(value, bool):
+        number = Decimal(str(value))
+        require(number.is_finite(), "nonfinite_json")
+        if not number:
+            return "0"
+        if Decimal("1e-6") <= number.copy_abs() < Decimal("1e21"):
+            fixed = format(number, "f")
+            return fixed.rstrip("0").rstrip(".") if "." in fixed else fixed
+        digits = "".join(map(str, number.as_tuple().digits)).rstrip("0")
+        mantissa = digits[0] + ("." + digits[1:] if len(digits) > 1 else "")
+        exponent = number.adjusted()
+        return ("-" if number.is_signed() else "") + mantissa + "e" + (
+            "+" if exponent >= 0 else "") + str(exponent)
+    rendered = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+    return re.sub(r"[\ud800-\udfff]", lambda match: "\\u%04x" % ord(match[0]), rendered)
+
+
+def fingerprint(value):
+    return hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args):
+        raise Rejected("api_redirect_refused")
+
+
+class API:
+    def __init__(self, base):
+        parsed = urllib.parse.urlsplit(base)
+        require(parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "::1", "localhost"}
+                and not (parsed.username or parsed.password or parsed.query or parsed.fragment)
+                and parsed.path in {"", "/"}, "loopback_api_required")
+        self.base, self.deadline = base.rstrip("/"), None
+        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
+    def __call__(self, method, path, body=None, upgrade=False):
+        timeout = 5 if self.deadline is None else min(5, self.deadline - time.monotonic())
+        require(timeout > 0, "runtime_timeout")
+        request = urllib.request.Request(self.base + "/api" + path, method=method,
+            data=None if body is None else json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"})
+        try:
+            with self.opener.open(request, timeout=timeout) as response:
+                return parse(response.read(LIMIT + 1))
+        except urllib.error.HTTPError as error:
+            code = error.code
+            error.close()
+            raise Rejected("upgrade_outcome_unknown" if upgrade and code >= 500 else
+                           "api_http_" + str(code), 4 if upgrade and code >= 500 else 1) from None
+        except (OSError, urllib.error.URLError, TimeoutError, Rejected) as error:
+            if upgrade:
+                raise Rejected("upgrade_outcome_unknown", 4) from None
+            if isinstance(error, Rejected):
+                raise
+            raise Rejected("api_unavailable") from None
+
+
+def target(api, args):
+    health = api("GET", "/health")
+    require(isinstance(health, dict) and health.get("status") == "ok" and
+            health.get("deploymentMode") == "local_trusted", "local_trusted_health_required")
+    plugin = api("GET", "/plugins/" + args.plugin_id)
+    require(isinstance(plugin, dict) and plugin.get("id") == args.plugin_id and
+            plugin.get("pluginKey") == KEY, "plugin_identity_mismatch")
+    require(plugin.get("status") == "ready", "plugin_not_ready")
+    if args.package_dir:
+        require(os.path.isabs(args.package_dir) and args.package_dir == plugin.get("packagePath"),
+                "package_path_mismatch")
+    row = api("GET", "/plugins/" + args.plugin_id + "/config?companyId=" + args.company_id)
+    require(row is not None, "unconfigured", 3)
+    require(isinstance(row, dict) and row.get("pluginId") == args.plugin_id and
+            row.get("companyId") == args.company_id, "config_identity_mismatch")
+    config = row.get("configJson")
+    require(isinstance(config, dict), "config_object_required")
+    require(bool(config), "unconfigured", 3)
+    routes = config.get("routes", [])
+    native = config.get("nativeConversation", {})
+    require(isinstance(routes, list) and isinstance(native, dict), "config_ownership_invalid")
+    bindings = native.get("bindings", [])
+    require(isinstance(bindings, list), "config_ownership_invalid")
+    for entry in routes:
+        require(isinstance(entry, dict) and entry.get("companyId") in {None, args.company_id},
+                "foreign_company_config")
+        if entry.get("enabled") is not False and entry.get("matchType") in {"chat", "user"}:
+            field = "chatId" if entry["matchType"] == "chat" else "userId"
+            require(isinstance(entry.get(field), str) and bool(entry[field].strip()),
+                    "enabled_route_target_missing")
+    for entry in bindings:
+        require(isinstance(entry, dict) and entry.get("companyId") == args.company_id,
+                "foreign_company_config")
+    require(native.get("enabled") is not True or bool(bindings), "native_binding_missing")
+    return plugin, config, fingerprint(config)
+
+
+def runtime(api, args):
+    value = api("POST", "/plugins/" + args.plugin_id + "/bridge/data",
+                {"companyId": args.company_id, "key": "runtime-health", "params": {}})
+    require(isinstance(value, dict) and isinstance(value.get("data"), dict), "runtime_schema_invalid")
+    return value["data"]
+
+
+def assess(value, company, digest, config):
+    required = {"schema", "companyId", "configApplied", "configHash", "eventSubscriberEnabled",
+                "expectedSubscribers", "activeSubscribers", "watchdogActive", "status",
+                "lastWatchdogAt", "lastConfigAppliedAt"}
+    require(required <= value.keys() and value["schema"] == "cm.feishu.runtime-health.v1",
+            "runtime_schema_invalid")
+    require(value["companyId"] == company and value["configApplied"] is True, "config_not_applied")
+    require(value["configHash"] == digest, "runtime_config_hash_mismatch")
+    require(type(value["eventSubscriberEnabled"]) is bool and type(value["watchdogActive"]) is bool
+            and all(type(value[k]) is int and value[k] >= 0 for k in
+                    ("expectedSubscribers", "activeSubscribers")), "runtime_fields_invalid")
+    require(value["eventSubscriberEnabled"] == (config.get("enableEventSubscriber") is True),
+            "runtime_subscription_mismatch")
+    if not value["eventSubscriberEnabled"]:
+        require(value["status"] == "disabled" and value["expectedSubscribers"] == 0 and
+                value["activeSubscribers"] == 0, "runtime_disabled_mismatch")
+        raise Rejected("disabled")
+    require(value["status"] == "healthy" and value["expectedSubscribers"] > 0 and
+            value["activeSubscribers"] == value["expectedSubscribers"] and
+            value["watchdogActive"] is True, "runtime_degraded")
+    tick = value["lastWatchdogAt"]
+    anchor = tick if tick is not None else value["lastConfigAppliedAt"]
+    require(isinstance(anchor, str), "runtime_clock_invalid")
+    try:
+        instant = datetime.fromisoformat(anchor.replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - instant).total_seconds()
+    except (TypeError, ValueError):
+        raise Rejected("runtime_clock_invalid") from None
+    require(-5 <= age <= (90 if tick is not None else 60), "watchdog_stale")
+
+
+def public_health(value):
+    return {k: value[k] for k in ("schema", "companyId", "configApplied", "configHash", "status",
+            "eventSubscriberEnabled", "expectedSubscribers", "activeSubscribers", "watchdogActive",
+            "lastWatchdogAt", "lastConfigAppliedAt")
+            if k in value and isinstance(value[k], (str, bool, int, type(None)))}
+
+
+def directory(path):
+    require(path.is_absolute(), "unsafe_package_path")
+    handle = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in path.parts[1:]:
+            new = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=handle)
+            os.close(handle)
+            handle = new
+            metadata = os.fstat(handle)
+            sticky_root = metadata.st_uid == 0 and metadata.st_mode & stat.S_ISVTX
+            owner_allowed = metadata.st_uid == os.geteuid() or (
+                os.geteuid() == 0 and metadata.st_uid == 1000)
+            try:
+                primary_group = owner_allowed and pwd.getpwuid(metadata.st_uid).pw_gid == metadata.st_gid
+            except KeyError:
+                primary_group = False
+            require(not metadata.st_mode & 0o002 or sticky_root, "writable_package_path")
+            require(not metadata.st_mode & 0o020 or primary_group or sticky_root,
+                    "writable_package_path")
+        return handle
+    except Exception:
+        os.close(handle)
+        raise
+
+
+def package_document(path):
+    fd = directory(path)
+    try:
+        handle = os.open("package.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
+        with os.fdopen(handle, "rb") as stream:
+            require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode), "unsafe_package_file")
+            return parse(stream.read(LIMIT + 1))
+    finally:
+        os.close(fd)
+
+
+def binding(fd, company):
+    try:
+        handle = os.open("cm-company-binding.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                         dir_fd=fd)
+    except FileNotFoundError:
+        return False
+    with os.fdopen(handle, "rb") as stream:
+        metadata = os.fstat(stream.fileno())
+        require(stat.S_ISREG(metadata.st_mode) and metadata.st_uid in {0, os.geteuid()} and
+                not metadata.st_mode & 0o022 and metadata.st_size <= 4096, "unsafe_binding_file")
+        value = parse(stream.read(4097), 4096)
+    require(value == {"schema": SCHEMA, "pluginKey": KEY, "companyId": company},
+            "foreign_or_invalid_binding")
+    return True
+
+
+def write_binding(fd, company):
+    name = ".cm-binding-" + uuid.uuid4().hex
+    handle = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=fd)
+    try:
+        with os.fdopen(handle, "wb") as stream:
+            stream.write(json.dumps({"schema": SCHEMA, "pluginKey": KEY,
+                                     "companyId": company}).encode() + b"\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(name, "cm-company-binding.json", src_dir_fd=fd, dst_dir_fd=fd, follow_symlinks=False)
+        os.fsync(fd)
+    finally:
+        os.unlink(name, dir_fd=fd)
+
+
+def idle(api, args):
+    runs = api("GET", "/companies/" + args.company_id + "/live-runs?minCount=0&limit=1")
+    require(isinstance(runs, list) and not runs, "live_work_present")
+
+
+def unchanged(api, args, plugin, digest):
+    current, _, current_hash = target(api, args)
+    require(current.get("packagePath") == plugin.get("packagePath"), "package_path_changed")
+    require(current_hash == digest, "config_changed")
+    return current
+
+
+def run(args, api=None):
+    api = api or API(args.api_base)
+    result = {"schema": "cm.feishu.runtime-gate.v1", "action": args.action,
+              "pluginId": args.plugin_id, "companyId": args.company_id, "deliveryVerified": False}
+    plugin, config, digest = target(api, args)
+    if args.action == "check":
+        value = runtime(api, args)
+        assess(value, args.company_id, digest, config)
+        return {**result, "state": "healthy", "runtime": public_health(value)}
+    path = Path(plugin.get("packagePath", ""))
+    fd = directory(path / "dist")
+    try:
+        matched = binding(fd, args.company_id)
+        package = package_document(path)
+        version = package.get("version", "") if isinstance(package, dict) else ""
+        require(re.fullmatch(r"0\.3\.11-connector-feishu\.cm-compat\.(\d+)", version) and
+                int(version.rsplit(".", 1)[1]) >= 9 and
+                stat.S_ISREG(os.stat("native-runtime.mjs", dir_fd=fd, follow_symlinks=False).st_mode),
+                "compat9_package_required")
+        try:
+            value = runtime(api, args)
+            require(value.get("companyId") in {None, args.company_id}, "foreign_runtime_company")
+            assess(value, args.company_id, digest, config)
+            if matched and version == plugin.get("version"):
+                return {**result, "state": "healthy", "changed": False, "runtime": public_health(value)}
+        except Rejected as error:
+            if error.reason == "foreign_runtime_company":
+                raise
+        idle(api, args)
+        unchanged(api, args, plugin, digest)
+        if not matched:
+            write_binding(fd, args.company_id)
+        idle(api, args)
+        unchanged(api, args, plugin, digest)
+        api("POST", "/plugins/" + args.plugin_id + "/upgrade", {}, upgrade=True)
+        api.deadline = time.monotonic() + 15
+        while time.monotonic() < api.deadline:
+            current = unchanged(api, args, plugin, digest)
+            try:
+                require(current.get("version") == version, "package_version_not_applied")
+                value = runtime(api, args)
+                assess(value, args.company_id, digest, config)
+                return {**result, "state": "healthy", "changed": True, "runtime": public_health(value)}
+            except Rejected as error:
+                if error.reason == "disabled":
+                    raise
+                time.sleep(min(1, max(0, api.deadline - time.monotonic())))
+        raise Rejected("runtime_timeout")
+    finally:
+        os.close(fd)
+
+
+class Parser(argparse.ArgumentParser):
+    def error(self, _message):
+        print(json.dumps({"state": "invalid_arguments", "deliveryVerified": False}))
+        raise SystemExit(2)
+
+
+def main(argv=None):
+    parser = Parser(description=__doc__)
+    parser.add_argument("action", choices=("check", "sync"))
+    parser.add_argument("--api-base", default="http://127.0.0.1:3100")
+    parser.add_argument("--plugin-id", required=True)
+    parser.add_argument("--company-id", required=True)
+    parser.add_argument("--package-dir")
+    args = parser.parse_args(argv)
+    try:
+        require(all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", x) for x in
+                    (args.plugin_id, args.company_id)), "invalid_identity")
+        result, code = run(args), 0
+    except Rejected as error:
+        result, code = {"state": error.reason, "deliveryVerified": False}, error.code
+    except (OSError, ValueError, TypeError, KeyError, ArithmeticError, RecursionError):
+        result, code = {"state": "invalid_local_or_api_state", "deliveryVerified": False}, 1
+    print(json.dumps(result, ensure_ascii=False))
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

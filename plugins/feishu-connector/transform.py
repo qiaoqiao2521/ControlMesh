@@ -90,7 +90,172 @@ def transform_worker(source):
   record
 });
 '''
-    return once(source, 'var plugin = definePlugin({\n', factory + 'var plugin = definePlugin({\n')
+    source = once(source, 'var plugin = definePlugin({\n', factory + 'var plugin = definePlugin({\n')
+    return transform_runtime_worker(source)
+
+
+def transform_runtime_worker(source):
+    """Add runtime recovery to a verified compat8 worker without replacing guards."""
+    if 'native-runtime.mjs' in source or 'function cmApplyCompanyConfig(' in source:
+        raise ValueError("Runtime recovery hooks are already present")
+    for anchor in ('const cmNativeConversation = createNativeConversationBridge({',
+                   'function cmScopedContext(', 'cmBackground.runInAsyncScope'):
+        if anchor not in source:
+            raise ValueError(f"Native compatibility worker is required: {anchor}")
+    source = ('import { readCompanyBinding, configFingerprint, isEmptyStoredConfig, '
+              'runtimeHealthSnapshot } from "./native-runtime.mjs";\n' + source)
+    source = once(source, 'let cmCompanyId = null;\n', '''let cmCompanyId = null;
+let cmDeploymentBinding = null;
+let cmConfigApplied = false;
+let cmAppliedConfig = null;
+let cmAppliedConfigHash = null;
+let cmAppliedNormalizedHash = null;
+let cmLastConfigAppliedAt = null;
+''')
+    source = once(source, 'async function registerDataHandlers(ctx) {\n', '''async function registerDataHandlers(ctx) {
+  ctx.data.register("runtime-health", async () => runtimeHealthSnapshot({
+    configApplied: cmConfigApplied,
+    companyId: cmCompanyId ?? cmDeploymentBinding?.companyId,
+    configHash: cmAppliedConfigHash,
+    eventSubscriberEnabled: cmAppliedConfig?.enableEventSubscriber === true,
+    expectedConnectionIds: cmAppliedConfig && cmAppliedConfig.enableEventSubscriber === true
+      ? planEventSubscribers(cmAppliedConfig).map((plan) => plan.primaryConnectionId) : [],
+    runningConnectionIds: [...subscribers.entries()].filter(([, subscriber]) => subscriber.isRunning()).map(([id]) => id),
+    watchdogActive: subscriberWatchdog !== null,
+    lastWatchdogAt,
+    lastConfigAppliedAt: cmLastConfigAppliedAt
+  }));
+''')
+    setup_anchor = '''  async setup(rawContext) {
+    const ctx = cmScopedContext(rawContext);
+    currentContext = ctx;
+    installProcessShutdownHandlers();
+    await registerDataHandlers(ctx);
+    await registerActionHandlers(ctx);
+    await registerToolHandlers(ctx);
+    // The host replays persisted company configs after setup on every restart.
+    // No unscoped config read, listener or event subscription happens here.
+  },
+'''
+    source = once(source, setup_anchor, '''  async setup(rawContext) {
+    const ctx = cmScopedContext(rawContext);
+    currentContext = ctx;
+    installProcessShutdownHandlers();
+    await registerDataHandlers(ctx);
+    await registerActionHandlers(ctx);
+    await registerToolHandlers(ctx);
+    // Worker-only restarts do not pass through the loader's config replay.
+    // A deployment binding supplies identity; the official host owns config.
+    cmDeploymentBinding = await readCompanyBinding();
+    if (cmDeploymentBinding) {
+      const storedConfig = await rawContext.config.get(cmDeploymentBinding.companyId);
+      if (isEmptyStoredConfig(storedConfig) || typeof storedConfig !== "object" || Array.isArray(storedConfig)) {
+        throw new Error("The bound Feishu company has no stored configuration.");
+      }
+      await cmApplyCompanyConfig(storedConfig, {companyId: cmDeploymentBinding.companyId}, {bootstrap: true});
+    }
+  },
+''')
+    config_handler = '''  async onConfigChanged(newConfig, context) {
+    const incomingCompanyId = context?.companyId;
+    if (typeof incomingCompanyId !== "string" || !incomingCompanyId.trim()) {
+      throw new Error("Company scope is required to configure the Feishu connector.");
+    }
+    if (cmCompanyId && cmCompanyId !== incomingCompanyId) {
+      throw new Error("This Feishu connector worker is bound to one company; a second company is refused.");
+    }
+    const config = normalizeConfig(newConfig);
+    if ((config.routes ?? []).some((route) => route.companyId && route.companyId !== incomingCompanyId)) {
+      throw new Error("Feishu route targets a company outside the configured scope.");
+    }
+    validateNativeConversationConfig(config, incomingCompanyId);
+    cmCompanyId = incomingCompanyId;
+    const ctx = currentContext;
+    if (!ctx) return;
+    await syncConfigToDatabase(ctx, config);
+    if (!cmEventsRegistered) {
+      await registerEventHandlers(ctx);
+      cmEventsRegistered = true;
+    }
+    await cmBackground.runInAsyncScope(async () => {
+      await startConfiguredSubscribers(ctx, config);
+      await cmNativeConversation.flush(ctx, config);
+      startSubscriberWatchdog(ctx);
+    });
+    record("info", "Feishu connector company configuration applied", {
+      companyId: cmCompanyId,
+      enabledConnections: getEnabledConnections(config).length,
+      subscribers: subscribers.size
+    });
+  },
+'''
+    source = once(source, config_handler, '''  async onConfigChanged(newConfig, context) {
+    await cmApplyCompanyConfig(newConfig, context);
+  },
+''')
+    apply_config = '''async function cmApplyCompanyConfig(newConfig, context, options = {}) {
+  const incomingCompanyId = context?.companyId;
+  if (typeof incomingCompanyId !== "string" || !incomingCompanyId.trim()) {
+    throw new Error("Company scope is required to configure the Feishu connector.");
+  }
+  const selectedCompanyId = cmDeploymentBinding?.companyId ?? cmCompanyId;
+  if (selectedCompanyId && selectedCompanyId !== incomingCompanyId) {
+    // A historical NULL/empty row has no work to apply. It cannot change identity.
+    if (isEmptyStoredConfig(newConfig)) return;
+    throw new Error("This Feishu connector worker is bound to one company; a second company is refused.");
+  }
+  const config = normalizeConfig(newConfig);
+  if ((config.routes ?? []).some((route) => route.companyId && route.companyId !== incomingCompanyId)) {
+    throw new Error("Feishu route targets a company outside the configured scope.");
+  }
+  validateNativeConversationConfig(config, incomingCompanyId);
+  const rawHash = configFingerprint(newConfig);
+  const normalizedHash = configFingerprint(config);
+  const ctx = currentContext;
+  if (!ctx) throw new Error("Feishu connector context is unavailable.");
+  if (cmConfigApplied && cmAppliedNormalizedHash === normalizedHash) {
+    // The loader replays config after setup. Reuse the listener and timer.
+    await cmBackground.runInAsyncScope(async () => {
+      await reconcileConfiguredSubscribers(ctx, config, {reason: "unchanged-config"});
+      startSubscriberWatchdog(ctx);
+    });
+    if (cmAppliedConfigHash !== rawHash) cmLastConfigAppliedAt = new Date().toISOString();
+    cmAppliedConfigHash = rawHash;
+    return;
+  }
+  cmConfigApplied = false;
+  cmCompanyId = incomingCompanyId;
+  if (!options.bootstrap) await syncConfigToDatabase(ctx, config);
+  if (!cmEventsRegistered) {
+    await registerEventHandlers(ctx);
+    cmEventsRegistered = true;
+  }
+  await cmBackground.runInAsyncScope(async () => {
+    await startConfiguredSubscribers(ctx, config);
+    // Avoid potentially slow pending delivery inside the 15-second initialize RPC.
+    // Existing watchdog and completion events retain pending reconciliation.
+    if (!options.bootstrap) await cmNativeConversation.flush(ctx, config);
+    startSubscriberWatchdog(ctx);
+  });
+  cmAppliedConfig = config;
+  cmAppliedConfigHash = rawHash;
+  cmAppliedNormalizedHash = normalizedHash;
+  cmLastConfigAppliedAt = new Date().toISOString();
+  cmConfigApplied = true;
+  record("info", "Feishu connector company configuration applied", {
+    companyId: cmCompanyId,
+    enabledConnections: getEnabledConnections(config).length,
+    subscribers: subscribers.size,
+    bootstrap: options.bootstrap === true
+  });
+}
+'''
+    definition = '''var plugin = definePlugin({
+  // The host may replay empty historical scope rows in any order. Handle that
+  // lifecycle explicitly; cmApplyCompanyConfig still permits one selected company.
+  multiCompanyConfig: true,
+'''
+    return once(source, 'var plugin = definePlugin({\n', apply_config + definition)
 
 
 def transform_manifest(source):

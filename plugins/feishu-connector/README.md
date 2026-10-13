@@ -23,17 +23,57 @@ python3 plugins/feishu-connector/build.py --output /tmp/cm-feishu-native-build
 先将构建产物放到 Paperclip 安装根目录的 `local-plugins/`。
 这样可以复用安装根目录的官方 SDK。
 首次通过原生 `plugin install --local` 加载。
-已有插件保留登记路径，受控替换该路径的产物，再通过 `plugin upgrade` 重载。
+已有插件保留登记路径，按下文暂停、完整发布、启用的门禁替换产物。
 `install` 会拒绝重复插件键，不能用来升级或迁移已有登记路径。
 先验证安装目标、当前活跃运行和旧产物哈希。
 如当前 worker 带有额外生产修复，变换该 worker，禁止覆盖为基础重建版本。
 
-升级后分别核对持久配置和新 worker 的实际应用状态。注册 `ready`、静态 health、配置哈希一致只证明对应一层。
-先通过公司级只读 `catalog` 桥确认 worker 已建立公司上下文，再核对唯一监听进程与恢复检查时间。
-`status` 数据桥会调用 subscriber reconcile，属于恢复动作；不要用它掩盖检查前的缺失现场。
-若持久配置正确而 worker 未应用，在确认原 App、公司、路由和在途状态后，经官方公司配置 API 原样重新应用 `configJson`。
-回读完整 `configJson` 哈希不变、主进程不变，并验证新消息实际送达，才接受升级后的收件链。
-宿主源码有 best-effort 配置回放，也不能免去现场验收；回放失败的确切原因未知时保留未知。
+compat.9 增加启动恢复和纯运行检查，保留 compat.8 的消息接纳与回执规则。
+在部署目录 `dist/cm-company-binding.json` 中显式保存以下非秘密身份。
+文件必须为普通文件，不可为符号链接，不允许组或其他用户写入。
+缺少文件时 setup 不猜测公司；后续官方明确配置回放仍可绑定。
+存在但格式、归属或官方公司授权错误时，初始化失败。
+
+```json
+{"schema":"cm.feishu.deployment.v1","pluginKey":"paperclipai.feishu-connector","companyId":"explicit-company-id"}
+```
+
+worker 在 setup 中通过官方 `config.get(companyId)` 恢复当前持久配置。
+宿主必须已授权该公司；侧车文件不能绕过租户边界。
+相同配置回放复用监听和定时器。其他公司的空历史行不改变身份，非空配置拒绝。
+setup 不执行完整旧数据库同步或等待原生 pending 投递，避免超过宿主15秒初始化限制。
+既有完成事件和30秒 watchdog 接续状态回读，不新增模型调用。
+
+发布前核对原身份、完整配置、所有公司的在途运行、旧产物哈希和 capabilities。
+只有能力列表完全不变的发布才可使用原生 disable → 完整替换 → enable。
+新增能力仍走官方 upgrade 审批，不用 enable 绕过权限升级。
+先暂停插件并确认 worker 已停，再完整替换代码及本机公司侧车，保留生产守卫。
+最后一次写入后确认仍 disabled、无 worker、产物哈希正确，再启用并 GET 回读实际版本。
+Paperclip 2026.916.1 的 HTTP 路由与文件监听器使用不同 lifecycle 对象，
+不能仅凭 disable 返回就认定文件监听已撤销。还须等待文件稳定及500毫秒 debounce，
+检查可用的拒绝日志或静默现场，并在启用后复核监听、watchdog 与真实回复。
+disabled 状态不能直接 upgrade；不得同时写文件和调用 upgrade。
+
+将仓库 `scripts/paperclip/cm-feishu-runtime` 安装到现有 CLI 目录。
+它仅有两个动作，不读取浏览器凭据，不创建 Agent、守护或 cron。
+
+```bash
+cm-feishu-runtime check --plugin-id explicit-plugin-id --company-id explicit-company-id
+cm-feishu-runtime sync --plugin-id explicit-plugin-id --company-id explicit-company-id
+```
+
+`check` 查询原生 API 和纯内存 `runtime-health`；不启动或修复监听。
+它核对公司、当前配置指纹、期望与实际监听数，以及 watchdog 时间。
+启用的 chat/user 路由还必须有非空 chatId/userId；禁用草稿保留。
+watchdog 超过90秒拒绝；尚无首 tick 时仅允许60秒启动窗口。
+`sync` 仅写明确公司的非秘密侧车，并在已完整发布 compat.9、插件 ready 且无在途任务时调用官方 upgrade。
+它不 POST config，不自动处理 error/disabled，不重试结果不明的升级。
+文件、配置或公司冲突直接拒绝；未配置返回3，未知升级结果返回4。
+两个动作成功也只代表运行基线，输出始终含 `deliveryVerified:false`。
+
+最后发出一个明确的新验收消息，从原 App、原聊天回读唯一回复。
+`status` 数据桥会 reconcile 订阅器，属于恢复动作；不要拿它冒充纯检查。
+历史原样重应用 configJson 的恢复见10月13日证据，不能替代当前启动恢复与现场验收。
 
 在运行用户拥有的目录中创建权限为 `0600` 的配对文件：
 
@@ -116,6 +156,8 @@ CLI 会检查实际 Board 用户，拒绝符号链接和不安全的配置权限
 ```bash
 python3 -m unittest discover -s plugins/feishu-connector/tests -p 'test_*.py'
 node --test plugins/feishu-connector/tests/native-conversation.test.mjs
+node --test plugins/feishu-connector/tests/native-runtime.test.mjs
+python3 -m unittest discover -s tests/paperclip -p 'test_feishu_runtime_gate.py'
 node plugins/feishu-connector/tests/worker-rpc.test.mjs /absolute/build/output
 ```
 
@@ -123,3 +165,4 @@ node plugins/feishu-connector/tests/worker-rpc.test.mjs /absolute/build/output
 真实 Paperclip API、生产插件健康和用户新消息验收分别留证据。
 当前任务进度见 [SpecMesh 交接](../../plans/feishu-native-conversation-20261006/progress.md)。
 六机接入与单机诊断见 [2026-10-12 证据](../../plans/feishu-native-conversation-20261006/evidence/fleet-live-20261012.md)。
+启动恢复与逐机门禁见 [2026-10-14 证据](../../plans/feishu-native-conversation-20261006/evidence/fleet-runtime-guard-20261014.md)。

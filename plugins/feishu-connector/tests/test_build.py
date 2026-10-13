@@ -79,6 +79,7 @@ class BuildTests(unittest.TestCase):
         )
         (self.source_dir / "native-conversation.mjs").write_text("export const mode = 'native';\n")
         (self.source_dir / "native-conversation-cli.py").write_text("#!/usr/bin/python3\n")
+        (self.source_dir / "native-runtime.mjs").write_text("export const mode = 'runtime';\n")
         return compat_patch
 
     def fixture_build(self, compat_patch: Path) -> dict:
@@ -101,7 +102,7 @@ class BuildTests(unittest.TestCase):
         )
         self.assertIn("native config schema", (self.output / "dist/manifest.js").read_text())
         self.assertIn(
-            'var PLUGIN_VERSION = "0.3.11-connector-feishu.cm-compat.8";',
+            'var PLUGIN_VERSION = "0.3.11-connector-feishu.cm-compat.9";',
             (self.output / "dist/manifest.js").read_text(),
         )
         self.assertEqual(
@@ -116,7 +117,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(
             receipt["nativeTransformSha256"], build.sha256_file(self.source_dir / "transform.py")
         )
-        self.assertEqual(receipt["version"], "0.3.11-connector-feishu.cm-compat.8")
+        self.assertEqual(receipt["version"], "0.3.11-connector-feishu.cm-compat.9")
         self.assertEqual(
             json.loads((self.output / "package.json").read_text())["version"], receipt["version"]
         )
@@ -266,6 +267,13 @@ REAL_TARBALL = Path(
         ),
     )
 )
+REAL_COMPAT8_WORKER = Path(
+    os.environ.get(
+        "CM_FEISHU_COMPAT8_WORKER",
+        str(Path.home() / "Documents/Codex/2026-09-27/t/work/feishu-matrix-20261012"
+            / "upgrade-review/baseline-compat8-final/dist/worker.js"),
+    )
+)
 
 
 @unittest.skipUnless(
@@ -296,6 +304,13 @@ class RealPackageTransformTests(unittest.TestCase):
         self.assertIn("await cmNativeConversation.handle(ctx, config, connection, message)", worker)
         self.assertIn("await cmNativeConversation.flush(ctx, config)", worker)
         self.assertIn("validateNativeConversationConfig(config, incomingCompanyId)", worker)
+        self.assertIn("await rawContext.config.get(cmDeploymentBinding.companyId)", worker)
+        self.assertIn('ctx.data.register("runtime-health"', worker)
+        self.assertIn('native-runtime.mjs', worker)
+        self.assertEqual(
+            receipt["files"]["dist/native-runtime.mjs"],
+            build.sha256_file(BUILD_PATH.parent / "native-runtime.mjs"),
+        )
         self.assertIn("legacyAlreadyAdmitted: async", worker)
         self.assertIn('namespace: "feishu-dedup"', worker)
         self.assertIn("nativeConversation: {", manifest)
@@ -326,6 +341,28 @@ class RealPackageTransformTests(unittest.TestCase):
                 transformed = operation(source)
                 with self.assertRaisesRegex(ValueError, "already present"):
                     operation(transformed)
+
+    @unittest.skipUnless(REAL_COMPAT8_WORKER.is_file(), "Select a verified compat8 worker.")
+    def test_runtime_only_upgrade_preserves_prior_native_factory_and_production_tail(self) -> None:
+        prior = REAL_COMPAT8_WORKER.read_text()
+        factory = prior[prior.index("const cmNativeConversation ="):prior.index("var plugin = definePlugin({")]
+        guard = 'function cmProductionReplyGuard() { return "accepted-production-guard"; }\n'
+        tail = '\n// Existing production collector remains byte-identical.\n'
+        production = prior.replace("var plugin = definePlugin({", guard + "var plugin = definePlugin({") + tail
+        upgraded = self.transform.transform_runtime_worker(production)
+        self.assertIn(factory, upgraded)
+        self.assertIn(guard, upgraded)
+        self.assertTrue(upgraded.endswith(tail))
+        self.assertIn("multiCompanyConfig: true", upgraded)
+        self.assertIn("rawContext.config.get(cmDeploymentBinding.companyId)", upgraded)
+        with self.assertRaisesRegex(ValueError, "already present"):
+            self.transform.transform_runtime_worker(upgraded)
+        for changed in (
+            production.replace("await registerToolHandlers(ctx);", "await obsoleteToolHandlers(ctx);"),
+            production.replace("async onConfigChanged(newConfig, context)", "async obsoleteConfigChanged(newConfig, context)"),
+        ):
+            with self.subTest(candidate_length=len(changed)), self.assertRaises(ValueError):
+                self.transform.transform_runtime_worker(changed)
 
 
 if __name__ == "__main__":

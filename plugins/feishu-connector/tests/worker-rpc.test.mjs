@@ -11,12 +11,16 @@ import {pathToFileURL} from 'node:url';
 if (!process.argv[2]) throw new Error('Usage: node worker-rpc.test.mjs <build-directory> [paperclip-installation]');
 const packageDirectory=path.resolve(process.argv[2]);
 const paperclipDirectory=path.resolve(process.argv[3]??'/data/Applications/paperclip');
+process.env.PAPERCLIP_LOG_LEVEL='silent';
 const sdkPath=path.join(paperclipDirectory,'node_modules/@paperclipai/plugin-sdk');
 const {createHostClientHandlers}=await import(pathToFileURL(path.join(sdkPath,'dist/host-client-factory.js')));
 const {buildHeartbeatRunStatusLiveEventPayload}=await import(pathToFileURL(path.join(paperclipDirectory,'node_modules/@paperclipai/server/dist/services/heartbeat-run-status-payload.js')));
+const {createPluginWorkerHandle}=await import(pathToFileURL(path.join(paperclipDirectory,'node_modules/@paperclipai/server/dist/services/plugin-worker-manager.js')));
 const fixtureDirectory=await fs.mkdtemp(path.join(os.tmpdir(),'cm-feishu-worker-rpc-'));
 const workerDirectory=path.join(fixtureDirectory,'package');
 await fs.cp(packageDirectory,workerDirectory,{recursive:true,errorOnExist:true,force:false});
+// Production identity metadata never enters an offline fixture's startup.
+await fs.rm(path.join(workerDirectory,'dist/cm-company-binding.json'),{force:true});
 await fs.mkdir(path.join(fixtureDirectory,'node_modules/@paperclipai'),{recursive:true});
 await fs.symlink(sdkPath,path.join(fixtureDirectory,'node_modules/@paperclipai/plugin-sdk'),'dir');
 const {default:manifest}=await import(pathToFileURL(path.join(workerDirectory,'dist/manifest.js')));
@@ -32,9 +36,9 @@ await fs.writeFile(nativeControl,JSON.stringify({ready:[]}));
 await fs.writeFile(fakeCli,`#!${process.execPath}
 const fs=require('node:fs');
 const args=process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(larkCapture)},JSON.stringify(args)+'\\n');
 if(args.includes('+subscribe')) { setInterval(()=>{},1000); }
 else {
-  fs.appendFileSync(${JSON.stringify(larkCapture)},JSON.stringify(args)+'\\n');
   const id=args[args.indexOf('--message-id')+1]??'unknown';
   process.stdout.write(JSON.stringify({code:0,data:{message_id:'om_reply_'+id}}));
 }
@@ -313,5 +317,109 @@ try{
  assert.deepEqual({issues:issueCreates,sends,sessions:sessions.size},legacyCounts);
  results.push('actual run-completion hook flushes one exact final reply; repeated events remain quiet and the next pending turn survives');
 }finally{await r.close();}
+// Exercise proactive bootstrap with the real worker manager's company resolver,
+// not the small request driver used by the transport fixtures above.
+const bindingPath=path.join(workerDirectory,'dist/cm-company-binding.json');
+const deployment={schema:'cm.feishu.deployment.v1',pluginKey:'paperclipai.feishu-connector',companyId:company};
+const managerCalls=[];
+const trackedHost=Object.fromEntries(Object.entries(host).map(([method,handler])=>[method,async(params,context)=>{
+ managerCalls.push({method,params});return handler(params,context);
+}]));
+const createHandle=(companies=[company])=>createPluginWorkerHandle('fixture-plugin',{
+ entrypointPath:workerPath,manifest,config:{},instanceInfo:{},apiVersion:1,databaseNamespace:'plugin_fixture',
+ hostHandlers:trackedHost,proactiveCompanyScopes:companies,autoRestart:false,
+ env:{PATH:'/usr/bin:/bin',LANG:'C.UTF-8',NODE_ENV:'test'}
+});
+const runtimeQuery=handle=>handle.call('getData',{key:'runtime-health',companyId:company,params:{}});
+const subscribeLaunches=async()=>(await readCapture(larkCapture)).filter(args=>args.includes('+subscribe')).length;
+async function waitForLaunches(expected){
+ const end=Date.now()+2000;
+ while(await subscribeLaunches()<expected){
+  if(Date.now()>end)throw new Error('fixture listener did not start');
+  await new Promise(resolve=>setTimeout(resolve,10));
+ }
+}
+await fs.writeFile(bindingPath,JSON.stringify(deployment),{mode:0o600});
+let handle=createHandle();
+try{
+ const launchesBefore=await subscribeLaunches(),nativeBefore=await readCapture(nativeCapture);
+ await handle.start();await waitForLaunches(launchesBefore+1);
+ const health=await runtimeQuery(handle);
+ assert.equal(health.status,'healthy');assert.equal(health.configApplied,true);assert.equal(health.companyId,company);
+ assert.equal(health.activeSubscribers,1);assert.equal(health.expectedSubscribers,1);assert.equal(health.watchdogActive,true);
+ assert.ok(managerCalls.filter(call=>call.method==='db.execute').every(call=>call.params.sql.includes('.feishu_event_logs')));
+ const dbAfterBootstrap=managerCalls.filter(call=>call.method.startsWith('db.')).length;
+ assert.deepEqual(await readCapture(nativeCapture),nativeBefore);
+ assert.ok(managerCalls.some(call=>call.method==='config.get'&&call.params.companyId===company));
+ results.push('real worker manager authorizes explicit bootstrap config read without host configChanged replay, native work or full config DB sync');
+ const firstHash=health.configHash;
+ const launches=await subscribeLaunches();
+ await handle.call('configChanged',{companyId:'other-company',config:null});
+ await handle.call('configChanged',{companyId:'other-company',config:{}});
+ await handle.call('configChanged',{companyId:company,config});
+ await handle.call('configChanged',{companyId:company,config});
+ await new Promise(resolve=>setTimeout(resolve,40));
+ assert.equal(await subscribeLaunches(),launches);
+ assert.equal(managerCalls.filter(call=>call.method.startsWith('db.')).length,dbAfterBootstrap);
+ assert.deepEqual(await readCapture(nativeCapture),nativeBefore);
+ results.push('duplicate unchanged host config replay preserves the existing listener, watchdog and pending receipts');
+ const original=await runtimeQuery(handle);
+ await handle.call('configChanged',{companyId:'other-company',config:null});
+ await handle.call('configChanged',{companyId:'other-company',config:{}});
+ assert.deepEqual(await runtimeQuery(handle),original);
+ await assert.rejects(handle.call('configChanged',{companyId:'other-company',config:{enableEventSubscriber:false}}),/second company/);
+ await assert.rejects(handle.call('configChanged',{companyId:company,config:{...config,routes:[{...config.routes[0],companyId:'other-company'}]}}),/outside the configured scope/);
+ assert.equal((await runtimeQuery(handle)).configHash,firstHash);
+ results.push('only exact empty foreign records are inert; meaningful foreign config and foreign routes cannot change selected identity');
+ const beforeHealth={calls:managerCalls.length,native:await readCapture(nativeCapture),lark:await readCapture(larkCapture)};
+ await runtimeQuery(handle);await runtimeQuery(handle);
+ assert.equal(managerCalls.length,beforeHealth.calls);
+ assert.deepEqual(await readCapture(nativeCapture),beforeHealth.native);
+ assert.deepEqual(await readCapture(larkCapture),beforeHealth.lark);
+ results.push('runtime-health is a pure memory read with zero host, profile, native, model or message I/O');
+ await handle.restart();await waitForLaunches(launches+1);
+ const restarted=await runtimeQuery(handle);
+ assert.equal(restarted.configApplied,true);assert.equal(restarted.companyId,company);
+ assert.equal(restarted.configHash,firstHash);assert.equal(restarted.status,'healthy');
+ assert.deepEqual(await readCapture(nativeCapture),nativeBefore);
+ results.push('official worker-only restart restores one listener without loader replay or native resubmission');
+}finally{await handle.stop();}
+handle=createHandle([]);
+try{
+ await assert.rejects(handle.start(),/company context is required/);
+ results.push('bootstrap fails closed when the real worker manager has no proactive company authorization');
+}finally{await handle.stop();}
+await fs.writeFile(bindingPath,JSON.stringify({...deployment,companyId:'other-company'}),{mode:0o600});
+handle=createHandle();
+try{
+ await assert.rejects(handle.start(),/company context is required/);
+ results.push('foreign sidecar company cannot bypass the actual host company gate');
+}finally{await handle.stop();}
+await fs.writeFile(bindingPath,JSON.stringify(deployment),{mode:0o600});
+const preservedConfig=config;
+for(const empty of [null,{}]){
+ config=empty;handle=createHandle();
+ try{await assert.rejects(handle.start(),/no stored configuration/);}
+ finally{await handle.stop();config=preservedConfig;}
+}
+results.push('bound company without stored configuration fails initialization rather than reporting ready');
+await fs.chmod(bindingPath,0o622);
+handle=createHandle();
+try{
+ const before=managerCalls.length;
+ await assert.rejects(handle.start(),/deployment binding rejected/);
+ assert.equal(managerCalls.length,before);
+ results.push('unsafe sidecar permissions stop initialization before any company API call');
+}finally{await handle.stop();}
+await fs.rm(bindingPath);
+handle=createHandle();
+try{
+ const before=managerCalls.length;
+ await handle.start();const unbound=await runtimeQuery(handle);
+ assert.equal(unbound.status,'unbound');assert.equal(unbound.configApplied,false);
+ assert.equal(unbound.companyId,null);assert.equal(unbound.activeSubscribers,0);
+ assert.equal(managerCalls.length,before);
+ results.push('missing sidecar remains visibly unbound and never guesses a company');
+}finally{await handle.stop();}
 console.log(JSON.stringify({passed:results.length,cases:results,expectedCrossCompanyDenials:denials,nativeCliSubmissions:(await readCapture(nativeCapture)).filter(call=>call.operation==='send').length,capturedNativeReplies:(await readCapture(larkCapture)).filter(args=>args.includes('+messages-reply')).length,realFeishuCalls:0,modelCalls:0},null,2));
 }finally{await fs.rm(fixtureDirectory,{recursive:true,force:true});}

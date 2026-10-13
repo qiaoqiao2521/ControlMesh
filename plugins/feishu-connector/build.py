@@ -22,8 +22,8 @@ UPSTREAM_URL = (
 )
 UPSTREAM_SHA256 = "dac91409329a4005e12b59c0bf17c357a17fc7c0e7998a093624a1c289850cf3"
 COMPAT_PATCH = REPOSITORY_ROOT / "plans/paperclip-feishu-canary/evidence/plugin-candidate.patch"
-NATIVE_FILES = ("native-conversation.mjs", "native-conversation-cli.py")
-COMPAT_VERSION = "0.3.11-connector-feishu.cm-compat.8"
+NATIVE_FILES = ("native-conversation.mjs", "native-conversation-cli.py", "native-runtime.mjs")
+COMPAT_VERSION = "0.3.11-connector-feishu.cm-compat.9"
 MAX_ARCHIVE_BYTES = 16 * 1024 * 1024
 MAX_UNPACKED_BYTES = 128 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 1024
