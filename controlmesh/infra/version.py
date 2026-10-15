@@ -15,7 +15,7 @@ from controlmesh.infra.install import detect_install_info
 logger = logging.getLogger(__name__)
 
 _PYPI_URL = "https://pypi.org/pypi/controlmesh/json"
-_GITHUB_RELEASES_URL = "https://api.github.com/repos/muqiao215/ControlMesh/releases"
+_GITHUB_RELEASES_URL = "https://api.github.com/repos/qiaoqiao2521/ControlMesh/releases"
 _GITHUB_LATEST_RELEASE_URL = f"{_GITHUB_RELEASES_URL}/latest"
 _PACKAGE_NAME = "controlmesh"
 _TIMEOUT = aiohttp.ClientTimeout(total=10)

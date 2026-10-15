@@ -82,7 +82,7 @@ class TestCreate:
         submit = _submit("review repo", name="Review")
         submit.repo_root = "/root/.controlmesh/dev/ControlMesh"
         submit.expected_repo = "ControlMesh"
-        submit.expected_remote = "muqiao215/ControlMesh"
+        submit.expected_remote = "qiaoqiao2521/ControlMesh"
         submit.expected_branch = "main"
         submit.tool_use_id = "toolu_bg_review"
 
@@ -90,7 +90,7 @@ class TestCreate:
 
         assert entry.repo_root == "/root/.controlmesh/dev/ControlMesh"
         assert entry.expected_repo == "ControlMesh"
-        assert entry.expected_remote == "muqiao215/ControlMesh"
+        assert entry.expected_remote == "qiaoqiao2521/ControlMesh"
         assert entry.expected_branch == "main"
         assert entry.tool_use_id == "toolu_bg_review"
 

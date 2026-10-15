@@ -914,12 +914,12 @@ class TestResolveText:
         tg_bot, _ = _make_tg_bot()
         tg_bot.bot_instance_username = "mybot"
         tg_bot._orchestrator = _make_orchestrator()
-        msg = _make_message(text="https://github.com/muqiao215/ControlMesh")
+        msg = _make_message(text="https://github.com/qiaoqiao2521/ControlMesh")
         msg.entities = [MagicMock(type="url", offset=0, length=len(msg.text))]
 
         result = await tg_bot._resolve_text(msg)
 
-        assert result == "https://github.com/muqiao215/ControlMesh"
+        assert result == "https://github.com/qiaoqiao2521/ControlMesh"
 
     async def test_pasted_chat_transcript_reduces_to_last_message(self) -> None:
         tg_bot, _ = _make_tg_bot()
@@ -969,7 +969,7 @@ class TestResolveText:
         msg = _make_message(
             chat_id=-100,
             chat_type="supergroup",
-            text="https://github.com/muqiao215/ControlMesh",
+            text="https://github.com/qiaoqiao2521/ControlMesh",
         )
         msg.entities = [MagicMock(type="url", offset=0, length=len(msg.text))]
 

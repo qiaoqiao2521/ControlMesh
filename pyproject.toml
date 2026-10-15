@@ -72,11 +72,11 @@ openai-agents = [
 dev = ["controlmesh[test,lint,api,matrix]"]
 
 [project.urls]
-Homepage = "https://github.com/muqiao215/ControlMesh"
-Repository = "https://github.com/muqiao215/ControlMesh"
-Documentation = "https://github.com/muqiao215/ControlMesh"
-Issues = "https://github.com/muqiao215/ControlMesh/issues"
-Changelog = "https://github.com/muqiao215/ControlMesh/releases"
+Homepage = "https://github.com/qiaoqiao2521/ControlMesh"
+Repository = "https://github.com/qiaoqiao2521/ControlMesh"
+Documentation = "https://github.com/qiaoqiao2521/ControlMesh"
+Issues = "https://github.com/qiaoqiao2521/ControlMesh/issues"
+Changelog = "https://github.com/qiaoqiao2521/ControlMesh/releases"
 
 [project.scripts]
 controlmesh = "controlmesh.__main__:main"

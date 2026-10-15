@@ -555,7 +555,7 @@ agent_slots:
         submit = _submit(prompt="Review the current diff", name="Review diff")
         submit.repo_root = "/root/.controlmesh/dev/ControlMesh"
         submit.expected_repo = "ControlMesh"
-        submit.expected_remote = "muqiao215/ControlMesh"
+        submit.expected_remote = "qiaoqiao2521/ControlMesh"
         submit.expected_branch = "main"
         submit.tool_use_id = "toolu_bg_review_1"
         hub.submit(submit)

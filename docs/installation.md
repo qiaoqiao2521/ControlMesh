@@ -54,10 +54,10 @@ Install the latest `main` branch directly from GitHub without cloning locally:
 
 ```bash
 # pipx
-pipx install "git+https://github.com/muqiao215/ControlMesh.git@main"
+pipx install "git+https://github.com/qiaoqiao2521/ControlMesh.git@main"
 
 # pip
-pip install "controlmesh @ git+https://github.com/muqiao215/ControlMesh.git@main"
+pip install "controlmesh @ git+https://github.com/qiaoqiao2521/ControlMesh.git@main"
 ```
 
 Notes:
@@ -70,7 +70,7 @@ Notes:
 ### from source
 
 ```bash
-git clone https://github.com/muqiao215/ControlMesh.git
+git clone https://github.com/qiaoqiao2521/ControlMesh.git
 cd ControlMesh
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
@@ -434,7 +434,7 @@ controlmesh upgrade
 pipx upgrade controlmesh
 
 # if installed from GitHub main via pipx and the bot is offline
-pipx install --force "git+https://github.com/muqiao215/ControlMesh.git@main"
+pipx install --force "git+https://github.com/qiaoqiao2521/ControlMesh.git@main"
 ```
 
 Uninstall:

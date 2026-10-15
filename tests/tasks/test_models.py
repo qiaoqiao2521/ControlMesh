@@ -221,13 +221,13 @@ class TestTaskSubmit:
             parent_agent="main",
             repo_root="/repo/controlmesh",
             expected_repo="ControlMesh",
-            expected_remote="muqiao215/ControlMesh",
+            expected_remote="qiaoqiao2521/ControlMesh",
             expected_branch="main",
             tool_use_id="toolu_bg_123",
         )
         assert sub.repo_root == "/repo/controlmesh"
         assert sub.expected_repo == "ControlMesh"
-        assert sub.expected_remote == "muqiao215/ControlMesh"
+        assert sub.expected_remote == "qiaoqiao2521/ControlMesh"
         assert sub.expected_branch == "main"
         assert sub.tool_use_id == "toolu_bg_123"
         assert sub.external_task is False

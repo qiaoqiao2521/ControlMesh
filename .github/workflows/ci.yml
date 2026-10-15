@@ -154,7 +154,7 @@ jobs:
       - name: Checkout independent SpecMesh snapshot contract
         uses: actions/checkout@v6
         with:
-          repository: muqiao215/specmesh
+          repository: qiaoqiao2521/specmesh
           ref: d393c548a2a58989d65e6cdbd60a36e9a81a444f
           path: .ci-specmesh
           persist-credentials: false

@@ -93,7 +93,7 @@ def test_post_link_is_rendered_into_agent_text(monkeypatch) -> None:
                     {
                         "tag": "a",
                         "text": "ControlMesh",
-                        "href": "https://github.com/muqiao215/ControlMesh",
+                        "href": "https://github.com/qiaoqiao2521/ControlMesh",
                     },
                 ]
             ],
@@ -106,4 +106,4 @@ def test_post_link_is_rendered_into_agent_text(monkeypatch) -> None:
         content,
     )
 
-    assert parsed.text == "看看 [ControlMesh](https://github.com/muqiao215/ControlMesh)"
+    assert parsed.text == "看看 [ControlMesh](https://github.com/qiaoqiao2521/ControlMesh)"

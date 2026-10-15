@@ -362,7 +362,7 @@ class TestPerformUpgradePipeline:
                 return_value=InstallInfo(
                     mode="pipx",
                     source="github",
-                    url="https://github.com/muqiao215/ControlMesh.git",
+                    url="https://github.com/qiaoqiao2521/ControlMesh.git",
                     vcs="git",
                     requested_revision="main",
                     commit_id="old123",
@@ -404,7 +404,7 @@ class TestPerformUpgradePipeline:
                 return_value=InstallInfo(
                     mode="pipx",
                     source="github",
-                    url="https://github.com/muqiao215/ControlMesh.git",
+                    url="https://github.com/qiaoqiao2521/ControlMesh.git",
                     vcs="git",
                     requested_revision="main",
                     commit_id="old123",
@@ -456,7 +456,7 @@ class TestPerformUpgradePipeline:
                 return_value=InstallInfo(
                     mode="pipx",
                     source="github",
-                    url="https://github.com/muqiao215/ControlMesh.git",
+                    url="https://github.com/qiaoqiao2521/ControlMesh.git",
                     vcs="git",
                     requested_revision="main",
                     commit_id="old123",
@@ -677,7 +677,7 @@ class TestBuildUpgradeCommand:
     def test_pipx_github_install_uses_runpip_direct_url(self) -> None:
         cmd = _build_upgrade_command(
             mode="pipx",
-            package_spec="controlmesh @ git+https://github.com/muqiao215/ControlMesh.git@v0.16.0",
+            package_spec="controlmesh @ git+https://github.com/qiaoqiao2521/ControlMesh.git@v0.16.0",
             target_version="0.16.0",
             force_reinstall=True,
         )
@@ -690,7 +690,7 @@ class TestBuildUpgradeCommand:
             "--upgrade",
             "--no-cache-dir",
             "--force-reinstall",
-            "controlmesh @ git+https://github.com/muqiao215/ControlMesh.git@v0.16.0",
+            "controlmesh @ git+https://github.com/qiaoqiao2521/ControlMesh.git@v0.16.0",
         ]
 
     def test_pip_install_prefers_uv_when_available(self) -> None:
@@ -805,14 +805,14 @@ class TestBuildPackageSpec:
             InstallInfo(
                 mode="pipx",
                 source="github",
-                url="https://github.com/muqiao215/ControlMesh.git",
+                url="https://github.com/qiaoqiao2521/ControlMesh.git",
                 vcs="git",
                 requested_revision="main",
             ),
             target_version="0.16.0",
         )
 
-        assert spec == "controlmesh @ git+https://github.com/muqiao215/ControlMesh.git@main"
+        assert spec == "controlmesh @ git+https://github.com/qiaoqiao2521/ControlMesh.git@main"
 
     def test_non_github_direct_url_does_not_switch_to_vcs_spec(self) -> None:
         spec = _build_package_spec(
