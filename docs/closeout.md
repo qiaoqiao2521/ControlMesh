@@ -22,7 +22,7 @@ cm-closeout sync
 
 首条关系将 CM 当前计划中的 `## Current` 复制到 CapMesh 的状态引用。
 能力表和 PROJECT 指向这一处引用，避免各自维护一遍“本机通过、生产未通过”。
-当前总览维护在 `plans/paperclip-based-cm/progress.md`，链接各路径的最新计划。
+既有部署总览维护在 `plans/paperclip-based-cm/progress.md`，并指向 PROJECT 的最新调度方向。
 第二条关系同步 `plans/codex-callback-bridge/progress.md` 的 `Current`，
 保留传输验收与业务接受的区别。其他仓只在出现明确接收需求时增加一条关系。
 

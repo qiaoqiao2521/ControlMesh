@@ -1,6 +1,8 @@
 # Progress
 
 ## Current
+2026-10-18：本页保留已有 Paperclip 部署与运行所有权。CM 新的默认调度已由用户选为 MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作，见[项目方向](../../PROJECT.md)和[当前调度进度](../codex-callback-bridge/progress.md)。MCode 单次 idle 接续已验通；hcom 已选定但尚未安装或验收。本次仅更新方向记录，不操作本页所列服务。
+
 2026-10-14：最新运行恢复见[飞书本轮进度](../feishu-native-conversation-20261006/progress.md)。本机和六机插件已统一compat.9，436在途工作自然结束后接续；七处统一纯代码check/sync。BF同型缺监听已修复，本机worker-only重启恢复通过，本机/BF/436/Green/Moon/Cy新回复通过。Qia独立CM未配置，原Codex App桥保留。当前服务器事实仍回源Ops，不把版本统一当作全部业务闭环。
 
 以下10月13日及更早内容保留历史验收范围。

@@ -2,7 +2,9 @@
 
 ## 当前本机方向（2026-10-18）
 
-用户需要任意选定 CLI 作为发起方，外部任务完成后回到实际发起端的原会话，优先减少登录、配置与运行时维护。各 CLI 保留既有调用方式和认证。Codex 接收端复用外部完成通知、原会话 native queue 与接续回执查询；其他接收端先核对自身的后台任务和完成事件。通知层不管理模型、登录或任务调度。
+用户确认 CM 改为轻量 Agent 调度方式：默认使用 **MCode 原生后台任务完成通知**，跨 Agent 消息协作选用 [hcom](https://github.com/aannoo/hcom)。发起方可以是不同 CLI，回传目标始终是实际发起端的原会话；由该会话的协调 Agent 派发并独立验收。各 CLI 保留已有调用、登录、模型配置和会话，不再为统一接口建设管理平台。
+
+MCode 负责自己启动的后台任务及完成接续；hcom 被选为跨 Agent 消息层，尚未安装或本机验收，不能推定已支持 MCode 自动接收。Codex App 接收端继续使用已有 native queue 回调。该组合不要求每个任务同时经过两套机制，也不新增统一登录、模型管理或调度服务。完整分工见[最新决策](docs/DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)。
 
 2026-10-18 单次实测：MCode 0.5.9 常驻 TUI 用原生后台 Bash 启动 AGY，首轮结束且会话空闲后，原生完成事件自动开启同会话的新轮次；新轮读取 task_output、独立核对结果和 SHA256，完成验收。沿用既有登录，未安装适配层。仅接受此端原生管理任务的 idle 接续；busy、取消、任意外部任务注入及 AGY 作为发起方待核实。具体方法与边界见[回调进度](plans/codex-callback-bridge/progress.md)。
 
@@ -10,10 +12,10 @@
 
 下文 Paperclip／Orca 记录保留既有实现与运行所有权；它们不是当前本机通知需求的必需依赖。本次决定不表示停用、删除或迁移既有服务。详见[决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)和[回调进度](plans/codex-callback-bridge/progress.md)。
 
-## Identity (confirmed 2026-10-01)
+## 既有 Paperclip 路径定位（2026-10-01）
 
 CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
-介绍与交接必须先说明此定位。Paperclip 承担所选新路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。
+此段仅约束已有部署。Paperclip 承担该路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。新的本机调度按文首 MCode + hcom 决定执行。
 2026-10-01 曾完成 8 台服务器的默认 CLI 迁移和 63 项有效定时任务接管。后续设备取舍以 Ops 的当前记录为准，不将此历史数量当成当前运行状态。历史实现作为一次性执行库和恢复依据保留。账号登录、飞书绑定、风险判读与外部发布分别验收。
 
 2026-10-08 当前服务器范围仅 bf2025、436、qiaobird、greenrise、cy、moonrise；六机 Paperclip manager 已逐机验为普通用户。52 个重复维护 routine 已归档并删除时钟，11 个旧内容 routine 暂停，13 条冗余 OS cron 移除；旧 Python CM 程序与无用源码正在按依赖退役，业务目录和当前身份保留。逐机当前事实以 Ops-Vault 的 `plans/fleet-agy-opencode-feishu-20261008/cleanup-list.md` 为源，不将下文历史八机／63 schedules 当作当前基线。
@@ -24,10 +26,11 @@ CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https:/
 
 ## Why
 
-ControlMesh should be a focused, local-first CLI with lightweight TUI and messaging entry for
-Agent orchestration: dispatch work, answer questions, wait without continuous coordinator
-reasoning, independently accept results, and deliver them to the original conversation.
-On 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
+ControlMesh coordinates existing Agent CLIs through native task completion and messaging.
+The initiating Agent dispatches work and independently accepts results in its original conversation.
+It reuses existing authentication and runtime ownership, without continuous model polling.
+
+Historical deployment choice: on 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
 Paperclip-based improved CM as the next direction. Reuse upstream task execution and event
 wakeups; retain valuable CM CLI, Feishu/group policy and delivery behavior. This supersedes
 Orca as the default future backend. The old Python task libraries and partial Orca candidate
@@ -43,8 +46,8 @@ separates runtime cutover from the six missing Feishu bindings and deferred per-
 Google CLI direction (confirmed 2026-09-13): AGY is the user's forward Google runtime.
 Keep historical Gemini IDs/session formats as explicit compatibility profiles; do not
 alias AGY to the old executable or retry retired personal-account CLI endpoints. Routine
-implementation/testing is delegated to locally configured CBC/AGY; the primary Codex
-controller owns task dispatch and acceptance. Preserve actual native session IDs, durable
+implementation/testing uses locally configured CLIs; the initiating conversation's coordinating Agent
+owns task dispatch and acceptance. Preserve actual native session IDs, durable
 results and distinct scheduled/agent/human provenance through CM's parent/task mechanisms.
 
 ## User Intent
@@ -55,9 +58,7 @@ remote platform.
 
 The important user outcomes are:
 
-- `cm` must offer a usable CLI with light TUI rendering: discoverable commands, editable
-  input, visible tasks/questions/acceptance and explicit interruption/reconnection;
-  a plain line-oriented chat shell is not enough, but a full desktop IDE is not the goal;
+- use existing CLI/TUI surfaces for dispatch, task status and result review; do not build a new TUI for this workflow;
 - official Claude, Codex, AGY, OpenCode, CBC, and configured provider CLIs remain the actual
   execution engines;
 - tasks have stable identities, persistent state, artifacts, interruption, resume, and
@@ -68,9 +69,9 @@ The important user outcomes are:
   distinguish creating/binding an app from choosing native/bridge runtime behavior;
 - multi-agent work is explicit, bounded, inspectable, and coordinated through shared
   runtime primitives;
-- build the next CM on Paperclip's native tasks, dependencies, dispatch and event wakeups;
-  preserve CLI-first operation and avoid a second task engine. SpecMesh records intent,
-  handoff and acceptance; the coordinating Codex independently judges worker results;
+- use MCode native background completion and hcom messaging for the selected lightweight workflow;
+  retain Paperclip ownership for existing deployments. SpecMesh records intent, handoff and acceptance;
+  the initiating Agent independently judges worker results;
 - one coordinating conversation can dispatch multiple workers and block while they work;
   waiting must not continuously invoke the coordinator model or modify code; no claim of
   zero total tokens. Completion-triggered revival is verified for the selected local
@@ -243,7 +244,7 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
-2026-10-18：停止 acpx／统一 ACP 试验，记录通知层边界。后续明确任务优先沿各 CLI 原生入口执行，再复用已有完成回调；不自动继续三 CLI 试验、登录或重开 App。本轮只记录决定和停止试验，没有新增执行器或宣称通用 CLI 通知已验通。
+2026-10-18：按用户确认，将 MCode 原生后台任务完成通知 + hcom 记录为默认 Agent 调度方式。MCode 单次 idle 路径已验收；hcom 尚未安装和实测。本轮同步现有项目入口与选型记录后收口，不自动扩展安装、复测或服务迁移，不恢复 acpx／统一 ACP 试验。
 
 2026-10-12：先完成[已核实遗漏修复](plans/mesh-omissions-20261012/task_plan.md)，复用已验收的派发、回传与收尾工具；新业务按其原计划继续，不恢复历史建设队列。
 
@@ -338,8 +339,9 @@ acceptance. The following runtime and operational work remains queued:
 - Full documentation catalog → `docs/README.md`
 - TypeScript migration contracts and status → `docs/typescript-migration/`
 - Historical and active work → `plans/`
-- Current plan → [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md)
-- Current status → [Paperclip direction progress](plans/paperclip-based-cm/progress.md)
+- Current plan → [Agent dispatch and original-session continuation](plans/codex-callback-bridge/task_plan.md)
+- Current status → [Native completion and messaging](plans/codex-callback-bridge/progress.md)
+- Existing Paperclip deployments → [Paperclip direction progress](plans/paperclip-based-cm/progress.md)
 - Preserved Orca candidate → [Orca bridge candidate status](docs/orca-bridge-status.md)
 - Historical full-TS queue → [plans/bounded-delivery/](plans/bounded-delivery/task_plan.md)
 - Preserved runtime implementation and evidence → `plans/runtime-convergence/`

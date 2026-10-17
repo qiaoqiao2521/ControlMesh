@@ -1,5 +1,7 @@
 # Findings
 
+- 2026-10-18：用户明确接受现有 MCode 单次 idle 结果，并选择 MCode 原生后台任务完成通知 + hcom 作为 CM 默认 Agent 调度方式。hcom 从社区候选变为已选定消息层，但仍未安装或验收；MCode 自动接收适配也未证实。同步 README、PROJECT、AGENTS 和架构入口，避免旧 Paperclip 必选项、固定 Codex 协调者或新增 TUI 目标再次成为默认任务。
+- 2026-10-18 文档编辑：首次组合补丁因 PROJECT 中“策略和交付适配”与预期文字不符被拒，未产生部分写入；读回原文后按准确上下文修订。没有代码或运行时错误，不重跑模型测试。
 - 2026-10-12 准则继承审计：native thread/resume 恢复原线程，不显式重载项目入口。CM callback 的 followup 被纳入回执精确身份比对，直接改默认文字会破坏旧事件对账；新事件固定提示版本，旧事件保留原文。watcher 原默认提示属于 QIA-100 研究任务，应只留在历史交接。启动器不生成 worker prompt，协调 Agent 仍需通过已有任务材料传递准则。
 - 采用 SpecMesh SPEC.md §8 与 CapMesh docs/DECISIONS.md D021 的复用和流程成本准则：已有 Paperclip 生命周期和 codex_callback 传输继续复用，只补 CM 自有提示与兼容边界。共享知识入口已覆盖“换 Agent／中断恢复”和“按当前任务选择验收依据”，不新建知识卡或策略数据库。
 - 2026-10-11 用户明确选用 codex_callback，非 wake-codex。社区代码固定 commit 5193e2ece5caf2ac1805800575e5567a972f657c；notify() 不接管 CM 执行。

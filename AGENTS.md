@@ -2,14 +2,15 @@
 
 ## Identity — read this first
 
-2026-10-18 补充范围：发起方也可以是 AGY、MCode，回传目标是实际发起端的原会话。优先复用该端原生后台任务与完成事件；`codex_callback` 只承担 Codex 接收端，不强制套给所有 CLI。MCode TUI → 原生后台 Bash → AGY → 同 MCode 会话的单次 idle 接续已实测通过；其余方向与边界见[回调进度](plans/codex-callback-bridge/progress.md)。
+2026-10-18 最新决定：CM 采用轻量 Agent 调度方式，默认使用 **MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作**。各 CLI 保留已有调用、登录、模型配置和会话；协调 Agent 在发起会话中派发、接收并独立验收。`codex_callback` 仅承担 Codex App 接收端的 native queue 回传，不强制套给所有 CLI。
+
+已验通 MCode TUI → 原生后台 Bash → AGY → 同 MCode 会话的单次 idle 接续。hcom 已选定但尚未安装或验收，其 MCode 自动接收适配未证实；不得把方向记录写成通用调度已部署。范围与使用入口见[最新决策](docs/DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)和[调度进度](plans/codex-callback-bridge/progress.md)。本轮只记录，不安装、不复测、不停改服务。
 
 2026-10-18 当前本机方向：回到通知层。保留各 CLI 自己的调用、登录、模型配置和原生会话；复用 `codex_callback` 的完成通知、原会话 native queue 与接续回执。用户已放弃本次 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
 不为统一调用再引入 Paperclip、Orca 或新的调度／认证层。以下 Paperclip 说明保留已有路径和历史所有权，不是本次本机需求的强制依赖，也不授权停改已运行服务。决定与重访条件见 [2026-10-18 决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
 
-CM 是用户的工作流概念与适配层，实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是另一个独立运行时（2026-10-01 用户确认）。
-介绍已有 Paperclip 路径时明确这一历史定位；当前本机工作以以上最新范围为准。
-复用 Paperclip 的任务生命周期、派发与事件唤醒；自己的代码仅补必要的 CLI/TUI、消息入口、策略与交付适配。
+已有 Paperclip 路径按 2026-10-01 的运行所有权保留；它不是当前本机默认调度的前置条件。
+仅对已有 Paperclip 路径复用其任务生命周期、派发与事件唤醒；自己的代码仅补必要的入口、策略与交付适配。
 不修改 Paperclip 上游核心，不重建调度器，不维护平行生命周期。
 旧 Python CM、Orca 桥接和完整 TS 迁移保留为历史实现与证据，不是默认建设队列。
 方向确认不等于生产迁移完成；旧生产入口保持原所有权，未经独立验收不得宣称已接管。
@@ -79,13 +80,12 @@ discoveries in task findings; promote only durable knowledge into project docume
 - Python still owns unmigrated production paths. The selected 436 host has switched its
   CLI and Feishu listener to Paperclip; real-message retest status and remaining boundaries
   are in `plans/436-paperclip-feishu/progress.md`. Do not restart its retired Python daemon.
-  As confirmed on 2026-09-30, the next CM is
-  based on Paperclip; start at `plans/paperclip-based-cm/`. The Orca bridge and full-TypeScript
+  For existing Paperclip deployments, start at `plans/paperclip-based-cm/`; this preserves the historical 2026-09-30 direction. The Orca bridge and full-TypeScript
   candidate are retained evidence, not the default execution queue. The local CLI
   dispatch/idle/event-wake/review path and selected Feishu text paths are verified. Fleet
   migration and later governance have dated acceptance in the current overview; each host,
   callback route and business result retains its own acceptance boundary.
-  For explicitly bound local Codex tasks, follow `docs/codex-callback.md` and use
+  For existing Paperclip-bound local Codex tasks, follow `docs/codex-callback.md` and use
   `cm-codex-task launch` before dispatch. Reconcile original runs; never retry uncertain submissions.
   Reuse upstream lifecycle ownership; do not add a parallel scheduler or migrate tasks from
   a plan alone. Existing JSON Schema contracts and private-runtime boundaries remain.

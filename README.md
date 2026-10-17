@@ -1,12 +1,13 @@
 # ControlMesh
 
-CM 是工作流概念与薄适配层，实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是另一个独立运行时。
-复用上游的任务生命周期、派发与事件唤醒，只补必要的 CLI/TUI、消息入口、策略与交付适配，不重建调度器。
+CM 采用轻量 Agent 调度方式：默认使用 **MCode 原生后台任务完成通知**，跨 Agent 消息协作选用 [hcom](https://github.com/aannoo/hcom)。各 CLI 保留已有登录、模型配置和原生会话，由发起会话中的协调 Agent 派发并独立验收结果。
 
-当前方向与验收边界见 [PROJECT.md](PROJECT.md) 和 [Paperclip 计划进度](plans/paperclip-based-cm/progress.md)。
+MCode → AGY → 原 MCode 会话的单次空闲接续已实测通过；hcom 已选定，尚未安装或本机验收。当前方向与使用边界见 [PROJECT.md](PROJECT.md)、[最新决策](docs/DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)和[调度进度](plans/codex-callback-bridge/progress.md)。
+
+已有 [Paperclip 部署](plans/paperclip-based-cm/progress.md)保持原运行所有权；本次方向记录不执行迁移或停用。
 关键决策可按需启用[会审 v1](docs/decision-consultation-v1.md)：独立意见、有限补充、证据与分歧，不强制每个任务多 Agent 化。
 436 的新命令、飞书入口与恢复方式见 [Paperclip CM 运行说明](docs/paperclip-436.md)；[真实收发复测状态](plans/436-paperclip-feishu/progress.md)单独记录。
-Codex 原会话完成回调采用 [codex_callback 薄适配](docs/codex-callback.md)，独立入口为 `cm-codex-callback`。
+Codex App 接收端保留 [codex_callback 薄适配](docs/codex-callback.md)与 native queue，独立入口为 `cm-codex-callback`。
 以下功能和安装命令描述保留的旧 Python CM，**不代表 Paperclip 集成安装或生产迁移已完成**。
 
 ## What

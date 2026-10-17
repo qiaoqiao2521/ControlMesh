@@ -2,11 +2,13 @@
 
 ## Current
 
+2026-10-18 最终选定：用户确认现有实测已足够，CM 以后采用 MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作。各 CLI 继续使用既有登录与原生会话；发起会话的协调 Agent 负责派发和独立验收。Codex App 接收端保留 native queue。当前工作仅同步项目入口与 CapMesh 选型记录，不安装 hcom、不增加模型调用、不停改既有服务。
+
 2026-10-18 后续授权：用户要求发起端也可互换，并批准一次 MCode → AGY → 原 MCode 会话实测。MCode 0.5.9 常驻 TUI 原生后台 Bash 派发一次 AGY，首轮结束且会话 idle 后，原生完成事件自动开启同会话新轮次。新轮调用 task_output 一次，回读产物、独立计算 SHA256，写出验收并正常完成；根 Codex 再核验持久化 task、两个 completed turn、delivered 回执、答案与哈希。没有追加用户提示、重新登录、安装适配器、恢复 acpx、重启 App 或投递 Codex callback。
 
 最小使用方法：让发起 MCode 会话以原生 Bash 的 `run_in_background=true` 运行原 CLI 命令，保存实际 task_id 并结束派发轮；原生完成通知到达后用 task_output 读结果、独立验收。保持该 TUI 运行；当前版本 `mcode exec` 在单轮结束后关闭运行时，不能当作常驻接续入口。测试闸门仅控制任务结束时机，产品用法无需闸门或专用 wrapper。
 
-私有证据位于本机 `Documents/Codex/2026-10-18/mcode-agy-native-acceptance/`，包括 idle-before-completion.json、acceptance.json 与 observer-verification.json；会话 UUID、原始日志和运行态不入库。已验收范围仅为同运行时原生管理任务的单次 idle 接续；busy、取消、关闭后恢复、AGY 发起与任意外部任务注入仍待核实。hcom 保留社区候选，未安装或宣称 MCode 现成适配。
+私有证据位于本机 `Documents/Codex/2026-10-18/mcode-agy-native-acceptance/`，包括 idle-before-completion.json、acceptance.json 与 observer-verification.json；会话 UUID、原始日志和运行态不入库。已验收范围仅为同运行时原生管理任务的单次 idle 接续；busy、取消、关闭后恢复、AGY 发起与任意外部任务注入仍待核实。hcom 已选定用于跨 Agent 消息，但尚未安装，MCode 自动接收适配未证实。
 
 2026-10-18：用户已放弃 acpx／统一 ACP 试验，理由是新增运行包和独立登录维护，当前本机方向回到通知层。决定已写入 AGENTS、PROJECT、DECISIONS 和回调说明。AGY ACP OAuth 超时后进程已结束，授权页已关闭；不再等待登录或执行本次 App 切换。没有模型提示、callback 或 App 重启。现有 CLI 认证与 Paperclip 运行所有权未改。
 
@@ -17,6 +19,8 @@
 新增 `cm-codex-task launch/reconcile` 组合既有绑定、就绪订阅、派发与去重通知；31 项 Node 测试通过。用 QIA-100 原运行实测终态对账，原 callback/status 完全一致，原 handoff 未改写，无重派发或新 callback。新 launch 的整体真实派发、长期服务与普通 App 重启仍未独立验收。来源见 [遗漏修复](../mesh-omissions-20261012/progress.md)。
 
 ## Done
+
+- 2026-10-18 最终方向记录：同步 README、AGENTS、PROJECT、架构、决策、Codex 专用说明和现有计划；旧 Paperclip 总览明确保留部署范围并指向新选择。新增本地链接/锚点检查 CM 20 条、CapMesh 7 条通过，diff 检查通过。本轮无模型调用、安装、配置或服务变更。
 
 - 2026-10-18 后续实测：MCode → AGY → 原 MCode 会话的 idle 闭环通过；AGY 启动一次、task_output 一次、追加用户提示为零。原生完成来源位于 ingress 的 input_metadata_json.source=background-task，数据库顶层 source 仍为 turn。原会话验收与根 Codex 独立回读均通过，原始证据私有保留。
 
@@ -71,9 +75,11 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-不恢复 acpx 试验。未来明确本机任务沿各 CLI 原生入口执行并复用已有通知能力；不为通知统一登录或任务生命周期。已有 Paperclip 任务仍可使用 cm-codex-task launch；未知结果用 reconcile 读取原 run。原会话独立验收业务，不重复派发旧任务测试。
+方向记录交付后结束本轮。后续明确任务默认复用 MCode 原生后台完成通知，需要跨 Agent 消息时按已选 hcom 支持范围接入；不自动安装或补造通用运行层。已有 Paperclip 任务仍可使用 cm-codex-task launch；未知结果用 reconcile 读取原 run。原会话独立验收业务，不恢复 acpx 或重复派发旧任务测试。
 
 ## Knowledge closeout
+
+2026-10-18 最终方向 updated：选型与取代范围已同步至 CapMesh 的 PROJECT、capabilities/index.md 和 docs/DECISIONS.md D022，并读回确认 MCode 原生后台完成通知 + hcom、hcom 未安装/未验收的边界；D016 标记被取代范围，既有部署引用保留。本次不修改知识 Wiki，不把 hcom 选定当作安装或运行成功。
 
 2026-10-18 后续实测 no_reusable_delta：复用“按当前任务选择验收依据”，按真实原生事件、原会话和产物分别验收。具体版本与单次能力边界写回本项目，不把结果推广为跨全部 CLI 的通用唤醒，也不新增共享知识页。
 

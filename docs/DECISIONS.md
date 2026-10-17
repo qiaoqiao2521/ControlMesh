@@ -1,6 +1,28 @@
 # Decisions
 
+## 2026-10-18 — 默认采用 MCode 后台完成通知与 hcom
+
+决定：用户确认 CM 改为轻量 Agent 调度方式，默认使用 **MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作**。协调 Agent 留在发起会话中，调用已有 CLI，收到结果后独立验收。各 CLI 保留已有登录、模型配置和原生会话。
+
+| 职责 | 采用方式 | 当前证据 |
+| --- | --- | --- |
+| 派发与完成接续 | MCode 原生 Bash 工具的 run_in_background=true，完成后 task_output | MCode 0.5.9 TUI → AGY → 原 MCode 会话的单次 idle 闭环已验通 |
+| 跨 Agent 消息协作 | [hcom](https://github.com/aannoo/hcom) | 用户已选定；尚未安装或本机验收，MCode 自动接收适配未证实 |
+| Codex App 接收端 | 已有 codex_callback → native queue → 原线程 | 保留原绑定、loaded 预检、去重、历史对账与独立验收要求 |
+
+使用约定：任务尽量由发起端自身的原生后台能力管理。MCode 派发后保存 task_id 并结束当前轮；保留 TUI 运行，等完成事件自动接续后读取产物并验收。当前 mcode exec 单轮结束会关闭运行时，不作为常驻接续入口。hcom 负责需要的跨 Agent 通信，不要求每个 MCode 后台任务再绕行 hcom；hcom 的 Codex CLI 终端注入不替代 Codex App native queue。
+
+原因：真实需求是低负担的派发、完成通知与原会话接续。已验证 MCode 能直接复用 AGY 原登录完成任务；无需为了接口统一维护另一套登录、模型管理或调度平台。
+
+取代范围：取代“新 CM 默认以 Paperclip 为底座”“固定由 Codex 协调”“hcom 仅为候选”的方向表述；继续停止 acpx／统一 ACP 试验。既有 Paperclip、Orca、Python CM 实现和运行所有权保留，此决定不执行迁移、停用或删除。
+
+执行状态：本轮只记录选择和既有验收，不安装 hcom、不新增模型调用、不修改 CLI 配置。busy、取消、关闭后恢复、AGY 作为发起方和任意外部进程注入仍未验收。下次明确任务需要 hcom 时，沿其上游支持范围接入；不因选定消息层就自建通用适配平台。
+
+入口：[项目方向](../PROJECT.md)、[使用与验收进度](../plans/codex-callback-bridge/progress.md)、[Codex App 专用回传](codex-callback.md)。原始验收证据保持私有，运行态和会话日志不入库。
+
 ## 2026-10-18 — 回到通知层，停止 acpx／统一 ACP 接入
+
+> 同日后续选择已由上条细化：通知与接续按实际发起端分工，codex_callback 只用于 Codex 接收端。停止 acpx 的决定继续有效。
 
 决定：用户放弃本次 acpx／统一 ACP 的 AGY、OpenCode、MCode 接入试验。以后默认保留各 CLI 已有调用、登录、模型配置与原生会话，只复用 `codex_callback` 的外部完成通知、原会话 native queue 和接续回执查询。
 

@@ -2,6 +2,14 @@
 
 ## Overview
 
+The current lightweight workflow uses MCode native background completion and selects [hcom](https://github.com/aannoo/hcom) for cross-Agent messaging.
+MCode owns tasks launched through its native background Bash tool; the initiating Agent independently accepts returned artifacts.
+One MCode-to-AGY idle continuation passed. hcom is selected but not installed or locally accepted; automatic hcom delivery into MCode remains unverified.
+Codex App reception retains its native queue bridge. See the [current decision](DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom).
+Existing deployed services retain their owners; this decision changes no running service.
+
+### Existing Paperclip-to-Codex bridge
+
 Codex original-chat callbacks use the pinned [community runtime](../vendor/codex_callback/UPSTREAM.md)
 through [cm-codex-callback](codex-callback.md). The local adapter freezes a CM issue's original
 thread and daemon, deduplicates completion runs, and exposes queue/turn receipts.
@@ -21,8 +29,8 @@ duplicate delivery; uncertain POST/send results do not trigger automatic retries
 Group/task routes retain their existing adapters. Textual conversation, independent execution
 tasks and UI interaction cards have separate acceptance boundaries. See [current evidence and limits](../plans/feishu-native-conversation-20261006/progress.md).
 
-Scope note (2026-09-30): the map below describes preserved CM implementations. The next
-product direction is [Paperclip-based CM](../plans/paperclip-based-cm/task_plan.md); its local
+Scope note: the map below describes preserved CM implementations. The historical 2026-09-30
+direction was [Paperclip-based CM](../plans/paperclip-based-cm/task_plan.md); its local
 CLI dispatch/idle/event-wake/review and local Feishu text closed-loop are verified.
 436 now has a Paperclip-owned CLI and Feishu listener; see the [host boundary and adapters](paperclip-436.md)
 and [live acceptance status](../plans/436-paperclip-feishu/progress.md). Fleet migration remains open.
@@ -39,7 +47,7 @@ an evidence-bound local judgment. `scripts/paperclip/cm-consult` does not launch
 schedule work or promote project files; native Paperclip issues/runs remain authoritative.
 This is advisory consultation, not the deferred mandatory pre-execution approval gate.
 
-ControlMesh is a Python-owned local task runtime. Terminal and messaging entry points feed
+The preserved Python implementation is a local task runtime. Terminal and messaging entry points feed
 an orchestrator and persistent TaskHub, which execute official provider CLIs and store
 runtime state, memory, workspaces, events, and artifacts. A versioned read-only API exposes
 safe projections to TypeScript protocol, SDK, and Web layers.
