@@ -2,6 +2,8 @@
 
 ## Identity — read this first
 
+2026-10-18 补充范围：发起方也可以是 AGY、MCode，回传目标是实际发起端的原会话。优先复用该端原生后台任务与完成事件；`codex_callback` 只承担 Codex 接收端，不强制套给所有 CLI。MCode TUI → 原生后台 Bash → AGY → 同 MCode 会话的单次 idle 接续已实测通过；其余方向与边界见[回调进度](plans/codex-callback-bridge/progress.md)。
+
 2026-10-18 当前本机方向：回到通知层。保留各 CLI 自己的调用、登录、模型配置和原生会话；复用 `codex_callback` 的完成通知、原会话 native queue 与接续回执。用户已放弃本次 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
 不为统一调用再引入 Paperclip、Orca 或新的调度／认证层。以下 Paperclip 说明保留已有路径和历史所有权，不是本次本机需求的强制依赖，也不授权停改已运行服务。决定与重访条件见 [2026-10-18 决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
 
