@@ -84,7 +84,7 @@ async def test_task_mode_submits_background_task(tmp_path: Path) -> None:
     result = await observer._dispatch(
         "gh-ci-failed",
         {
-            "repo": "muqiao215/ControlMesh",
+            "repo": "qiaoqiao2521/ControlMesh",
             "sha": "deadbeef",
             "run_url": "https://github.com/example/actions/runs/1",
         },
@@ -107,7 +107,7 @@ async def test_task_mode_submits_background_task(tmp_path: Path) -> None:
     assert submit.route == "auto"
     assert submit.topology == "pipeline"
     assert _SAFETY_START in submit.prompt
-    assert "repo=muqiao215/ControlMesh" in submit.prompt
+    assert "repo=qiaoqiao2521/ControlMesh" in submit.prompt
     assert _SAFETY_END in submit.prompt
 
 

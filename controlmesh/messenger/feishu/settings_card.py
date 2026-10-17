@@ -308,10 +308,10 @@ def _version_tab(version_info: VersionInfo | None) -> list[dict[str, Any]]:
             "tag": "button",
             "text": {"tag": "plain_text", "content": "GitHub Releases"},
             "multi_url": {
-                "url": "https://github.com/muqiao215/ControlMesh/releases",
-                "pc_url": "https://github.com/muqiao215/ControlMesh/releases",
-                "android_url": "https://github.com/muqiao215/ControlMesh/releases",
-                "ios_url": "https://github.com/muqiao215/ControlMesh/releases",
+                "url": "https://github.com/qiaoqiao2521/ControlMesh/releases",
+                "pc_url": "https://github.com/qiaoqiao2521/ControlMesh/releases",
+                "android_url": "https://github.com/qiaoqiao2521/ControlMesh/releases",
+                "ios_url": "https://github.com/qiaoqiao2521/ControlMesh/releases",
             },
         },
     ]

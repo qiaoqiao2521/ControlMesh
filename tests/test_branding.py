@@ -16,9 +16,9 @@ def test_pyproject_exposes_controlmesh_public_branding() -> None:
         "controlmesh": "controlmesh.__main__:main",
         "cm": "controlmesh.__main__:main",
     }
-    assert project["urls"]["Repository"] == "https://github.com/muqiao215/ControlMesh"
-    assert project["urls"]["Issues"] == "https://github.com/muqiao215/ControlMesh/issues"
-    assert project["urls"]["Changelog"] == "https://github.com/muqiao215/ControlMesh/releases"
+    assert project["urls"]["Repository"] == "https://github.com/qiaoqiao2521/ControlMesh"
+    assert project["urls"]["Issues"] == "https://github.com/qiaoqiao2521/ControlMesh/issues"
+    assert project["urls"]["Changelog"] == "https://github.com/qiaoqiao2521/ControlMesh/releases"
 
     branded_values = [
         project["description"],

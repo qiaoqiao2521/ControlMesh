@@ -136,7 +136,7 @@ class TestDetectInstallInfo:
     def test_github_vcs_install_detected(self) -> None:
         direct_url = json.dumps(
             {
-                "url": "https://github.com/muqiao215/ControlMesh.git",
+                "url": "https://github.com/qiaoqiao2521/ControlMesh.git",
                 "vcs_info": {
                     "vcs": "git",
                     "requested_revision": "main",
@@ -156,7 +156,7 @@ class TestDetectInstallInfo:
 
         assert info.mode == "pip"
         assert info.source == "github"
-        assert info.url == "https://github.com/muqiao215/ControlMesh.git"
+        assert info.url == "https://github.com/qiaoqiao2521/ControlMesh.git"
         assert info.vcs == "git"
         assert info.requested_revision == "main"
         assert info.commit_id == "abc123"
@@ -164,7 +164,7 @@ class TestDetectInstallInfo:
     def test_pipx_github_install_keeps_pipx_mode(self) -> None:
         direct_url = json.dumps(
             {
-                "url": "https://github.com/muqiao215/ControlMesh.git",
+                "url": "https://github.com/qiaoqiao2521/ControlMesh.git",
                 "vcs_info": {
                     "vcs": "git",
                     "requested_revision": "v0.15.0",

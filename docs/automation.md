@@ -198,10 +198,10 @@ Your external CI sender only needs to POST JSON with keys matching the template,
 
 ```json
 {
-  "repo": "muqiao215/ControlMesh",
+  "repo": "qiaoqiao2521/ControlMesh",
   "workflow": "CI",
   "sha": "abc123",
-  "run_url": "https://github.com/muqiao215/ControlMesh/actions/runs/123456789"
+  "run_url": "https://github.com/qiaoqiao2521/ControlMesh/actions/runs/123456789"
 }
 ```
 

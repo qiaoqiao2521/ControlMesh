@@ -105,34 +105,34 @@ Current operational nuances:
 
 Start here:
 
-- [System Overview](https://github.com/muqiao215/ControlMesh/blob/main/docs/system_overview.md): fastest end-to-end runtime understanding
-- [Developer Quickstart](https://github.com/muqiao215/ControlMesh/blob/main/docs/developer_quickstart.md): contributor onboarding + key behavioral facts
-- [Architecture](https://github.com/muqiao215/ControlMesh/blob/main/docs/ARCHITECTURE.md): system map, ownership boundaries, invariants, and read-next links
-- [Configuration](https://github.com/muqiao215/ControlMesh/blob/main/docs/config.md): full config schema, merge behavior, timeout matrix
-- [Service Management](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/service_management.md): systemd, launchd, Task Scheduler behavior
-- [Matrix Setup](https://github.com/muqiao215/ControlMesh/blob/main/docs/matrix-setup.md): Matrix install/config/runtime caveats
+- [System Overview](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/system_overview.md): fastest end-to-end runtime understanding
+- [Developer Quickstart](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/developer_quickstart.md): contributor onboarding + key behavioral facts
+- [Architecture](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/ARCHITECTURE.md): system map, ownership boundaries, invariants, and read-next links
+- [Configuration](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/config.md): full config schema, merge behavior, timeout matrix
+- [Service Management](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/service_management.md): systemd, launchd, Task Scheduler behavior
+- [Matrix Setup](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/matrix-setup.md): Matrix install/config/runtime caveats
 
 Module-level references:
 
-- [bot](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/bot.md)
-- [orchestrator](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/orchestrator.md)
-- [cli](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/cli.md)
-- [session](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/session.md)
-- [background](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/background.md)
-- [tasks](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/tasks.md)
-- [cron](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/cron.md)
-- [webhook](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/webhook.md)
-- [heartbeat](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/heartbeat.md)
-- [infra](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/infra.md)
-- [multiagent](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/multiagent.md)
-- [api](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/api.md)
-- [workspace](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/workspace.md)
-- [setup wizard / CLI commands](https://github.com/muqiao215/ControlMesh/blob/main/docs/modules/setup_wizard.md)
+- [bot](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/bot.md)
+- [orchestrator](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/orchestrator.md)
+- [cli](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/cli.md)
+- [session](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/session.md)
+- [background](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/background.md)
+- [tasks](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/tasks.md)
+- [cron](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/cron.md)
+- [webhook](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/webhook.md)
+- [heartbeat](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/heartbeat.md)
+- [infra](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/infra.md)
+- [multiagent](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/multiagent.md)
+- [api](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/api.md)
+- [workspace](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/workspace.md)
+- [setup wizard / CLI commands](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/modules/setup_wizard.md)
 
 Project root docs:
 
-- [README](https://github.com/muqiao215/ControlMesh/blob/main/README.md)
-- [Docs index](https://github.com/muqiao215/ControlMesh/blob/main/docs/README.md)
-- [Installation](https://github.com/muqiao215/ControlMesh/blob/main/docs/installation.md)
-- [Automation quickstart](https://github.com/muqiao215/ControlMesh/blob/main/docs/automation.md)
-- [pyproject.toml](https://github.com/muqiao215/ControlMesh/blob/main/pyproject.toml)
+- [README](https://github.com/qiaoqiao2521/ControlMesh/blob/main/README.md)
+- [Docs index](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/README.md)
+- [Installation](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/installation.md)
+- [Automation quickstart](https://github.com/qiaoqiao2521/ControlMesh/blob/main/docs/automation.md)
+- [pyproject.toml](https://github.com/qiaoqiao2521/ControlMesh/blob/main/pyproject.toml)

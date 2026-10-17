@@ -1134,11 +1134,11 @@ class TelegramBot:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="GitHub", url="https://github.com/muqiao215/ControlMesh"
+                        text="GitHub", url="https://github.com/qiaoqiao2521/ControlMesh"
                     ),
                     InlineKeyboardButton(
                         text="Changelog",
-                        url="https://github.com/muqiao215/ControlMesh/releases",
+                        url="https://github.com/qiaoqiao2521/ControlMesh/releases",
                     ),
                 ],
                 [InlineKeyboardButton(text="PyPI", url="https://pypi.org/project/controlmesh/")],
