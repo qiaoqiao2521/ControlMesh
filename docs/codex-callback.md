@@ -1,5 +1,11 @@
 # Codex 原会话完成回调
 
+## 当前范围（2026-10-18）
+
+本机需求回到通知层：各 CLI 保留已有执行方式和登录，只在任务终态保存交接结果并通知原 Codex 会话，查询接续回执。用户已放弃本次 acpx／统一 ACP 接入；不把新运行包、独立登录或管理平台作为完成通知的前置条件。详见[决策](DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
+
+下文 `cm-codex-callback` 和 `cm-codex-task` 是已实现的 Paperclip 专用路径，仍要求其原生身份与回执契约，不能直接拿任意 CLI 的退出码冒充 Paperclip run。社区 `codex_callback` 是可复用的通知基础；通用 CLI 命令接回的实际验收另行按明确任务进行，本次没有新增或验证该路径。
+
 CM 是工作流概念与薄适配层，Paperclip 拥有派发和任务生命周期。本机回调使用固定版本的 [codex_callback](../vendor/codex_callback/UPSTREAM.md)，将外部完成通知送入原 Codex 会话的 native queue。
 
 独立入口是 [cm-codex-callback](../scripts/paperclip/cm-codex-callback)。它提供绑定、一次通知和回执查询，不接管任务执行。本机原有的 `cm` 入口保持现状；436 的 `cm-paperclip` 是目标机模板，不能当作本机 Paperclip 安装。

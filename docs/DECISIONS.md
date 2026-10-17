@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-10-18 — 回到通知层，停止 acpx／统一 ACP 接入
+
+决定：用户放弃本次 acpx／统一 ACP 的 AGY、OpenCode、MCode 接入试验。以后默认保留各 CLI 已有调用、登录、模型配置与原生会话，只复用 `codex_callback` 的外部完成通知、原会话 native queue 和接续回执查询。
+
+原因：用户需要的是“任务完成后回到原会话”。AGY 的官方 ACP 路线虽能启动，却要求另装运行包并维护独立 OAuth；统一协议增加了配置与登录负担。接口一致性不足以抵偿这项成本。
+
+实测边界：acpx 0.19.6 调用 OpenCode 1.18.34、MCode 0.5.9 的创建／关闭会话通过。原有 AGY 1.3.6 无 ACP 入口；另装官方 Antigravity ACP 1.4.0 后 initialize 通过，OAuth 未完成并超时。没有发送模型测试提示、没有投递 callback、没有重启 App，不能称为三 CLI 闭环通过。运行包是独立组件，不能把其初始化成功描述为原 CLI 直接支持 ACP。
+
+后续边界：CLI 自己负责执行与认证；已有完成事件或进程终态触发通知，先保存交接结果，再向已绑定原线程入队。保留同 daemon／loaded 预检、单 run 去重、持久历史对账与原会话独立验收。没有现成钩子时才考虑最小命令包装，不重建调度器、模型管理或登录管理。
+
+否决方案：为通知需求强制统一 ACP；为补齐协议而新增登录层或适配运行包；默认再引入 Paperclip、Orca 等管理平台。现有 Paperclip 专用适配和已运行服务保留其原范围，本次不授权停用或迁移。
+
+重访条件：只有用户明确重新选择，且具体任务确实需要通知层无法提供的能力时，才重新比较维护成本；协议握手通过本身不足以恢复该试验。
+
+入口：[回调范围](codex-callback.md#当前范围2026-10-18)、[当前进度](../plans/codex-callback-bridge/progress.md)。原始试验记录保留在本机 `acpx-cli-acceptance` 隔离目录；认证目录和运行日志不入库。
+
 ## 2026-10-12 — Carry project principles through existing Codex continuation
 
 Decision: CM 项目入口明确复用优先与适度自动化；新 callback 提醒原 Agent 重读当前项目，watcher 默认接续说明改为通用任务范围。

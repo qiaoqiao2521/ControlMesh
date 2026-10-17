@@ -2,13 +2,16 @@
 
 ## Identity — read this first
 
+2026-10-18 当前本机方向：回到通知层。保留各 CLI 自己的调用、登录、模型配置和原生会话；复用 `codex_callback` 的完成通知、原会话 native queue 与接续回执。用户已放弃本次 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
+不为统一调用再引入 Paperclip、Orca 或新的调度／认证层。以下 Paperclip 说明保留已有路径和历史所有权，不是本次本机需求的强制依赖，也不授权停改已运行服务。决定与重访条件见 [2026-10-18 决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
+
 CM 是用户的工作流概念与适配层，实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是另一个独立运行时（2026-10-01 用户确认）。
-介绍 CM、规划或向其他 Agent 交接时，先明确这一点。
+介绍已有 Paperclip 路径时明确这一历史定位；当前本机工作以以上最新范围为准。
 复用 Paperclip 的任务生命周期、派发与事件唤醒；自己的代码仅补必要的 CLI/TUI、消息入口、策略与交付适配。
 不修改 Paperclip 上游核心，不重建调度器，不维护平行生命周期。
 旧 Python CM、Orca 桥接和完整 TS 迁移保留为历史实现与证据，不是默认建设队列。
 方向确认不等于生产迁移完成；旧生产入口保持原所有权，未经独立验收不得宣称已接管。
-当前工作从 [Paperclip 计划](plans/paperclip-based-cm/task_plan.md) 与其进度进入。
+当前本机工作从 [回调计划](plans/codex-callback-bridge/task_plan.md) 与其进度进入；已有 Paperclip 运维才查 [Paperclip 计划](plans/paperclip-based-cm/task_plan.md)。
 
 ## Start Here
 

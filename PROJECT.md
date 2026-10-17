@@ -1,5 +1,13 @@
 # ControlMesh Project Context
 
+## 当前本机方向（2026-10-18）
+
+用户需要各 CLI 完成后通知原 Codex 会话，优先减少登录、配置与运行时维护。各 CLI 保留既有调用方式和认证；只复用外部完成通知、原会话 native queue 与接续回执查询。通知层不管理模型、登录或任务调度。
+
+用户已否决本次 acpx／统一 ACP 接入：AGY 需要独立官方运行包和首次 OAuth，增加维护负担。停止该试验及其登录、模型调用和 App 切换安排，不把“统一协议”当作通知的前提。除非用户明确重新选择，不再推进这条路线。
+
+下文 Paperclip／Orca 记录保留既有实现与运行所有权；它们不是当前本机通知需求的必需依赖。本次决定不表示停用、删除或迁移既有服务。详见[决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)和[回调进度](plans/codex-callback-bridge/progress.md)。
+
 ## Identity (confirmed 2026-10-01)
 
 CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
@@ -233,6 +241,8 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
+2026-10-18：停止 acpx／统一 ACP 试验，记录通知层边界。后续明确任务优先沿各 CLI 原生入口执行，再复用已有完成回调；不自动继续三 CLI 试验、登录或重开 App。本轮只记录决定和停止试验，没有新增执行器或宣称通用 CLI 通知已验通。
+
 2026-10-12：先完成[已核实遗漏修复](plans/mesh-omissions-20261012/task_plan.md)，复用已验收的派发、回传与收尾工具；新业务按其原计划继续，不恢复历史建设队列。
 
 2026-10-01：按需启用[关键决策会审 v1](docs/decision-consultation-v1.md)：两位独立咨询者、一次可选补充、引用与分歧保留、协调者独立判断；Paperclip 仍拥有运行生命周期。不是所有任务的必经流程，也不是自动实施批准。实现与验收见[进度](plans/decision-consultation-v1/progress.md)。
@@ -343,7 +353,9 @@ acceptance. The following runtime and operational work remains queued:
 
 Local cron transaction/ownership fixes and an opt-in independent SpecMesh CLI adapter are described in [CODEKIT-INTEGRATION](docs/CODEKIT-INTEGRATION.md). This batch complements the queued terminal/runtime work; it does not complete TypeScript migration, distributed dispatch or operational rollout.
 
-## Approved next direction
+## Historical approved direction (2026-09-30)
+
+当前本机投入以文首 2026-10-18 通知层决定为准；以下保留既有 Paperclip 路径的历史依据。
 
 CM becomes a Paperclip-based improvement tailored to the user's workflow. Native upstream
 execution/wakeups, real provider CLIs, SpecMesh handoff and coordinator judgment are the

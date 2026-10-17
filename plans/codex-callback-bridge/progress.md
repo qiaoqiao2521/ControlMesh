@@ -2,6 +2,8 @@
 
 ## Current
 
+2026-10-18：用户已放弃 acpx／统一 ACP 试验，理由是新增运行包和独立登录维护，当前本机方向回到通知层。决定已写入 AGENTS、PROJECT、DECISIONS 和回调说明。AGY ACP OAuth 超时后进程已结束，授权页已关闭；不再等待登录或执行本次 App 切换。没有模型提示、callback 或 App 重启。现有 CLI 认证与 Paperclip 运行所有权未改。
+
 2026-10-12 准则继承修复：CM 项目入口明确复用与流程成本；新 callback 保存提示版本 2，提醒原会话重读当前项目，watcher 默认说明改为通用任务范围。38 项 Python、32 项 Node 隔离测试通过；不将提示出现宣称为 Agent 实际采用。共享工作区飞书六机任务与历史遗留保留，本次不操作服务器、投递真实 callback 或派发模型。
 
 2026-10-12：只接本机。QIA-99 补发与 QIA-100 的原生派发 → 完成事件 → queue → 原会话接续 → 文件核验已通过。QIA-100 五项研究修订已独立复审接受，原生 issue=done 读回；原件保留，一次性 Agent 仍 paused。接受范围是官方资料研究，未安装模型。
@@ -9,6 +11,8 @@
 新增 `cm-codex-task launch/reconcile` 组合既有绑定、就绪订阅、派发与去重通知；31 项 Node 测试通过。用 QIA-100 原运行实测终态对账，原 callback/status 完全一致，原 handoff 未改写，无重派发或新 callback。新 launch 的整体真实派发、长期服务与普通 App 重启仍未独立验收。来源见 [遗漏修复](../mesh-omissions-20261012/progress.md)。
 
 ## Done
+
+- 2026-10-18：6 份方向／回调文档已读回；8 条新增相对链接与锚点、git diff --check 通过。停止的试验材料已标记用户放弃，三项 case 均禁止继续；OAuth 进程退出及授权页关闭已核验。没有为文档记录运行模型或线上回调测试。
 
 - 2026-10-12：新提示写入社区 callback 私有状态；旧无版本事件继续按原文对账，状态查询不改事件，重放不升级或重发。未知版本拒绝；显式任务 followup 与既有 handoff 字节保留。70 项隔离测试、Python AST、入口与测试的 Ruff E/F（忽略 E402）、Node 语法和 62 个本地文档链接／锚点、diff 检查通过。独立代码审查无阻碍，指出的 SpecMesh 链接锚点已修正。
 - 2026-10-12：根 Codex 按官方 Linux/build/server/FAQ/context 页面修复 C1/C2/C3/C4/takeaways；修订报告 SHA256 为 26f4c8bbfdf57783aa60c991cb634b10053c1df7ebbba1fe36113344b746240c。原四份产物和 handoff 哈希复算一致；revision-acceptance 与原生 done 读回私有保存。未收费重跑或安装模型。
@@ -49,6 +53,8 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Issues
 
+2026-10-18 遗留复核：Orca 与 cron 提案仍为未最终接受的本地候选；sandpile 进度写已验收并 done，但仓库交付尚未完成；tau-bench 已在独立分支提交 888639ac，当前未跟踪副本不重复整合。work/ 与 .zcodeignore 尚缺完整归属分类，可能包含原始审查材料和运行状态。短间隔抽查稳定不证明无人继续编辑。以上均保留原貌，接续 owner 根 Codex；最短入口为既有 repository-closeout-policy/progress.md、free-time-sandpile-qia73/progress.md、tau-bench-20261001/progress.md。其范围与验收证据不足以在本次方向记录中完成全仓交付，不直接 git add -A，也不宣称已收清。
+
 本机没有 Paperclip CLI 不代表没有运行实例。沿 Night Lab 的 cm.json 核实本机 127.0.0.1:3100 已运行 Paperclip 2026.916.1，qiao 公司及最新 run 可读回。QIA-99 是已有结果补发；QIA-100 已验通真实原生完成事件的单任务回传。所有后续任务自动绑定与持续服务仍未验收。跨主机传输不属于当前范围。
 
 开工遗留的 Orca、未接受 cron 提案及历史部署材料继续保留；具体阻碍与最短接续入口见 [Handover & Retained Legacy](../repository-closeout-policy/progress.md#handover--retained-legacy-移交根-codex-独立审批与接续)。接续 owner 为根 Codex，不将未接受成果混入本次提交。
@@ -57,9 +63,11 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-未来明确绑定的本机新任务使用 cm-codex-task launch；未知或断线结果用 reconcile 读取原 run。原会话仍独立验收业务；不重复派发旧任务来测试。
+不恢复 acpx 试验。未来明确本机任务沿各 CLI 原生入口执行并复用已有通知能力；不为通知统一登录或任务生命周期。已有 Paperclip 任务仍可使用 cm-codex-task launch；未知结果用 reconcile 读取原 run。原会话独立验收业务，不重复派发旧任务测试。
 
 ## Knowledge closeout
+
+2026-10-18 no_reusable_delta：用户在 CM 中确认的具体取舍已写入现有项目决策；SpecMesh §8 已要求以减少用户协调与维护负担判断是否继续扩展。采用 Wiki/自动化开发范式与智能体协作.md 的“按当前任务选择验收依据”，本次只验证文档和停止状态，不为记录决定重新派发模型或验证线上服务。
 
 already_covered：采用 Obsidian Wiki/自动化开发范式与智能体协作.md 的“远端任务恢复：先确认提交边界”，保留未知提交结果并先对账，避免重复触发。CapMesh 的复用原则也已覆盖本次选择。社区竞态补丁与具体命令保留在本项目，无需重复创建共享知识页。
 
