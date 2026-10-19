@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@types/bun':
-        specifier: ^1.3.14
-        version: 1.3.14
+        specifier: ^1.4.2
+        version: 1.4.2
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -45,8 +45,8 @@ importers:
         specifier: workspace:*
         version: link:../controlmesh-protocol
       '@opentui/core':
-        specifier: 0.5.11
-        version: 0.5.11(typescript@7.0.2)(web-tree-sitter@0.25.10)
+        specifier: 0.6.1
+        version: 0.6.1(typescript@7.0.2)(web-tree-sitter@0.25.10)
 
   packages/controlmesh-runtime-facade: {}
 
@@ -61,59 +61,59 @@ importers:
 
 packages:
 
-  '@opentui/core-darwin-arm64@0.5.11':
-    resolution: {integrity: sha512-DRXY5ioq+n1ZNAMAcaFaBunr0cmi2gqucjbTW7lgFp8t9uN3fNZnLTDOqkCTQtT2XhrU4GXqySaPSQ4qFG/EAQ==}
+  '@opentui/core-darwin-arm64@0.6.1':
+    resolution: {integrity: sha512-yU5TdLeacaIZi+cwD12fbfqwgcFQHzJ9xAdZHlWodIZAMXqhZJuOuI9o406I6axiSYyl7NTA9dOPJBkcc6UHXQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@opentui/core-darwin-x64@0.5.11':
-    resolution: {integrity: sha512-yP/8GliJDiJNm8YYJKvgWuy6xyCEd8d4GwBVOIzCFOI7ZIbGP8GOTvmwIjRW4Paw20pTttWMWyRoQiCvOXvH2g==}
+  '@opentui/core-darwin-x64@0.6.1':
+    resolution: {integrity: sha512-1ZX1W9amrGxq3yvZqgV/ejaBqb7rj/4UjTQ8Fm8oekDz+birTpxtTj2CBU1vP63OkNxwIL1TlPdlw2McVLOdhA==}
     cpu: [x64]
     os: [darwin]
 
-  '@opentui/core-linux-arm64-musl@0.5.11':
-    resolution: {integrity: sha512-x+xeR2LYibvIi/qQetRjJR008sFRve60QuDcO8ItxUwzFeKTDzl5CEiZpBXfm5I4FhRNuyuj0TSPIFadMvrjFQ==}
+  '@opentui/core-linux-arm64-musl@0.6.1':
+    resolution: {integrity: sha512-kIyHCHFdceIuteA9QX0bnGA2TNggQRk+t2xqo80TI4NDbcBZL4AHnUn0HcPh53PlHRNZjFf6IhwY+EEiultq1Q==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@opentui/core-linux-arm64@0.5.11':
-    resolution: {integrity: sha512-zBIsRFHlLUYFNhapRSNt9dz4mC8gZ4Wxcfy3A+2AwqsgCipcr2FkIuAXYqN08q+IvqFX7DfqgIFGWDNedHTPUg==}
+  '@opentui/core-linux-arm64@0.6.1':
+    resolution: {integrity: sha512-KUkwDY8ZyNtr49G04iMgK9IDfOTzHk/J5DWXdvdzwqUpBuBZYSBDh8OLxSEx8f/bpDFhO/PFLQKo0XPlDtiKOw==}
     cpu: [arm64]
     os: [linux]
 
-  '@opentui/core-linux-x64-musl@0.5.11':
-    resolution: {integrity: sha512-MyqOnSs8pTYG2xmFr1xt6xZIuHu2Xu4pkle9my9JdE+WClmusHf0YN9Eas6jQLAq5XUi34r22wMeK0juk93zyw==}
+  '@opentui/core-linux-x64-musl@0.6.1':
+    resolution: {integrity: sha512-DsrOEM+i8un4NoeI21iM1p4oK390mFHBXPr4JQHwYekTGXNTtk+fCLdy1TDvciijFjb0phaVq4ISoGhO3ewzHA==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@opentui/core-linux-x64@0.5.11':
-    resolution: {integrity: sha512-pSOXqOADrv+zINOgR3FDFA9zVRaim3zl8/yhtO+X9rEJ6f34z3gDund0Gf88hNJSMpZK5xWtipEVm28RY5VF8w==}
+  '@opentui/core-linux-x64@0.6.1':
+    resolution: {integrity: sha512-fwpZ3iCfKmvFb98m05LuGEZRklnT8h0A03pnYv95b52lixTpXbkmQfh0iw7PHHYOOS3cfDxK7sPqleQO7FAhgQ==}
     cpu: [x64]
     os: [linux]
 
-  '@opentui/core-win32-arm64@0.5.11':
-    resolution: {integrity: sha512-MGGRXIDJ//HyaqC5ndSr7/CUl+ICdYEAMcjbA00UWsthh4ZO/rYhPkyqOaTn5ck6+G4ca3/+M76J+jImMYTjNg==}
+  '@opentui/core-win32-arm64@0.6.1':
+    resolution: {integrity: sha512-m/4fLjCxNzyzTuLAK0yKj85EwS44nl+5p1lG5IEKB7GNi0DeGIonEXEu7kb902OPWlUxGwDOFX2RIwou0UvjGQ==}
     cpu: [arm64]
     os: [win32]
 
-  '@opentui/core-win32-x64@0.5.11':
-    resolution: {integrity: sha512-sMEGX9rhiPd1gBa190jzj5uIdzKCMImxHmr22hJLxIRWqejxWvqGnRBkW68wT8NfMViDiMtZWavgWL7GgmYCAQ==}
+  '@opentui/core-win32-x64@0.6.1':
+    resolution: {integrity: sha512-2A0ksCH9V3CLrLEhR5EuFg5dMUrDK8LnO6ci8n/FMoZ9KbCd5Mj+i0f7hHRK6Q54LZtZOHU5aGXZhcRK1YH7rA==}
     cpu: [x64]
     os: [win32]
 
-  '@opentui/core@0.5.11':
-    resolution: {integrity: sha512-pImMfjCNx7JUp9Df1LRZBDLisWqgzOLXZKXO+hh3jA9ujBFPQnZOqbG+/N5uVAAX8IZGaqhYSQRwSZIFBmcfbQ==}
-    engines: {bun: '>=1.3.0', node: '>=26.4.0'}
+  '@opentui/core@0.6.1':
+    resolution: {integrity: sha512-zDb6HyzprBp9AJRk/zRx9jRPKsyd3zEJNN3WUOrTqFzjf+PIytW9+s77tONM5Pb57QoLvnTVeM6evFzXV831ww==}
+    engines: {bun: '>=1.3.14', node: '>=26.4.0'}
     peerDependencies:
       web-tree-sitter: 0.25.10
 
-  '@types/bun@1.3.14':
-    resolution: {integrity: sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw==}
+  '@types/bun@1.4.2':
+    resolution: {integrity: sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ==}
 
-  '@types/node@26.2.0':
-    resolution: {integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==}
+  '@types/node@26.6.5':
+    resolution: {integrity: sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -238,8 +238,8 @@ packages:
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
 
-  ansi-regex@6.3.0:
-    resolution: {integrity: sha512-WpDfL7NO6j7tH88IDBNVdUJxDh9nmCteAVW9dsep846XdwF4naCBK+/tGLX3KJgcpgMRXCFlTM2hKGoK9FsdrQ==}
+  ansi-regex@6.4.0:
+    resolution: {integrity: sha512-KzTVk2tCWAHtYrvvvaP8bJKJq2pVinhLcGEQdtLIYPbmNGNyYe8QwNaTUYQp2J7/vIsUKt5QCqAfUkYyG9DkOw==}
     engines: {node: '>=12'}
 
   bun-ffi-structs@0.3.1:
@@ -247,8 +247,8 @@ packages:
     peerDependencies:
       typescript: ^5
 
-  bun-types@1.3.14:
-    resolution: {integrity: sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ==}
+  bun-types@1.4.2:
+    resolution: {integrity: sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w==}
 
   diff@9.0.0:
     resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
@@ -263,8 +263,8 @@ packages:
   fast-uri@3.1.4:
     resolution: {integrity: sha512-8JnbkQ4juDyvYs4mgFGQqg4yCYtFDtUtmp2QIQq11ZZe5CFQ5wcqm1rqDgAh/QdMySuBnPzMUiJUNZG5N/AiQw==}
 
-  get-east-asian-width@1.6.0:
-    resolution: {integrity: sha512-QRbvDIbx6YklUe6RxeTeleMR0yv3cYH6PsPZHcnVn7xv7zO1BHN8r0XETu8n6Ye3Q+ahtSarc3WgtNWmehIBfA==}
+  get-east-asian-width@1.7.0:
+    resolution: {integrity: sha512-XjH1AECxf0giL2V1aU8vKyRR2ppRUb5c0EvT7zuJTokQ74bNo52zOtghqdWIqrhUD79fo3x0WfKZdOqxF6LG1Q==}
     engines: {node: '>=18'}
 
   json-schema-traverse@1.0.0:
@@ -283,8 +283,8 @@ packages:
     resolution: {integrity: sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==}
     engines: {node: '>=18'}
 
-  strip-ansi@7.1.2:
-    resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
+  strip-ansi@7.2.0:
+    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
     engines: {node: '>=12'}
 
   typescript@7.0.2:
@@ -292,8 +292,8 @@ packages:
     engines: {node: '>=16.20.0'}
     hasBin: true
 
-  undici-types@8.3.0:
-    resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
+  undici-types@8.9.0:
+    resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
   web-tree-sitter@0.25.10:
     resolution: {integrity: sha512-Y09sF44/13XvgVKgO2cNDw5rGk6s26MgoZPXLESvMXeefBf7i6/73eFurre0IsTW6E14Y0ArIzhUMmjoc7xyzA==}
@@ -305,57 +305,56 @@ packages:
 
 snapshots:
 
-  '@opentui/core-darwin-arm64@0.5.11':
+  '@opentui/core-darwin-arm64@0.6.1':
     optional: true
 
-  '@opentui/core-darwin-x64@0.5.11':
+  '@opentui/core-darwin-x64@0.6.1':
     optional: true
 
-  '@opentui/core-linux-arm64-musl@0.5.11':
+  '@opentui/core-linux-arm64-musl@0.6.1':
     optional: true
 
-  '@opentui/core-linux-arm64@0.5.11':
+  '@opentui/core-linux-arm64@0.6.1':
     optional: true
 
-  '@opentui/core-linux-x64-musl@0.5.11':
+  '@opentui/core-linux-x64-musl@0.6.1':
     optional: true
 
-  '@opentui/core-linux-x64@0.5.11':
+  '@opentui/core-linux-x64@0.6.1':
     optional: true
 
-  '@opentui/core-win32-arm64@0.5.11':
+  '@opentui/core-win32-arm64@0.6.1':
     optional: true
 
-  '@opentui/core-win32-x64@0.5.11':
+  '@opentui/core-win32-x64@0.6.1':
     optional: true
 
-  '@opentui/core@0.5.11(typescript@7.0.2)(web-tree-sitter@0.25.10)':
+  '@opentui/core@0.6.1(typescript@7.0.2)(web-tree-sitter@0.25.10)':
     dependencies:
       bun-ffi-structs: 0.3.1(typescript@7.0.2)
       diff: 9.0.0
       marked: 17.0.1
       string-width: 7.2.0
-      strip-ansi: 7.1.2
       web-tree-sitter: 0.25.10
     optionalDependencies:
-      '@opentui/core-darwin-arm64': 0.5.11
-      '@opentui/core-darwin-x64': 0.5.11
-      '@opentui/core-linux-arm64': 0.5.11
-      '@opentui/core-linux-arm64-musl': 0.5.11
-      '@opentui/core-linux-x64': 0.5.11
-      '@opentui/core-linux-x64-musl': 0.5.11
-      '@opentui/core-win32-arm64': 0.5.11
-      '@opentui/core-win32-x64': 0.5.11
+      '@opentui/core-darwin-arm64': 0.6.1
+      '@opentui/core-darwin-x64': 0.6.1
+      '@opentui/core-linux-arm64': 0.6.1
+      '@opentui/core-linux-arm64-musl': 0.6.1
+      '@opentui/core-linux-x64': 0.6.1
+      '@opentui/core-linux-x64-musl': 0.6.1
+      '@opentui/core-win32-arm64': 0.6.1
+      '@opentui/core-win32-x64': 0.6.1
     transitivePeerDependencies:
       - typescript
 
-  '@types/bun@1.3.14':
+  '@types/bun@1.4.2':
     dependencies:
-      bun-types: 1.3.14
+      bun-types: 1.4.2
 
-  '@types/node@26.2.0':
+  '@types/node@26.6.5':
     dependencies:
-      undici-types: 8.3.0
+      undici-types: 8.9.0
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
@@ -424,15 +423,15 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
-  ansi-regex@6.3.0: {}
+  ansi-regex@6.4.0: {}
 
   bun-ffi-structs@0.3.1(typescript@7.0.2):
     dependencies:
       typescript: 7.0.2
 
-  bun-types@1.3.14:
+  bun-types@1.4.2:
     dependencies:
-      '@types/node': 26.2.0
+      '@types/node': 26.6.5
 
   diff@9.0.0: {}
 
@@ -442,7 +441,7 @@ snapshots:
 
   fast-uri@3.1.4: {}
 
-  get-east-asian-width@1.6.0: {}
+  get-east-asian-width@1.7.0: {}
 
   json-schema-traverse@1.0.0: {}
 
@@ -453,12 +452,12 @@ snapshots:
   string-width@7.2.0:
     dependencies:
       emoji-regex: 10.6.0
-      get-east-asian-width: 1.6.0
-      strip-ansi: 7.1.2
+      get-east-asian-width: 1.7.0
+      strip-ansi: 7.2.0
 
-  strip-ansi@7.1.2:
+  strip-ansi@7.2.0:
     dependencies:
-      ansi-regex: 6.3.0
+      ansi-regex: 6.4.0
 
   typescript@7.0.2:
     optionalDependencies:
@@ -483,6 +482,6 @@ snapshots:
       '@typescript/typescript-win32-arm64': 7.0.2
       '@typescript/typescript-win32-x64': 7.0.2
 
-  undici-types@8.3.0: {}
+  undici-types@8.9.0: {}
 
   web-tree-sitter@0.25.10: {}
