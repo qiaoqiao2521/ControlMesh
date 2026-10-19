@@ -1,8 +1,8 @@
 # ControlMesh
 
-CM 采用轻量 Agent 调度方式：默认使用 **MCode 原生后台任务完成通知**，跨 Agent 消息协作选用 [hcom](https://github.com/aannoo/hcom)。各 CLI 保留已有登录、模型配置和原生会话，由发起会话中的协调 Agent 派发并独立验收结果。
+CM 当前收敛为 **一个 Harness 内的多 Agent、多模型／多 Runtime 协作约定**。复用 Harness 的任务、工具、会话与原生完成通知；增加 MACPIE 的模型统筹职责。MACPIE 是用户给出的名称，具体项目与接入待确认，不代表已安装。
 
-MCode → AGY → 原 MCode 会话的单次空闲接续已实测通过；hcom 已选定，尚未安装或本机验收。当前方向与使用边界见 [PROJECT.md](PROJECT.md)、[最新决策](docs/DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)和[调度进度](plans/codex-callback-bridge/progress.md)。
+以后不研究跨 Harness 的多 Agent 编排，不再建设多厂商 Agent Runtime 平台；hcom 跨 Harness 接入移出后续计划。既有 MCode → AGY 单次空闲接续作为历史证据保留，不扩大为新路线的验收。当前边界见 [PROJECT.md](PROJECT.md)、[最新决策](docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)和[调度进度](plans/codex-callback-bridge/progress.md)。
 
 已有 [Paperclip 部署](plans/paperclip-based-cm/progress.md)保持原运行所有权；本次方向记录不执行迁移或停用。
 关键决策可按需启用[会审 v1](docs/decision-consultation-v1.md)：独立意见、有限补充、证据与分歧，不强制每个任务多 Agent 化。

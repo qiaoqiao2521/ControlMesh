@@ -2,13 +2,17 @@
 
 ## Current
 
-2026-10-18 最终选定：用户确认现有实测已足够，CM 以后采用 MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作。各 CLI 继续使用既有登录与原生会话；发起会话的协调 Agent 负责派发和独立验收。Codex App 接收端保留 native queue。当前工作仅同步项目入口与 CapMesh 选型记录，不安装 hcom、不增加模型调用、不停改既有服务。
+2026-10-20 最新决定：CM 专注同一 Harness 内的多 Agent、多模型／多 Runtime 协作；增加 MACPIE 模型统筹职责，具体项目与接入待确认。以后不研究跨 Harness 编排，不建设多厂商 Agent Runtime 平台。hcom 跨 Harness 接入移出后续计划，acpx／统一 ACP 继续停止。原因与取代范围见[最新决策](../../docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)。本轮仅记录、同步与交付，没有安装、配置变更、任务派发或服务迁移。
+
+以下为历史验收与保留边界，不是继续扩展跨 Harness 的任务清单。MCode 原生后台任务／完成通知仍可复用；Codex App 接收端保留 native queue。旧服务保持运行所有权。
+
+2026-10-18 当时选定：用户选择 MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作。此选择中的 hcom 后续接入已被 2026-10-20 决定取代；当时没有安装或本机验收 hcom。
 
 2026-10-18 后续授权：用户要求发起端也可互换，并批准一次 MCode → AGY → 原 MCode 会话实测。MCode 0.5.9 常驻 TUI 原生后台 Bash 派发一次 AGY，首轮结束且会话 idle 后，原生完成事件自动开启同会话新轮次。新轮调用 task_output 一次，回读产物、独立计算 SHA256，写出验收并正常完成；根 Codex 再核验持久化 task、两个 completed turn、delivered 回执、答案与哈希。没有追加用户提示、重新登录、安装适配器、恢复 acpx、重启 App 或投递 Codex callback。
 
 最小使用方法：让发起 MCode 会话以原生 Bash 的 `run_in_background=true` 运行原 CLI 命令，保存实际 task_id 并结束派发轮；原生完成通知到达后用 task_output 读结果、独立验收。保持该 TUI 运行；当前版本 `mcode exec` 在单轮结束后关闭运行时，不能当作常驻接续入口。测试闸门仅控制任务结束时机，产品用法无需闸门或专用 wrapper。
 
-私有证据位于本机 `Documents/Codex/2026-10-18/mcode-agy-native-acceptance/`，包括 idle-before-completion.json、acceptance.json 与 observer-verification.json；会话 UUID、原始日志和运行态不入库。已验收范围仅为同运行时原生管理任务的单次 idle 接续；busy、取消、关闭后恢复、AGY 发起与任意外部任务注入仍待核实。hcom 已选定用于跨 Agent 消息，但尚未安装，MCode 自动接收适配未证实。
+私有证据位于本机 `Documents/Codex/2026-10-18/mcode-agy-native-acceptance/`，包括 idle-before-completion.json、acceptance.json 与 observer-verification.json；会话 UUID、原始日志和运行态不入库。已验收范围仅为 MCode 原生后台管理一次 AGY 进程的 idle 接续；busy、取消、关闭后恢复、AGY 发起、任意外部任务注入与 hcom 接收没有验收，不再以补齐跨 Harness 能力为后续目标。此证据不证明 AGY 已成为同一 Harness 的内置 Runtime。
 
 2026-10-18：用户已放弃 acpx／统一 ACP 试验，理由是新增运行包和独立登录维护，当前本机方向回到通知层。决定已写入 AGENTS、PROJECT、DECISIONS 和回调说明。AGY ACP OAuth 超时后进程已结束，授权页已关闭；不再等待登录或执行本次 App 切换。没有模型提示、callback 或 App 重启。现有 CLI 认证与 Paperclip 运行所有权未改。
 
@@ -19,6 +23,8 @@
 新增 `cm-codex-task launch/reconcile` 组合既有绑定、就绪订阅、派发与去重通知；31 项 Node 测试通过。用 QIA-100 原运行实测终态对账，原 callback/status 完全一致，原 handoff 未改写，无重派发或新 callback。新 launch 的整体真实派发、长期服务与普通 App 重启仍未独立验收。来源见 [遗漏修复](../mesh-omissions-20261012/progress.md)。
 
 ## Done
+
+- 2026-10-20：新方向写入 CM 的 README、AGENTS、PROJECT、架构、决策和现有计划；MACPIE 身份待确认，hcom 退为历史。CapMesh D024、能力表和 PIT-002 已读回；新增相对链接／锚点检查 CM 16 条、CapMesh 11 条通过，diff 检查通过。独立只读审查无内容阻碍，指出受管快照须在 CM 提交后用既有 closeout 同步。已按用户授权保存长期记忆更新；本轮只有文档与记忆变更。
 
 - 2026-10-18 最终方向记录：同步 README、AGENTS、PROJECT、架构、决策、Codex 专用说明和现有计划；旧 Paperclip 总览明确保留部署范围并指向新选择。新增本地链接/锚点检查 CM 20 条、CapMesh 7 条通过，diff 检查通过。本轮无模型调用、安装、配置或服务变更。
 
@@ -58,6 +64,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Remaining
 
+- MACPIE 的具体项目身份待用户确认；本轮完成方向记录，不安装或接入未知组件。以下历史未验收项仅在维护已授权的原路径时按需查看，不形成跨 Harness 建设计划。
 - 提示传递已隔离验证，实际 Agent 采用待下一项已有授权任务观察。协调 Agent 负责把目标项目选定准则、交付物和停止条件放入原生任务材料；启动器不会替外部 worker 生成 prompt。owner 根 Codex，最短入口为 docs/codex-callback.md 的准则继承与任务范围；不新增验证任务。
 - QIA-100 研究修订已接受；原 requires_revision 记录作为历史保留，最新结果见私有 revision-acceptance.json 与 revision-native-readback.json。
 - 入口与单个原运行对账已验收；新 launch 完整真实派发与长期后台服务仍需在下一个授权任务验收。owner 根 Codex，最短入口为 docs/codex-callback.md 的本机任务启动与恢复。
@@ -65,7 +72,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Issues
 
-2026-10-18 遗留复核：Orca 与 cron 提案仍为未最终接受的本地候选；sandpile 进度写已验收并 done，但仓库交付尚未完成；tau-bench 已在独立分支提交 888639ac，当前未跟踪副本不重复整合。work/ 与 .zcodeignore 尚缺完整归属分类，可能包含原始审查材料和运行状态。短间隔抽查稳定不证明无人继续编辑。以上均保留原貌，接续 owner 根 Codex；最短入口为既有 repository-closeout-policy/progress.md、free-time-sandpile-qia73/progress.md、tau-bench-20261001/progress.md。其范围与验收证据不足以在本次方向记录中完成全仓交付，不直接 git add -A，也不宣称已收清。
+2026-10-20 遗留清单复核：本轮开工仍存在下列未提交候选，内容和运行验收没有重做。Orca 与 cron 提案仍为未最终接受的本地候选；sandpile 进度写已验收并 done，但仓库交付尚未完成；tau-bench 已在独立分支提交 888639ac，当前未跟踪副本不重复整合。work/ 与 .zcodeignore 尚缺完整归属分类，可能包含原始审查材料和运行状态。以上均保留原貌，接续 owner 根 Codex；最短入口为既有 repository-closeout-policy/progress.md、free-time-sandpile-qia73/progress.md、tau-bench-20261001/progress.md。其范围与验收证据不足以在本次方向记录中完成全仓交付，不直接 git add -A，也不宣称已收清；新决定也不授权删除历史实现。
 
 本机没有 Paperclip CLI 不代表没有运行实例。沿 Night Lab 的 cm.json 核实本机 127.0.0.1:3100 已运行 Paperclip 2026.916.1，qiao 公司及最新 run 可读回。QIA-99 是已有结果补发；QIA-100 已验通真实原生完成事件的单任务回传。所有后续任务自动绑定与持续服务仍未验收。跨主机传输不属于当前范围。
 
@@ -75,9 +82,11 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-方向记录交付后结束本轮。后续明确任务默认复用 MCode 原生后台完成通知，需要跨 Agent 消息时按已选 hcom 支持范围接入；不自动安装或补造通用运行层。已有 Paperclip 任务仍可使用 cm-codex-task launch；未知结果用 reconcile 读取原 run。原会话独立验收业务，不恢复 acpx 或重复派发旧任务测试。
+本轮方向记录已完成，按既有 Git／closeout 流程交付。后续多 Agent 任务采用单 Harness 原生能力，MACPIE 只承担模型统筹，身份未确认时不安装；不恢复 hcom 跨 Harness 接入、acpx 或多厂商 Agent Runtime 平台研究。已有回调的未知结果仍只对账原 run，原会话独立验收。
 
 ## Knowledge closeout
+
+2026-10-20 updated：选型已写入并读回 CapMesh docs/DECISIONS.md D024、PROJECT、能力表；原有 PIT-002 新增“CM 补充：跨 Harness 适配的维护代价”，pitfalls/README.md 同步入口。明确这是用户当前工作流的取舍，保留历史证据与未验收状态。长期偏好更新已写入授权记忆目录并读回；本轮采用 Wiki 的验收依据准则，不将具体选型重复写入 Wiki。
 
 2026-10-18 最终方向 updated：选型与取代范围已同步至 CapMesh 的 PROJECT、capabilities/index.md 和 docs/DECISIONS.md D022，并读回确认 MCode 原生后台完成通知 + hcom、hcom 未安装/未验收的边界；D016 标记被取代范围，既有部署引用保留。本次不修改知识 Wiki，不把 hcom 选定当作安装或运行成功。
 

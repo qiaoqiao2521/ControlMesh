@@ -1,12 +1,12 @@
 # ControlMesh Project Context
 
-## 当前本机方向（2026-10-18）
+## 当前本机方向（2026-10-20）
 
-用户确认 CM 改为轻量 Agent 调度方式：默认使用 **MCode 原生后台任务完成通知**，跨 Agent 消息协作选用 [hcom](https://github.com/aannoo/hcom)。发起方可以是不同 CLI，回传目标始终是实际发起端的原会话；由该会话的协调 Agent 派发并独立验收。各 CLI 保留已有调用、登录、模型配置和会话，不再为统一接口建设管理平台。
+用户确认：CM 以后专注 **一个 Harness 内的多 Agent、多模型／多 Runtime 协作**。Harness 指拥有会话、工具执行、权限、上下文和任务生命周期的执行框架。优先复用它支持的模型后端、子 Agent 和原生完成通知；不再研究多个 Harness 之间的多 Agent 编排，不建设多厂商 Agent Runtime 平台。
 
-MCode 负责自己启动的后台任务及完成接续；hcom 被选为跨 Agent 消息层，尚未安装或本机验收，不能推定已支持 MCode 自动接收。Codex App 接收端继续使用已有 native queue 回调。该组合不要求每个任务同时经过两套机制，也不新增统一登录、模型管理或调度服务。完整分工见[最新决策](docs/DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)。
+增加 **MACPIE 的模型统筹职责**；名称按用户原文保留，具体项目与本机接入待确认。模型入口与路由不接管 Agent 的上下文、任务或生命周期。MCode 的原生后台完成通知仍可复用；hcom 跨 Harness 接入移出后续计划。Codex App native queue 与已有服务保留原范围。完整原因、取代关系和术语边界见[最新决策](docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)。
 
-2026-10-18 单次实测：MCode 0.5.9 常驻 TUI 用原生后台 Bash 启动 AGY，首轮结束且会话空闲后，原生完成事件自动开启同会话的新轮次；新轮读取 task_output、独立核对结果和 SHA256，完成验收。沿用既有登录，未安装适配层。仅接受此端原生管理任务的 idle 接续；busy、取消、任意外部任务注入及 AGY 作为发起方待核实。具体方法与边界见[回调进度](plans/codex-callback-bridge/progress.md)。
+2026-10-18 历史实测：MCode 0.5.9 常驻 TUI 用原生后台 Bash 启动 AGY，首轮结束且会话空闲后，原生完成事件自动开启同会话的新轮次；新轮读取 task_output、独立核对结果和 SHA256，完成验收。沿用既有登录，未安装适配层。仅接受这一单次 idle 接续；不据此宣称同一 Harness 已支持全部 Runtime，也不继续补齐跨 Harness 测试矩阵。具体证据见[回调进度](plans/codex-callback-bridge/progress.md)。
 
 用户已否决本次 acpx／统一 ACP 接入：AGY 需要独立官方运行包和首次 OAuth，增加维护负担。停止该试验及其登录、模型调用和 App 切换安排，不把“统一协议”当作通知的前提。除非用户明确重新选择，不再推进这条路线。
 
@@ -15,7 +15,7 @@ MCode 负责自己启动的后台任务及完成接续；hcom 被选为跨 Agent
 ## 既有 Paperclip 路径定位（2026-10-01）
 
 CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
-此段仅约束已有部署。Paperclip 承担该路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。新的本机调度按文首 MCode + hcom 决定执行。
+此段仅约束已有部署。Paperclip 承担该路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。新的本机协作按文首单 Harness 决定执行。
 2026-10-01 曾完成 8 台服务器的默认 CLI 迁移和 63 项有效定时任务接管。后续设备取舍以 Ops 的当前记录为准，不将此历史数量当成当前运行状态。历史实现作为一次性执行库和恢复依据保留。账号登录、飞书绑定、风险判读与外部发布分别验收。
 
 2026-10-08 当前服务器范围仅 bf2025、436、qiaobird、greenrise、cy、moonrise；六机 Paperclip manager 已逐机验为普通用户。52 个重复维护 routine 已归档并删除时钟，11 个旧内容 routine 暂停，13 条冗余 OS cron 移除；旧 Python CM 程序与无用源码正在按依赖退役，业务目录和当前身份保留。逐机当前事实以 Ops-Vault 的 `plans/fleet-agy-opencode-feishu-20261008/cleanup-list.md` 为源，不将下文历史八机／63 schedules 当作当前基线。
@@ -26,9 +26,9 @@ CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https:/
 
 ## Why
 
-ControlMesh coordinates existing Agent CLIs through native task completion and messaging.
+ControlMesh records lightweight multi-agent collaboration within one selected harness.
 The initiating Agent dispatches work and independently accepts results in its original conversation.
-It reuses existing authentication and runtime ownership, without continuous model polling.
+The harness owns tools, context, permissions, and task lifecycle; model routing remains a separate responsibility.
 
 Historical deployment choice: on 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
 Paperclip-based improved CM as the next direction. Reuse upstream task execution and event
@@ -59,8 +59,7 @@ remote platform.
 The important user outcomes are:
 
 - use existing CLI/TUI surfaces for dispatch, task status and result review; do not build a new TUI for this workflow;
-- official Claude, Codex, AGY, OpenCode, CBC, and configured provider CLIs remain the actual
-  execution engines;
+- use the selected harness and its supported model backends; preserve existing CLIs without making interoperability a project goal;
 - tasks have stable identities, persistent state, artifacts, interruption, resume, and
   result-delivery behavior;
 - Feishu is the selected fleet transport. Historical Telegram/WeChat capabilities and
@@ -69,8 +68,8 @@ The important user outcomes are:
   distinguish creating/binding an app from choosing native/bridge runtime behavior;
 - multi-agent work is explicit, bounded, inspectable, and coordinated through shared
   runtime primitives;
-- use MCode native background completion and hcom messaging for the selected lightweight workflow;
-  retain Paperclip ownership for existing deployments. SpecMesh records intent, handoff and acceptance;
+- use native subagents and completion events within one harness; add MACPIE for model coordination after identity verification;
+  retain existing deployment ownership. SpecMesh records intent, handoff and acceptance;
   the initiating Agent independently judges worker results;
 - one coordinating conversation can dispatch multiple workers and block while they work;
   waiting must not continuously invoke the coordinator model or modify code; no claim of
@@ -83,6 +82,8 @@ The important user outcomes are:
 
 ## Non-goals
 
+- Do not research cross-harness multi-agent orchestration or build a multi-vendor Agent Runtime platform.
+- Do not resume hcom interoperability, ACP adapters, or symmetric CLI tests without an explicit change of direction.
 - Do not resume full CM platform construction or full TypeScript migration as the default
   investment. Preserve the existing candidate and evidence without treating them as delivered.
 - Do not rebuild a parallel execution core or generic protocol SDK around Paperclip.
@@ -244,7 +245,7 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
-2026-10-18：按用户确认，将 MCode 原生后台任务完成通知 + hcom 记录为默认 Agent 调度方式。MCode 单次 idle 路径已验收；hcom 尚未安装和实测。本轮同步现有项目入口与选型记录后收口，不自动扩展安装、复测或服务迁移，不恢复 acpx／统一 ACP 试验。
+2026-10-20：记录单 Harness 协作和 MACPIE 模型统筹方向，停止把跨 Harness／hcom 接入当作待完成任务。MACPIE 名称与接入待确认；本轮同步现有项目入口、CapMesh 与长期记忆，不安装、复测或迁移服务。历史 MCode → AGY 验收保留，不恢复 acpx／统一 ACP。
 
 2026-10-12：先完成[已核实遗漏修复](plans/mesh-omissions-20261012/task_plan.md)，复用已验收的派发、回传与收尾工具；新业务按其原计划继续，不恢复历史建设队列。
 

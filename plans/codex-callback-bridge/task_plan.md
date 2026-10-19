@@ -2,9 +2,11 @@
 
 ## Goal
 
-2026-10-18 用户最终选择：CM 默认使用 MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作。当前任务是记录该方向、同步旧入口与能力账本；已完成的 MCode idle 验收不重跑，hcom 不在本轮安装。Codex App 接收端继续使用原有 native queue；已有 Paperclip 服务保持原所有权。
+2026-10-20 最新选择：CM 只推进单 Harness 内的多 Agent、多模型／多 Runtime 协作，加入 MACPIE 模型统筹职责，停止跨 Harness 编排研究和多厂商 Agent Runtime 平台建设。当前任务只记录决定、同步 CM／CapMesh／长期记忆并验证交付。MACPIE 具体项目待确认；不安装、不改模型或代理配置、不派发任务、不迁移服务。
 
-2026-10-18 最新范围：发起方也可以是 AGY、MCode。用户批准一次 MCode → AGY → 原 MCode 会话的原生后台任务实测，已完成单次 idle 接续与独立验收。沿用现有登录，不安装 ACP、hcom 或新调度层；具体事实与未测范围见 progress.md。
+2026-10-18 的 MCode + hcom 选择保留为历史；hcom 跨 Harness 接入已移出后续计划。MCode 原生后台完成通知仍可复用，已完成的 MCode → AGY idle 验收不重跑。Codex App 接收端继续保留原有 native queue；已有 Paperclip 服务保持原所有权。
+
+2026-10-18 历史范围：发起方也可以是 AGY、MCode。用户批准一次 MCode → AGY → 原 MCode 会话的原生后台任务实测，已完成单次 idle 接续与独立验收。沿用现有登录，不安装 ACP、hcom 或新调度层；具体事实与未测范围见 progress.md。
 
 先前停止决定继续有效：用户放弃 acpx／统一 ACP 试验，不恢复独立 ACP 登录或 App 切换。Codex 接收端继续复用完成通知、原会话 queue 和回执；下面保留已有 Paperclip 专用路径的实现与验收历史。
 
@@ -23,6 +25,8 @@
 
 ## Plan
 
+2026-10-20 记录阶段已完成：新决定与取代关系、已有入口、CapMesh 和长期记忆均已更新；新增链接／锚点与 diff 检查通过。提交后用既有 closeout 同步受管引用。历史遗留仍按 progress.md 的 owner／验收入口保留，不能混入本次文档提交。
+
 1. 完成：核对社区实现、CM 入口、同服务原线程连接及 Git 遗留边界。
 2. 完成：引入固定社区 runtime，做最小竞态修补和回归测试。
 3. 完成：实现薄 CLI、完成事件去重与回执查询，补行为测试。
@@ -34,7 +38,7 @@
 
 ## Next Step
 
-方向记录、入口一致性与文档检查已完成；提交推送后收口。以后按 MCode 原生后台完成通知 + hcom 的职责分工执行明确任务；hcom 的实际安装与接入另按任务需要验收。无需重跑现有测试或恢复 acpx、独立 ACP 登录、新平台建设。
+本轮方向记录完成，按既有 Git／closeout 流程交付后收口。MACPIE 身份待确认；之后的多 Agent 任务限于同一 Harness，不补跨 Harness 测试或 hcom 接入。
 
 ## Acceptance
 

@@ -1,6 +1,26 @@
 # Decisions
 
+## 2026-10-20 — 单 Harness 协作与模型统筹
+
+决定：CM 以后只推进同一个 Harness 内的多 Agent、多模型／多 Runtime 协作。增加 MACPIE 的模型统筹职责。停止研究跨 Harness 的多 Agent 编排，不再建设多厂商 Agent Runtime 平台。
+
+原因：用户复盘 CM 的持续负担来自不同 Harness 的封闭接口、登录、模型配置、网络代理和生命周期差异。统一命令或消息格式没有消除这些成本；当前需求用同一 Harness 的原生协作能力承载即可。
+
+分工：模型统筹组件负责提供商／模型入口与路由；Harness 负责上下文、工具、权限、子 Agent、任务和完成通知；发起 Agent 负责需求、派发和独立验收。这里的“多 Runtime”沿用用户的工作描述，只使用所选 Harness 已支持的接入，不推定任意厂商 CLI 都可装入一个 Harness。模型 API 兼容不等于 Agent 会话与生命周期兼容。
+
+名称边界：MACPIE 按用户原文保留。只读检索找到最接近的候选 [yetone/magpie](https://github.com/yetone/magpie)，其上游定位是模型网关；尚未确认用户指的就是该项目。具体名称、兼容性和本机接入均待确认，不写成已安装或已验通。
+
+取代范围：取代 2026-10-18 将 hcom 跨 Agent／跨 Harness 消息接入列为默认后续任务的部分。hcom 留作历史选型；acpx／统一 ACP 试验继续停止。MCode 原生后台完成通知仍可复用；已有 MCode → AGY 单次 idle 验收保留，不再补跨 Harness 测试矩阵。旧 Paperclip、Orca、Python CM 和 Codex App native queue 保留原范围与所有权。
+
+执行状态：本轮记录方向、同步入口和长期记忆。没有安装网关、接入模型、修改代理／凭据、派发任务或迁移服务。单 Harness 多模型协作的实际能力仍需跟随具体使用任务核验。
+
+重访条件：只有用户明确改变“以后不研究跨 Harness”的决定才重新评估；新工具发布或单个接口缺口不自动重启这条路线。
+
+入口：[项目方向](../PROJECT.md)、[当前进度](../plans/codex-callback-bridge/progress.md)。
+
 ## 2026-10-18 — 默认采用 MCode 后台完成通知与 hcom
+
+> 历史决定：hcom 跨 Harness 接入和继续补齐不同 CLI 协作的方向已被 2026-10-20 决定取代；下文保留当时的选择与证据。
 
 决定：用户确认 CM 改为轻量 Agent 调度方式，默认使用 **MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作**。协调 Agent 留在发起会话中，调用已有 CLI，收到结果后独立验收。各 CLI 保留已有登录、模型配置和原生会话。
 
@@ -36,7 +56,7 @@
 
 重访条件：只有用户明确重新选择，且具体任务确实需要通知层无法提供的能力时，才重新比较维护成本；协议握手通过本身不足以恢复该试验。
 
-入口：[回调范围](codex-callback.md#当前范围2026-10-18)、[当前进度](../plans/codex-callback-bridge/progress.md)。原始试验记录保留在本机 `acpx-cli-acceptance` 隔离目录；认证目录和运行日志不入库。
+入口：[回调范围](codex-callback.md#当前范围2026-10-20)、[当前进度](../plans/codex-callback-bridge/progress.md)。原始试验记录保留在本机 `acpx-cli-acceptance` 隔离目录；认证目录和运行日志不入库。
 
 ## 2026-10-12 — Carry project principles through existing Codex continuation
 

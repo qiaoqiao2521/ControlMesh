@@ -2,10 +2,12 @@
 
 ## Overview
 
-The current lightweight workflow uses MCode native background completion and selects [hcom](https://github.com/aannoo/hcom) for cross-Agent messaging.
-MCode owns tasks launched through its native background Bash tool; the initiating Agent independently accepts returned artifacts.
-One MCode-to-AGY idle continuation passed. hcom is selected but not installed or locally accepted; automatic hcom delivery into MCode remains unverified.
-Codex App reception retains its native queue bridge. See the [current decision](DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom).
+The selected direction is multi-agent work within one harness, using its supported model backends and native task lifecycle.
+MACPIE is the user-named model coordination component; exact project identity and local integration remain unconfirmed.
+Model routing supplies the harness; the harness owns context, tools, permissions, subagents, and completion events.
+CM records this division and independent acceptance; it adds no cross-harness orchestration platform.
+The earlier MCode-to-AGY idle test remains historical evidence. hcom integration is no longer planned.
+Codex App reception retains its existing native queue bridge. See the [current decision](DECISIONS.md#2026-10-20--单-harness-协作与模型统筹).
 Existing deployed services retain their owners; this decision changes no running service.
 
 ### Existing Paperclip-to-Codex bridge

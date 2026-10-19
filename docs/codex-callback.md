@@ -1,10 +1,10 @@
 # Codex 原会话完成回调
 
-## 当前范围（2026-10-18）
+## 当前范围（2026-10-20）
 
-CM 当前默认采用 MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作，回传目标是实际发起端的原会话。本文仅说明 Codex App 接收端的 native queue 路径，不要求 MCode/hcom 任务经过此桥。hcom 已选定但尚未安装或本机验收；MCode 单次 idle 接续已验证。详见[最新决策](DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)。
+CM 当前方向是单 Harness 内的多 Agent 协作，并加入 MACPIE 模型统筹职责；具体组件身份与接入待确认。hcom 跨 Harness 接入移出后续计划。本文仅维护已有 Codex App native queue 路径，不构成继续研究跨 Harness 的任务。详见[最新决策](DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)。
 
-下文 `cm-codex-callback` 和 `cm-codex-task` 是已实现的 Paperclip 专用路径，仍要求其原生身份与回执契约，不能直接拿任意 CLI 的退出码冒充 Paperclip run。社区 `codex_callback` 是可复用的通知基础；通用 CLI 命令接回的实际验收另行按明确任务进行，本次没有新增或验证该路径。
+下文 `cm-codex-callback` 和 `cm-codex-task` 是已实现的 Paperclip 专用路径，仍要求其原生身份与回执契约，不能直接拿任意 CLI 的退出码冒充 Paperclip run。社区 `codex_callback` 的通知基础保留；不扩展为通用 CLI 互通层，本次没有新增或验证该路径。
 
 在本文已实现的 Paperclip 专用桥中，Paperclip 拥有派发和任务生命周期。本机回调使用固定版本的 [codex_callback](../vendor/codex_callback/UPSTREAM.md)，将外部完成通知送入原 Codex 会话的 native queue。
 

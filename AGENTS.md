@@ -2,11 +2,11 @@
 
 ## Identity — read this first
 
-2026-10-18 最新决定：CM 采用轻量 Agent 调度方式，默认使用 **MCode 原生后台任务完成通知 + hcom 跨 Agent 消息协作**。各 CLI 保留已有调用、登录、模型配置和会话；协调 Agent 在发起会话中派发、接收并独立验收。`codex_callback` 仅承担 Codex App 接收端的 native queue 回传，不强制套给所有 CLI。
+2026-10-20 最新决定：CM 只推进 **单一 Harness 内的多 Agent、多模型／多 Runtime 协作**，不再研究跨 Harness 调度或多厂商 Agent Runtime 平台。复用所选 Harness 自带的会话、工具、权限、任务与完成通知；由发起 Agent 独立验收。增加 MACPIE 的模型统筹职责，具体项目名称与接入待确认；未确认前不安装或修改模型／代理配置。
 
-已验通 MCode TUI → 原生后台 Bash → AGY → 同 MCode 会话的单次 idle 接续。hcom 已选定但尚未安装或验收，其 MCode 自动接收适配未证实；不得把方向记录写成通用调度已部署。范围与使用入口见[最新决策](docs/DECISIONS.md#2026-10-18--默认采用-mcode-后台完成通知与-hcom)和[调度进度](plans/codex-callback-bridge/progress.md)。本轮只记录，不安装、不复测、不停改服务。
+原因：不同 Harness 的封闭接口、登录、模型配置、网络代理与生命周期差异，曾让简单派发变成持续维护。hcom 的跨 Harness 接入不再是后续任务；acpx／统一 ACP 继续停止。已有 MCode → AGY 单次 idle 接续保留为历史验收，不证明多 Runtime 可无缝接入同一 Harness。`codex_callback` 仅保留既有 Codex App native queue 路径。本轮只记录，不安装、不复测、不停改服务。详见[最新决策](docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)与[进度](plans/codex-callback-bridge/progress.md)。
 
-2026-10-18 当前本机方向：回到通知层。保留各 CLI 自己的调用、登录、模型配置和原生会话；复用 `codex_callback` 的完成通知、原会话 native queue 与接续回执。用户已放弃本次 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
+2026-10-18 历史收敛：回到通知层，保留各 CLI 自己的调用、登录、模型配置和原生会话。现有 `codex_callback` 完成通知、原会话 native queue 与接续回执按原范围保留。用户已放弃 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
 不为统一调用再引入 Paperclip、Orca 或新的调度／认证层。以下 Paperclip 说明保留已有路径和历史所有权，不是本次本机需求的强制依赖，也不授权停改已运行服务。决定与重访条件见 [2026-10-18 决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
 
 已有 Paperclip 路径按 2026-10-01 的运行所有权保留；它不是当前本机默认调度的前置条件。
