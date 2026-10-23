@@ -2,7 +2,7 @@
 
 ## Current
 
-Implementation and local verification complete; repository delivery in progress.
+Plugin implementation delivered; dedicated native DSH profile is ready to start.
 
 ## Done
 
@@ -26,10 +26,16 @@ Implementation and local verification complete; repository delivery in progress.
   Native profile composition includes the bundle and companion persona; Web help accepts --port.
   Startup command: dsh companion-memory --port 3087. No server or real model call was started.
 - Added README, source/license notes, current project entry, architecture and scope decision.
+- Verified all affected relative Markdown links and staged diff whitespace.
+- Final package has exactly nine intended runtime/documentation files; packaged entry
+  matches the current source. Dependencies, personal data, reference clones and logs are excluded.
+- Implementation commit 0c04fa38 pushed to qiaoqiao2521/ControlMesh main using verified account
+  qiaoqiao2521 (238822818). Earlier Orca/experiment changes remain preserved for separate review.
+- Stopped the temporary xerj node after analysis; the installed binary and bounded reference
+  checkouts remain available. The plugin requires no search daemon.
 
 ## Remaining
 
-- Commit and push verified changes under the configured account.
 - User acceptance of real-model memory selection and longer-term companionship quality.
 
 ## Issues
@@ -44,4 +50,6 @@ Implementation and local verification complete; repository delivery in progress.
 
 ## Next
 
-Finish the scoped commit/push, then use the installed profile for real-model user acceptance.
+Start dsh companion-memory --port 3087, save a fictional preference, open a new chat,
+then ask about it and request correction/forgetting. Real-model quality is not claimed
+from the scripted-provider tests. Root Codex owns follow-up on any reproducible defect.

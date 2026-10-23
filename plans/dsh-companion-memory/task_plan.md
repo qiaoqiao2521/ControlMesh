@@ -25,7 +25,7 @@ No new runtime, scheduler, authentication layer, avatar, vector service or cross
 1. [complete] Install xerj locally, index bounded reference sources and verify DSH hooks.
 2. [complete] Record reuse decisions and implement the smallest companion-memory slice.
 3. [complete] Verify native DSH loading, cross-session recall, correction and forgetting.
-4. [in_progress] Document setup and evidence, review changes, commit and push the accepted scope.
+4. [complete] Document setup and evidence, review changes, commit and push the accepted scope.
 
 ## Success
 
@@ -43,7 +43,7 @@ No new runtime, scheduler, authentication layer, avatar, vector service or cross
 
 ## Next Step
 
-Commit the verified plugin and documentation, push, and read back the remote revision.
+Use the installed companion-memory profile for real-model user acceptance when desired.
 
 ## Errors
 
