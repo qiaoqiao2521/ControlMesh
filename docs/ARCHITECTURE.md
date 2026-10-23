@@ -10,6 +10,17 @@ The earlier MCode-to-AGY idle test remains historical evidence. hcom integration
 Codex App reception retains its existing native queue bridge. See the [current decision](DECISIONS.md#2026-10-20--单-harness-协作与模型统筹).
 Existing deployed services retain their owners; this decision changes no running service.
 
+### Optional DSH companion memory
+
+The [companion-memory bundle](../plugins/dsh-companion-memory/README.md) registers
+one native DSH tool and dynamic context. It has no CM runtime dependency.
+Per-companion Markdown records hold personal facts, preferences, people, episodes
+and commitments. Direct user messages supply source identities; child agents do
+not receive this private context. Daily reflections are separately editable and
+retrievable through the tool. DSH retains persona, model, session and scheduling
+ownership. Project truth stays in SpecMesh; the legacy CM memory store is not
+automatically imported. See [reference analysis and limits](../plans/dsh-companion-memory/findings.md).
+
 ### Existing Paperclip-to-Codex bridge
 
 Codex original-chat callbacks use the pinned [community runtime](../vendor/codex_callback/UPSTREAM.md)

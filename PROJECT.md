@@ -1,5 +1,9 @@
 # ControlMesh Project Context
 
+## 可选 DSH 陪伴记忆插件（2026-10-23）
+
+新增 [DSH Companion Memory](plugins/dsh-companion-memory/README.md)，将旧 CM 的可编辑记忆思路用于个人陪伴。插件使用 DSH 原生工具与上下文，保存人物、偏好、共同经历、承诺和按需总结。它是独立可选模块，不恢复 CM 通用记忆服务或跨 Harness 平台。旧记忆代码与数据保留；导入仅针对明确选定文件并默认预览。源码比较与验收见[当前计划](plans/dsh-companion-memory/task_plan.md)。
+
 ## 当前本机方向（2026-10-20）
 
 用户确认：CM 以后专注 **一个 Harness 内的多 Agent、多模型／多 Runtime 协作**。Harness 指拥有会话、工具执行、权限、上下文和任务生命周期的执行框架。优先复用它支持的模型后端、子 Agent 和原生完成通知；不再研究多个 Harness 之间的多 Agent 编排，不建设多厂商 Agent Runtime 平台。
