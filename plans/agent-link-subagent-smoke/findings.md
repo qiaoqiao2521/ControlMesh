@@ -37,3 +37,9 @@
 - 一次 Qoder 调用使用本机私有 request.json，任务提示没有泄露文件中的随机标记。结果返回正确标记与 sum=96，status=done，三个独立回读检查均通过。
 - 已枚举到 AGY/Qoder/CodeBuddy 可执行，不把命令存在说成三 CLI 实际任务都通过。未执行其他真实模型任务或重试。
 - 原生 queue 当前不可达，未发送任何新 queue 或 callback；同步工具返回不代表异步自动唤醒。App 当前轮加载新工具也未单独验收。
+## 2026-10-25：后台派发后让出会话
+
+- 重复问题来自把同步 agent-link 等待、hcom 接单 ACK 与后台完成通知混用。新 Skill 将短同步调用与带回调的后台任务分开，启动器返回且回调绑定后结束当前答复。
+- 现有 vendor/codex_callback/runtime/codex_callback/jobs.py 已提供 start_job/notify；直接复用，无需新建通用调度器。Paperclip 的 cm-codex-task 仍只服务其原生 issue/run，不伪装任意 CLI 作业。
+- AGY help 无 Qoder/CBC 的 --tools/--no-session-persistence 参数。探测用 AGY 原生 plan/sandbox/disable-slash-commands 和短标记；该模式不进入正式实现任务。
+- 默认候选现为 Qoder、AGY；--pick 双失败仍返回一个 selected，并保留 degraded/失败事实。真实本轮探测两者 ready；局部测试覆盖双失败和 exit 0 错误。没有实际派发新任务或新增回调，不能声称本轮完成了 queue 复验。

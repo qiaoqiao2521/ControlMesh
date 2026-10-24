@@ -51,6 +51,8 @@ Runtime behavior notes:
 - [Architecture](ARCHITECTURE.md)
 - [Decisions](DECISIONS.md)
 - [Codex Original-chat Callback](codex-callback.md)
+- [CLI 后台派发与交接 Skill](../skills/cli-dispatch-handoff/SKILL.md)：Qoder/AGY 探测与单次选择、派发后让出会话、回调后验收。
+- [任务与交接索引](../skills/cli-dispatch-handoff/references/task-and-handoff.md)：编号要求、输入依据、产物目录、dispatch/handoff 字段、现成 start_job 示例、hcom 与失败恢复边界。
 - [System Overview](system_overview.md)
 - [Installation](installation.md)
 - [Read-only Alpha](read-only-alpha.md)

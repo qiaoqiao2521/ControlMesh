@@ -20,7 +20,9 @@ acpx／统一 ACP、hcom 平台化接入和完整 TS Runtime 重建不在后续�
 
 ## 当前 CLI 派发范围（2026-10-25）
 
-派发 Qoder/CBC 前，执行 `python3 scripts/agent_quota_check.py`（也可指定 `qoder` 或 `cbc` 只检测目标）。仅选择返回 `usable=true` 的目标；该脚本用禁用工具的短模型请求检查当前可用性，会产生少量请求，不查询精确剩余额度。额度耗尽或限流时换候选，本批不重复检测；超时或未知状态不当成功。配置保持，后续实际使用前重新检查，恢复后自然可用；不后台轮询、不维护永久黑名单。ZCode 使用 `edit` 模式，已验证文件读取与修改；DSH 暂停。具体用法见[子任务说明](docs/agent-link-subagents.md#当前派发范围)。
+后台派发使用 [cli-dispatch-handoff Skill](skills/cli-dispatch-handoff/SKILL.md)，详细任务与交接入口见[索引模板](skills/cli-dispatch-handoff/references/task-and-handoff.md)。每批运行 `python3 scripts/agent_quota_check.py --pick`，默认 Qoder → AGY，优先探测可用者；两者均未通过时仍按 selected 派发一次并保留 degraded，不循环重试。CBC 显式指定仍可检查；DSH 暂停；ZCode 使用 edit。探测不是精确余额，AGY 的探测 plan 模式不带入正式任务。
+
+写清编号要求、输入依据、修改范围、逐项验收、产物索引与交接文件；复用现有 hcom/CLI 完成钩子或 codex_callback.start_job。启动器返回运行记录并绑定原会话后，结束当前答复，等回调再验收。禁止为等开始渲染而反复 listen、查日志/进程/帧或维持同步 MCP 长调用。用户主动问进度或明确异常可针对性查询；通道未就绪则报告具体缺口，不用持续轮询替代回调。已有任务不重复启动，只保留一个通知 owner。具体用法见[子任务说明](docs/agent-link-subagents.md#当前派发范围)。
 
 ## Start Here
 

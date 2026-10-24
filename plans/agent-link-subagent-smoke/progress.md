@@ -2,9 +2,14 @@
 
 ## Current
 
-2026-10-25 最小修复：Qoder/CBC配置保留，使用前执行 scripts/agent_quota_check.py，以短模型请求检测当前可用性，不冒充精确余额。ZCode已切换edit，真实读取数据并修改指定文件，主Agent回读通过；DSH暂停。没有新增调度/认证/永久阻断服务，queue未复测。
+2026-10-25 后台派发规则已落地：全局与仓库 AGENTS 指向 cli-dispatch-handoff Skill，默认探测 Qoder/AGY，优先可用者，两者未通过仍派发一次并保留 degraded。启动记录绑定回调后让出会话，收到交接再独立验收；不等开始渲染、不持续 listen/查日志。ZCode edit、CBC 显式检查、DSH 暂停保持。本轮真实探测 Qoder、AGY 均 ready；未新增后台任务、未复测 queue 或 hcom 完成钩子。
 
 ## Done
+
+- 新增 skills/cli-dispatch-handoff/：短入口、openai.yaml、任务/派发/交接详细索引及现成 start_job 示例。复用 vendor/codex_callback/runtime，不增加 worker、调度器、认证或模型代理。全局 ~/.codex/skills/cli-dispatch-handoff 符号链接读回正确；源文件仅在 CM 维护。
+- 同步全局 ~/.agents/AGENTS.md（~/.codex/AGENTS.md 的源）与 CM AGENTS、docs 入口。同步短任务仍用 agent-link，外部异步不靠同步长调用或主会话轮询；hcom ACK 与完成钩子明确区分。
+- 10 项 unittest 通过；Skill 校验通过；125 个相关 Markdown 链接/锚点与 Python 派发示例语法通过，diff --check 通过。双失败降级分支用离线测试覆盖，不额外发送收费任务。本轮一次 Qoder/AGY 实测均 ready，selected=qoder、degraded=false。
+- 本轮没有新增大体积临时产物、渲染副本、打包或本机会话入库。测试使用 -B 和内存 mock；保留原输入与既存历史工作，未新增清理服务。下方旧额度状态仅是当时快照。
 
 - 当前真实检测：Qoder返回ready/usable=true，CBC返回quota_blocked/usable=false。旧额度耗尽记录不再被当成永久状态；恢复无需改配置。
 - 新增标准库检测脚本，检查stdout/stderr/退出码及随机短标记；区分额度耗尽、请求限流、超时与未知，避免CBC exit 0误报。4个局部回归检查通过。
@@ -42,7 +47,7 @@
 ## Remaining
 
 - App 工具加载与 Qoder 同步调用已于 2026-10-25 完成，后续只在真实任务中按需使用。
-- Qoder/CBC后续由根Codex在真实派发前运行小脚本，不再沿用旧额度状态或自行永久禁用。DSH暂停。
+- 后续根 Codex 每批使用 --pick 检查 Qoder/AGY；CBC 可显式检查，不沿用旧额度状态或永久禁用。DSH暂停。
 - ZCode指定文件写入已补验；取消、恢复和任意命令执行未覆盖，历史DSH结果保留但已暂停。
 - 后台 queue 不在同步 MCP 测试验收范围。需要时先恢复原线程共享控制通道；本次不启动新 daemon。
 
@@ -58,9 +63,11 @@
 
 ## Next
 
-按真实任务选用AGY/ZCode(edit)；调用Qoder/CBC前运行小脚本。额度恢复无需重配；DSH暂停。原生queue仍沿用独立验收边界。
+真实后台任务从 Skill 进入，每批 --pick 后派发一次，确认原会话回调绑定即结束答复，等交接再验收。已有 hcom 任务只续原任务，不增第二个通知 owner。原生 queue 与 hcom 完成钩子仅在实际任务按需检查，不把本轮 Skill 安装宣称为回调复验。
 
 ## Knowledge closeout
+
+本轮 already_covered：采用 Wiki/自动化开发范式与智能体协作.md 的“外界 Agent 协作与原生队列”原则。将重复纠正落为 AGENTS 与 Skill 的可执行入口、任务索引和停止行为；具体候选策略留 CM，不增加共享知识或记忆层。既存 Orca/cron 等未验证遗留仍按 Issues 保留并交接根 Codex，本轮不扩大到旧平台发布审查。
 
 2026-10-25 CLI 验证 no_reusable_delta：空 done 不等于业务成功属于已采用的验收原则。具体参数、额度错误和三个通过结果留在本项目；CapMesh 能力表仅更新到实际状态，不新增选型决策、知识页或记忆系统。
 

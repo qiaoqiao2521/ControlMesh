@@ -24,16 +24,23 @@
 | CBC | 本次检测额度阻断 | 小脚本返回quota_blocked；配置保留，后续使用前重查 |
 | DSH | 暂停 | 用户明确暂时不用；历史通过不代表继续启用 |
 
-派发 Qoder/CBC 前先执行：
+以上表格是此前单次验收记录，不能当作后续实时额度。2026-10-25 后续以本节的新规则为准：后台任务默认 Qoder、AGY，先探测再选一次。
+
+派发前先执行：
 
 ```bash
-python3 scripts/agent_quota_check.py          # 检查两者
+python3 scripts/agent_quota_check.py --pick   # 默认 Qoder、AGY，优先可用者
 python3 scripts/agent_quota_check.py qoder    # 只检查待用 CLI
+python3 scripts/agent_quota_check.py cbc      # 保留显式 CBC 检测
 ```
 
-脚本输出 JSON 数组。仅选择 `usable=true` 的目标；`quota_blocked` 表示额度阻断，`rate_limited` 表示请求限流，`unknown`、`timeout` 等不能当成功。它禁用工具、只要求短标记，复用 CLI 原有登录和默认模型；会产生少量模型请求，并非精确余额查询。当前 help/status 未发现可直接使用的余额命令，不新增认证或直连接口。
+默认输出 JSON 数组；`--pick` 输出 selected、degraded、checks。默认顺序 Qoder → AGY，优先 `usable=true`；两者均未通过时仍选择一个候选并派发一次，degraded=true，原探测失败事实保持不变。`quota_blocked` 表示额度阻断，`rate_limited` 表示限流，`unknown`、`timeout` 不能当成功。
 
-不缓存永久禁用状态。当前检查失败就换候选，同批不反复检测；下次实际使用前重新检查，额度恢复后自然可用。脚本不输出原始响应、账号字段或凭据，不改登录和默认模型，不启动后台轮询。Qoder/CBC 配置始终保留，DSH 暂停。
+探测只要求短标记，复用 CLI 原有登录和默认模型，会产生少量模型请求，并非精确余额查询。Qoder/CBC 使用禁用工具参数；AGY 没有该参数，使用原生 plan、sandbox 和禁用 slash 展开，并在提示中要求不调用工具。探测参数不带入正式任务，不改变默认工作模式。不新增认证或直连接口。
+
+不缓存永久禁用状态。同批不反复检测；下次实际使用前重查，额度恢复后自然可用。脚本不输出原始响应、账号字段或凭据，不改登录和默认模型，不启动后台轮询。CLI 配置保留，DSH 暂停。
+
+后台任务使用 [CLI 派发与交接 Skill](../skills/cli-dispatch-handoff/SKILL.md)。先写编号要求、输入依据、范围、逐项验收、产物和回调索引；复用现成 start_job 或已有完成钩子，确认绑定后结束答复。收到回调再读交接，不等待开始渲染或轮询。同步 agent-link 本身没有原会话 queue 回调，短同步任务仍可使用；不要将它包住长任务等待返回。完整运行示例与 hcom 既有任务边界见[任务与交接模板](../skills/cli-dispatch-handoff/references/task-and-handoff.md)。
 
 ZCode 活动配置已从 `plan` 改为 `edit`。真实测试读取 values.json，修改 summary.txt；主 Agent 独立验证正确总和、输入原文未改、目录仅有原两份文件。该验证不覆盖所有命令执行、会话恢复或后台 queue。
 

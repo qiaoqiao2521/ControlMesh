@@ -26,10 +26,12 @@
 
 7. [complete] 最小修复：新增使用前Qoder/CBC短请求检测脚本；ZCode切换edit并完成真实文件修改与回读。
 
+8. [complete] “后台派发后让出会话”已写入全局/仓库 AGENTS 与 Skill；默认探测 Qoder/AGY，双失败仍派发一次，复用既有 callback。任务与交接索引、10 项局部测试、Skill 校验及 125 个链接/锚点检查通过；真实探测两者 ready。本轮未新建任务或复测 queue。
+
 ## Acceptance
 
 已安装不等于 App 已加载；工具枚举不等于真实 CLI 任务成功；工具结果不等于后台 queue 消费成功。分别记录证据。
 
 ## Next Step
 
-真实派发 Qoder/CBC 前运行 scripts/agent_quota_check.py，恢复无需重配。ZCode使用edit；DSH暂停。仅同步任务，queue未复测。
+后台任务使用 skills/cli-dispatch-handoff/SKILL.md；每批运行 scripts/agent_quota_check.py --pick，默认 Qoder/AGY，双失败仍尝试一次。确认完成回调绑定后结束答复，等交接再验收。ZCode使用edit；DSH暂停。Skill安装与局部检查不等于本轮已复测后台queue。

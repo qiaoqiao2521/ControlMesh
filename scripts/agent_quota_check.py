@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Probe Qoder/CBC before dispatch; reuse CLI authentication and configuration."""
+"""Probe Qoder/AGY before dispatch; retain explicit CBC support."""
 import argparse
 import json
 import re
 import secrets
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -29,13 +30,19 @@ def classify(stdout, stderr, returncode, marker):
 
 def check(agent, profile, timeout):
     marker = "quota_probe_" + secrets.token_hex(8)
-    command = [profile["command"], "--print", "--tools", "", "--no-session-persistence"]
-    if agent == "qoder":
-        command += ["--output-format", "text", "--max-output-tokens", "32", "--max-model-request-retries", "0"]
-    else:
-        command += ["--output-format", "json", "--max-turns", "1"]
-    command.append("Reply with exactly " + marker + ". Do not use tools.")
     try:
+        command = [profile["command"]]
+        if agent == "agy":
+            # AGY has no --tools/--no-session-persistence flags. Keep its native CLI.
+            command += ["--output-format", "text", "--mode", "plan", "--sandbox",
+                        "--disable-slash-commands", "--print"]
+        else:
+            command += ["--print", "--tools", "", "--no-session-persistence"]
+            if agent == "qoder":
+                command += ["--output-format", "text", "--max-output-tokens", "32", "--max-model-request-retries", "0"]
+            else:
+                command += ["--output-format", "json", "--max-turns", "1"]
+        command.append("Reply with exactly " + marker + ". Do not use tools.")
         result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, cwd="/tmp")
         status = classify(result.stdout, result.stderr, result.returncode, marker)
     except subprocess.TimeoutExpired:
@@ -45,14 +52,23 @@ def check(agent, profile, timeout):
     return {"agent": agent, "status": status, "usable": status == "ready"}
 
 
+def pick(results):
+    """Prefer ready candidates in input order; both-failed still gets one attempt."""
+    ready = next((item for item in results if item["usable"]), None)
+    fallback = next((item for item in results if item["status"] != "unconfigured"), results[0])
+    return {"selected": (ready or fallback)["agent"], "degraded": ready is None,
+            "checks": results}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("agents", nargs="*", metavar="CLI")
     parser.add_argument("--timeout", type=float, default=60)
+    parser.add_argument("--pick", action="store_true", help="Select once; both-failed falls back without claiming readiness")
     args = parser.parse_args()
-    agents = args.agents or ["qoder", "cbc"]
-    if any(agent not in ("qoder", "cbc") for agent in agents):
-        parser.error("CLI must be qoder or cbc")
+    agents = list(dict.fromkeys(args.agents or ["qoder", "agy"]))
+    if any(agent not in ("qoder", "agy", "cbc") for agent in agents):
+        parser.error("CLI must be qoder, agy or cbc")
     try:
         profiles = json.loads((Path.home() / ".agent-link/config.json").read_text())["agents"]
     except (OSError, ValueError, KeyError):
@@ -61,7 +77,10 @@ def main():
     for agent in agents:
         profile = profiles.get(agent)
         results.append(check(agent, profile, args.timeout) if profile else {"agent": agent, "status": "unconfigured", "usable": False})
-    print(json.dumps(results, ensure_ascii=False))
+    output = pick(results) if args.pick else results
+    if args.pick and output["degraded"]:
+        print("WARNING: No probe-ready CLI; select once with degraded=true, without retrying probes.", file=sys.stderr)
+    print(json.dumps(output, ensure_ascii=False))
 
 
 if __name__ == "__main__":
