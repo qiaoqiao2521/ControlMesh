@@ -1,6 +1,6 @@
 # agent-link-mcp：本机 CLI 子任务
 
-用户于 2026-10-24 选定 [agent-link-mcp](https://github.com/mikusnuz/agent-link-mcp)。本次只接入 CLI 子任务调用，不改变 CM 的默认单 Harness 方向，也不恢复 ACP 或跨 Harness 管理平台。
+用户于 2026-10-24 选定 [agent-link-mcp](https://github.com/mikusnuz/agent-link-mcp)，并授权主动用于合适的独立子任务。CM 优先复用宿主原生能力，需要其他 CLI 时用它调用；各 CLI 保持自有认证、模型、网络与会话，不恢复 ACP 或跨 Harness 管理平台。见[当前决定](DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)。
 
 ## 已安装内容
 
@@ -42,19 +42,19 @@
 - `list_agents` 确认 `agy`、`qoder`、`cbc` 的绝对路径可执行。
 - 一次 `spawn_agent(agent=qoder)` 读取本地文件，返回文件中的随机标记和正确和数 96；独立回读结果通过。
 - AGY、CodeBuddy 只完成配置与可执行性检查，尚未实测任务。
-- Codex 配置读回为 enabled；当前 App 对话的新 MCP 工具加载与实际选择尚未确认。
+- Codex 配置读回为 enabled；当日 App 对话的新 MCP 工具加载与实际选择尚未确认。
 
-该结果证明同步 MCP 调用可用，不代表原生 Codex 子 Agent 生命周期或 App 直接调用已验收。
+2026-10-25，原 Codex App 对话实际发现六个 agent-link 工具，并直接调用 `spawn_agent(agent=qoder)` 完成本轮只读文档审查，返回 `status=done` 和能力表、入口冲突及范围建议。主 Agent 对照原文件独立核验主要发现，并据 CapMesh 更新的决定纠正其中过时的 MACPIE 状态。App → agent-link → Qoder → 当前调用的同步路径已验收；不是新增后台 callback，也不代表原生 Codex 子 Agent 生命周期或 AGY/CBC 全部通过。
 
 ## 后台接续边界
 
 上游同步工具会等待 CLI 返回结果，没有内置原会话 `codex queue` 回调。若以后增加独立后台派发，完成事件必须按现有约定经 native queue 回原线程。
 
-本次旧控制 socket 返回 ENOENT，未设置共享控制通道。没有启动替代 daemon、重开 App、发送 queue 消息或新增 callback。异步完成接续保持未验收，不能用同步测试代替。
+2026-10-24 检查时旧控制 socket 返回 ENOENT，未设置共享控制通道。2026-10-25 未重查或修改该通道，也未启动替代 daemon、重开 App、发送 queue 消息或新增 callback。agent-link 独立后台接续尚未接入／验收，不能用同步测试代替；既有 queue 历史验收仍按原路径保留。
 
 ## 继续与移除
 
-- 下一次在 App 对话中按上面的明确指令调用，确认新 MCP 工具已实际加载。
+- App 直接调用已在 2026-10-25 的真实审查任务验收；后续按实际任务使用，不反复做同一冒烟测试。
 - 若未加载，先检查 App 的 MCP 连接状态；不因包已安装就判断触发已修复。
 - 移除 Codex 注册：`codex mcp remove agent-link`。
 - 移除 npm 包：`npm uninstall -g agent-link-mcp`。

@@ -1,101 +1,43 @@
 # ControlMesh
 
-CM 当前收敛为 **一个 Harness 内的多 Agent、多模型／多 Runtime 协作约定**。复用 Harness 的任务、工具、会话与原生完成通知；增加 MACPIE 的模型统筹职责。MACPIE 是用户给出的名称，具体项目与接入待确认，不代表已安装。
+**CM 是围绕现有 CLI 的轻量 Agent 协作与适配层。** 在原会话提出目标，主 Agent 派发子任务，收到结果后独立验收。优先使用 CLI／Harness 已有能力，只补必要的入口、交接和完成通知。
 
-以后不研究跨 Harness 的多 Agent 编排，不再建设多厂商 Agent Runtime 平台；hcom 跨 Harness 接入移出后续计划。既有 MCode → AGY 单次空闲接续作为历史证据保留，不扩大为新路线的验收。当前边界见 [PROJECT.md](PROJECT.md)、[最新决策](docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)和[调度进度](plans/codex-callback-bridge/progress.md)。
+## 当前怎么用
 
-已有 [Paperclip 部署](plans/paperclip-based-cm/progress.md)保持原运行所有权；本次方向记录不执行迁移或停用。
-关键决策可按需启用[会审 v1](docs/decision-consultation-v1.md)：独立意见、有限补充、证据与分歧，不强制每个任务多 Agent 化。
-436 的新命令、飞书入口与恢复方式见 [Paperclip CM 运行说明](docs/paperclip-436.md)；[真实收发复测状态](plans/436-paperclip-feishu/progress.md)单独记录。
-Codex App 接收端保留 [codex_callback 薄适配](docs/codex-callback.md)与 native queue，独立入口为 `cm-codex-callback`。
-以下功能和安装命令描述保留的旧 Python CM，**不代表 Paperclip 集成安装或生产迁移已完成**。
+| 需要 | 复用方式 | 验收范围 |
+| --- | --- | --- |
+| 宿主内多 Agent 协作 | 宿主原生子 Agent、线程与任务工具 | 按具体任务验收 |
+| 调用另一个 CLI 做子任务 | [agent-link-mcp](docs/agent-link-subagents.md)，沿用 CLI 自己的配置 | Qoder 同步任务和 App 直接调用已验；AGY/CBC 已配置，真实任务待验 |
+| 后台任务完成后继续 | 发起端原生完成通知；Codex 外部后台回传使用 [native queue](docs/codex-callback.md) | MCode idle 与本机 queue 闭环有历史验收；当前通道需按任务核对 |
+| 个人陪伴记忆 | 可选 [DSH Companion Memory](plugins/dsh-companion-memory/README.md) | 插件行为已测试；真实模型长期记忆质量待验证 |
 
-## What
+在已配置 agent-link 的 Codex 中，可以直接交代：
 
-ControlMesh lets you:
+> 用 agent-link 的 spawn_agent，把这个目录的指定文件交给 qoder 审查。只读文件，返回发现和依据，由主 Agent 核验。
 
-- work interactively in an enhanced local terminal;
-- run the legacy bot runtime through Feishu, Telegram, WeChat, Matrix, and compatible
-  transports;
-- create persistent background tasks that can ask for input, resume, recover, and deliver
-  results;
-- coordinate bounded multi-agent topologies on a shared Python runtime;
-- inspect tasks, providers, events, topologies, and artifacts through a local read-only Web
-  dashboard.
+传入明确的 `agent`、`task`、`cwd`。多个独立子任务可用 `spawn_agents`。具体配置、版本和限制见[使用说明](docs/agent-link-subagents.md)，本轮状态见[进度](plans/agent-link-subagent-smoke/progress.md)。安装旧 CM Python 包不是这条调用路径的前提。
 
-Python remains authoritative for the preserved legacy production paths. The TypeScript workspace provides public protocol
-models, runtime validation, an SDK, and the local dashboard.
+## 分工与边界
 
-## Quick Start
+- **主 Agent**：理解目标、选择执行者、给必要上下文、整合并验收结果。
+- **各 CLI／Harness**：维护自身登录、模型、代理、工具、权限、上下文和原生会话。
+- **社区工具与薄适配**：连接任务调用、产物交接与适用的完成通道。同步工具返回和异步 queue 分别验收。
+- **项目连续性**：SpecMesh 保存项目意图与进度，CapMesh 记录能力取舍，TraceMesh 查历史。旧 CM 通用记忆退出默认 Mesh，陪伴插件独立可选。
 
-Install the released CLI:
+允许把其他 CLI 当子 Agent 使用；不扩建统一认证、模型代理、会话同步、调度数据库或多厂商 Agent Runtime 平台。acpx／统一 ACP 与 hcom 平台化接入保持停止。此前 Magpie 模型统筹试验已按 CapMesh D029 退出 Codex 主流程，不作为 CM 依赖。
 
-```bash
-pipx install controlmesh
-controlmesh
-```
+新增需求先查原生能力和现成实现。只有真实任务暴露具体缺口时才做小补丁或最小适配，按减少用户协调和维护负担判断价值。完整原因见[最新决策](docs/DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)。
 
-`controlmesh` opens the enhanced terminal. Use `/cm` for provider-native mode and `/back`
-to return. Source installs also provide `cm` as a shell-command alias for `controlmesh`
-(including `cm --help` and `cm --version`); older releases may only provide `controlmesh`.
-Start the legacy messaging runtime with:
+## 保留的实现
 
-```bash
-controlmesh bot
-```
+仓库仍保存旧 Python CM 的终端、任务、记忆、消息与调度代码，以及 TS SDK／只读面板、Orca 候选和 Paperclip 适配。这些用于已有部署、历史追溯与按需复用，不是当前默认建设清单。方向更新不代表旧服务已迁移或停用。
 
-Develop from source:
-
-```bash
-git clone https://github.com/qiaoqiao2521/ControlMesh.git
-cd ControlMesh
-uv sync --locked --all-extras --dev
-uv run controlmesh
-```
-
-Verify the toolchain:
-
-```bash
-python scripts/doctor_toolchain.py --strict --require-bun
-```
-
-Evaluate the read-only Alpha from an isolated install:
-
-```bash
-pipx install --suffix=-alpha "controlmesh[api]==0.42.0a1"
-controlmesh-alpha api serve
-```
-
-Open the printed local dashboard URL and enter the printed bearer token. The Alpha server
-binds only to `127.0.0.1` and exposes read-only `/api/v1` routes; see the
-[read-only Alpha guide](docs/read-only-alpha.md) for the complete five-minute flow.
-
-## Documentation
-
-- [Project Context](PROJECT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Decisions](docs/DECISIONS.md)
-- [Installation](docs/installation.md)
-- [Read-only Alpha](docs/read-only-alpha.md)
-- [Feishu Setup](docs/feishu-setup.md)
-- [Telegram Setup](docs/telegram-setup.md)
-- [WeChat Setup](docs/weixin-setup.md)
-- [Enhanced Terminal](docs/terminal.md)
-- [Full Documentation Index](docs/README.md)
-
-Contributors and coding agents should begin with [AGENTS.md](AGENTS.md).
-
-## Status
-
-The Python terminal, bot, task, provider, memory, transport, and multi-agent runtime is the
-stable core. The authenticated `/api/v1` facade, TypeScript SDK, and local Web dashboard are
-an additive read-only product layer. TypeScript task mutation and runtime replacement remain
-blocked until Python golden parity and rollback gates exist.
+- 既有 Paperclip 运维：[总览](plans/paperclip-based-cm/progress.md)、[436 运行说明](docs/paperclip-436.md)。
+- 旧 Python CM 安装与运行：[安装说明](docs/installation.md)、[终端](docs/terminal.md)、[只读 Alpha](docs/read-only-alpha.md)。
+- 当前项目方向：[PROJECT.md](PROJECT.md)。
+- 系统分工：[架构](docs/ARCHITECTURE.md)；历史取舍：[决策](docs/DECISIONS.md)。
+- 其他模块：[文档索引](docs/README.md)；贡献者先读 [AGENTS.md](AGENTS.md)。
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
-
-## Workflow integration (v0.43.0)
-
-See [implementation boundaries and commands](docs/CODEKIT-INTEGRATION.md).
+MIT. See [LICENSE](LICENSE). Reused components retain their own license notices.

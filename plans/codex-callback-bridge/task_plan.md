@@ -2,6 +2,8 @@
 
 ## Goal
 
+2026-10-25：当前 CM 定位与 agent-link 同步子任务入口转入[现有接入计划](../agent-link-subagent-smoke/task_plan.md)。本计划保留原生异步回传的历史验收和待核边界；旧“单 Harness”不禁止外部 CLI 子任务，MACPIE 的后续状态见最新项目决策。下文按日期追溯。
+
 2026-10-20 最新选择：CM 只推进单 Harness 内的多 Agent、多模型／多 Runtime 协作，加入 MACPIE 模型统筹职责，停止跨 Harness 编排研究和多厂商 Agent Runtime 平台建设。当前任务只记录决定、同步 CM／CapMesh／长期记忆并验证交付。MACPIE 具体项目待确认；不安装、不改模型或代理配置、不派发任务、不迁移服务。
 
 2026-10-18 的 MCode + hcom 选择保留为历史；hcom 跨 Harness 接入已移出后续计划。MCode 原生后台完成通知仍可复用，已完成的 MCode → AGY idle 验收不重跑。Codex App 接收端继续保留原有 native queue；已有 Paperclip 服务保持原所有权。
@@ -38,7 +40,7 @@
 
 ## Next Step
 
-本轮方向记录完成，按既有 Git／closeout 流程交付后收口。MACPIE 身份待确认；之后的多 Agent 任务限于同一 Harness，不补跨 Harness 测试或 hcom 接入。
+同步子任务按 agent-link 当前计划使用；真实任务需要独立后台回传时，先核对原会话共享通道，再按已有路径接续。不恢复平台建设、hcom 或 ACP，不因历史待验列表自动重跑。
 
 ## Acceptance
 

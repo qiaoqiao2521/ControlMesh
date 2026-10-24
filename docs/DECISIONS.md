@@ -1,5 +1,21 @@
 # Decisions
 
+## 2026-10-25 — 围绕 CLI 做轻量适配
+
+决定：CM 定位为围绕现有 CLI 的轻量 Agent 协作与适配层。主会话负责拆任务、派发与独立验收；优先使用宿主原生子 Agent、后台任务及完成通知。需要其他 CLI 时，复用用户于 2026-10-24 选定的 [agent-link-mcp](agent-link-subagents.md)，并主动用于合适的独立子任务。
+
+原因：多轮迭代发现，统一 CLI 调用容易扩张成登录、模型、代理、会话和调度维护。用户需要的是已有 CLI 能接任务、交付结果并让原会话继续工作。复用 CLI 自身能力与社区调用工具，才能减少维护负担。
+
+范围：CM 只补必要的调用入口、任务材料、结果交接和完成通知。同步 MCP 结果直接返回；宿主内协作使用原生工具；Codex 外部独立后台完成沿已有 native queue 回原会话。发起 Agent 仍需检查真实产物，工具成功或完成回执不等于业务验收。
+
+取代关系：细化 2026-10-20 的“单 Harness”表述。单宿主原生能力仍优先，但不禁止调用外部 CLI 子任务；不做的是统一管理各 Harness 的运行平台。acpx／统一 ACP、hcom 平台化接入、全量 TS Runtime 重建继续退出默认计划。Paperclip、Orca、旧 Python CM 保留既有部署及历史证据，不是新任务的必装依赖。
+
+其他组件：旧 CM 通用记忆不回到默认 Mesh，DSH 陪伴记忆保持独立可选。此前 MACPIE/Magpie 模型统筹以后续 [CapMesh D029](https://github.com/qiaoqiao2521/CapMesh/blob/main/docs/DECISIONS.md#d029--magpie-体验不佳退出-codex-模型统筹) 为准：用户已因体验和维护负担停止 Magpie 对接 Codex，不再等待安装或确认；本轮只核对记录，没有复测服务。项目连续性由 SpecMesh 负责，能力取舍由 CapMesh 记录，历史原件由 TraceMesh 查找。
+
+实测边界：agent-link 的安装、配置与 2026-10-24 Qoder 同步文件任务已留档；当前 App 调用与各 CLI 的实际结果回源[进度](../plans/agent-link-subagent-smoke/progress.md)。MCode idle、Paperclip-to-Codex queue 是各自日期和路径的验收，不推定今天通道仍连通或任意 CLI 全覆盖。
+
+重访条件：只有真实任务暴露现有原生能力或社区工具无法满足的具体缺口时，才评估小补丁／薄适配。新增登录状态、模型路由、调度数据库或后台服务时，先重新说明收益与维护成本；不因接口不统一而扩建平台。
+
 ## 2026-10-23 — 陪伴记忆采用 DSH 原生可选插件
 
 决定：旧 CM 记忆不再作为 Mesh 默认建设项。保留源码、测试和历史数据，将可复用的文件存储、来源与生命周期思路用于独立的 [DSH 陪伴插件](../plugins/dsh-companion-memory/README.md)。这是用户明确要求的陪伴用途，不重新立项通用 Agent Runtime。
@@ -13,6 +29,8 @@
 重访条件：实际陪伴使用出现可复现的召回、总结或主动性缺口时，再检查现成方案；不因功能列表不够长扩建平台。
 
 ## 2026-10-20 — 单 Harness 协作与模型统筹
+
+> 范围已由 2026-10-25 决定细化：允许 agent-link 调用外部 CLI 子任务；不建设跨 Harness 统一运行平台。以下保留当时依据。
 
 决定：CM 以后只推进同一个 Harness 内的多 Agent、多模型／多 Runtime 协作。增加 MACPIE 的模型统筹职责。停止研究跨 Harness 的多 Agent 编排，不再建设多厂商 Agent Runtime 平台。
 

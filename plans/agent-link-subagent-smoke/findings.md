@@ -1,5 +1,15 @@
 # Findings
 
+## 2026-10-25：CM 定位收敛
+
+- 用户复盘要求轻量结合 CLI 本身做适配。沿用已有 agent-link 子任务能力，不接管各 CLI 的认证、模型、代理、上下文或原生生命周期。
+- README、PROJECT、AGENTS 与架构总览仍以 10 月 20 日“单 Harness”作为最新入口，未纳入 10 月 24 日 agent-link 选择。需要明确：允许主会话调用其他 CLI 子任务；停止的是统一管理多个 Harness 的平台建设。
+- 主 Agent 在当前 App 工具目录发现 agent-link 六个工具，并直接调用 spawn_agent(agent=qoder) 审查本轮材料。返回 status=done 及能力表与入口冲突，主 Agent 已对照来源核验。App 直接同步调用的旧缺口已补齐；queue 与其他 CLI 不据此验收。
+- CapMesh D029 已记录用户于 10 月 22 日停止 Magpie 接入 Codex；CM 与审查结果中的“MACPIE 待确认”过时。按现有决定更新默认方向，只核对历史决定，不重新操作模型配置或服务。
+- 复用原计划记录这次总结，不创建新的平台或独立记忆权威。采用 SpecMesh §8 的复用与流程成本、Wiki/自动化开发范式与智能体协作.md 的“按当前任务选择验收依据”；本轮验证文档与实际审查结果，不复测旧服务。
+
+## 2026-10-24：安装与初次验证
+
 - 用户选择 https://github.com/mikusnuz/agent-link-mcp ，需求仅限外部 CLI 作为子任务执行。
 - 已读上游 agent-registry.ts 与 process-runner.ts：支持自定义 command、args、promptMode、promptFlag、outputFormat；直接 spawn 子进程并继承现有环境。
 - 源码 package.json 为 0.5.3，MIT，Node >=20；运行依赖只有 MCP SDK 和 Zod。安装版本仍以本次 registry 读回确认。

@@ -17,6 +17,7 @@
 1. [complete] 确认上游配置能力、CLI 入口与本机权限边界。
 2. [complete] 安装并配置 MCP，执行最小任务和结果回读。
 3. [complete] 记录 App 加载与 queue 接续边界，完成局部检查与使用说明。
+4. [complete] 2026-10-25：按用户复盘总结 CM 轻量 CLI 适配定位；同步仓库入口、架构与决策，核对 agent-link 实际使用和 CapMesh 的旧范围表述。54 个新增本地链接及锚点检查通过，主 Agent 核对实际文档与任务返回。
 
 ## Acceptance
 
@@ -24,4 +25,4 @@
 
 ## Next Step
 
-下一轮在 App 中按[使用说明](../../docs/agent-link-subagents.md)明确调用一次，确认新工具加载。安装、配置和独立 MCP SDK 调用已通过；本次不因控制 socket 缺失启动新服务。
+文档与 App 直接同步调用已核验；按既有 Git 流程交付并同步 callback 状态引用。后续沿当前说明处理真实任务，不另开平台建设或重复冒烟。

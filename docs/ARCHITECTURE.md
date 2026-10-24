@@ -2,13 +2,29 @@
 
 ## Overview
 
-The selected direction is multi-agent work within one harness, using its supported model backends and native task lifecycle.
-MACPIE is the user-named model coordination component; exact project identity and local integration remain unconfirmed.
-Model routing supplies the harness; the harness owns context, tools, permissions, subagents, and completion events.
-CM records this division and independent acceptance; it adds no cross-harness orchestration platform.
-The earlier MCode-to-AGY idle test remains historical evidence. hcom integration is no longer planned.
-Codex App reception retains its existing native queue bridge. See the [current decision](DECISIONS.md#2026-10-20--单-harness-协作与模型统筹).
-Existing deployed services retain their owners; this decision changes no running service.
+CM connects existing CLI agents through lightweight task calls, handoffs, and native completion mechanisms.
+The initiating conversation owns task scope and independent acceptance. Prefer its native subagents;
+use [agent-link](agent-link-subagents.md) for bounded calls to another installed CLI.
+Each CLI retains authentication, models, proxy configuration, tools, permissions, context and native sessions.
+CM does not unify those runtimes or maintain a second scheduler.
+
+| Path | Invocation and return | Ownership |
+| --- | --- | --- |
+| Native agents / Codex internal threads | Existing host tools | Host owns native task and session lifecycle |
+| Synchronous CLI child task | agent-link MCP → CLI → tool result | agent-link manages its invocation; CLI executes; parent reviews |
+| MCode native background task | Native background Bash → completion event → task_output | MCode owns background lifecycle; single idle example is historical evidence |
+| External background task returning to Codex | Existing completion event → codex_callback → native queue → original thread | Source owns execution; bridge owns delivery; Codex reviews artifacts |
+
+The queue path requires the original thread and its reachable shared control channel. A synchronous
+MCP result does not prove background queue readiness. agent-link reply supplies recorded conversation
+to a new CLI process; it does not establish native CLI session resume.
+See [current evidence](../plans/agent-link-subagent-smoke/progress.md) and the
+[current decision](DECISIONS.md#2026-10-25--围绕-cli-做轻量适配).
+
+The earlier MACPIE/Magpie direction is superseded by CapMesh D029: Magpie left the Codex model path.
+This is a recorded decision, not a fresh service-state check. No model gateway is required.
+hcom and ACP platform work are not planned. Existing deployed services retain their owners;
+this documentation update changes no running service.
 
 ### Optional DSH companion memory
 

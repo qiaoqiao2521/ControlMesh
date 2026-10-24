@@ -1,11 +1,8 @@
 # controlmesh Docs
 
-ControlMesh's public product path is Feishu native + background task runtime,
-with Telegram and WeChat/Weixin as existing important chat entrypoints. It
-routes chat input to official provider CLIs (`claude`, `codex`, `gemini`), runs
-long work through `/tasks/*` primitives, and returns status/results to the same
-chat. Matrix, sub-agents, cron, webhook, and direct API transports remain
-secondary compatibility/runtime modules.
+CM 当前围绕 CLI 做轻量协作适配。默认入口是 [agent-link 子任务调用](agent-link-subagents.md)；外部后台结果回 Codex 时使用[既有 queue 回调](codex-callback.md)。[当前项目方向](../PROJECT.md)和[最新决策](DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)优先于下面保留的旧 Python CM 模块说明。
+
+Feishu、Telegram、WeChat、Matrix、TaskHub、cron 与 Web/API 文档保留原实现及部署范围，不是新任务的必装依赖。
 
 ## Start Here
 

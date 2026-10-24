@@ -2,9 +2,11 @@
 
 ## Identity — read this first
 
-2026-10-20 最新决定：CM 只推进 **单一 Harness 内的多 Agent、多模型／多 Runtime 协作**，不再研究跨 Harness 调度或多厂商 Agent Runtime 平台。复用所选 Harness 自带的会话、工具、权限、任务与完成通知；由发起 Agent 独立验收。增加 MACPIE 的模型统筹职责，具体项目名称与接入待确认；未确认前不安装或修改模型／代理配置。
+2026-10-25 当前定位：CM 是 **围绕现有 CLI 的轻量 Agent 协作与适配层**。主会话负责拆任务、派发和独立验收；优先复用宿主原生子 Agent、后台任务和完成通知。需要其他 CLI 时复用 [agent-link](docs/agent-link-subagents.md)，只传任务、工作目录、必要上下文并收回结果；各 CLI 继续拥有登录、模型、代理、工具、权限和会话。
 
-原因：不同 Harness 的封闭接口、登录、模型配置、网络代理与生命周期差异，曾让简单派发变成持续维护。hcom 的跨 Harness 接入不再是后续任务；acpx／统一 ACP 继续停止。已有 MCode → AGY 单次 idle 接续保留为历史验收，不证明多 Runtime 可无缝接入同一 Harness。`codex_callback` 仅保留既有 Codex App native queue 路径。本轮只记录，不安装、不复测、不停改服务。详见[最新决策](docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)与[进度](plans/codex-callback-bridge/progress.md)。
+“单 Harness 优先”不禁止调用外部 CLI 子任务；禁止扩建的是跨 Harness 的统一运行平台。同步 MCP 结果直接回当前调用；Codex 内部线程用内部工具；独立外部后台完成经既有 native queue 回原会话。不同完成通道按实际发起端选择，不把 queue 套到所有调用。详见[最新决策](docs/DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)和[当前进度](plans/agent-link-subagent-smoke/progress.md)。
+
+acpx／统一 ACP、hcom 平台化接入和完整 TS Runtime 重建不在后续队列。此前 MACPIE/Magpie 模型统筹按 CapMesh D029 已退出 Codex 主流程，不再列为待接入。旧 CM 通用记忆退出默认 Mesh；[DSH 陪伴记忆](plugins/dsh-companion-memory/README.md)独立可选。下文保留既有部署边界，方向更新不迁移或停改服务。
 
 2026-10-18 历史收敛：回到通知层，保留各 CLI 自己的调用、登录、模型配置和原生会话。现有 `codex_callback` 完成通知、原会话 native queue 与接续回执按原范围保留。用户已放弃 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
 不为统一调用再引入 Paperclip、Orca 或新的调度／认证层。以下 Paperclip 说明保留已有路径和历史所有权，不是本次本机需求的强制依赖，也不授权停改已运行服务。决定与重访条件见 [2026-10-18 决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
@@ -14,7 +16,7 @@
 不修改 Paperclip 上游核心，不重建调度器，不维护平行生命周期。
 旧 Python CM、Orca 桥接和完整 TS 迁移保留为历史实现与证据，不是默认建设队列。
 方向确认不等于生产迁移完成；旧生产入口保持原所有权，未经独立验收不得宣称已接管。
-当前本机工作从 [回调计划](plans/codex-callback-bridge/task_plan.md) 与其进度进入；已有 Paperclip 运维才查 [Paperclip 计划](plans/paperclip-based-cm/task_plan.md)。
+当前本机子任务从 [agent-link 说明](docs/agent-link-subagents.md)与[计划](plans/agent-link-subagent-smoke/task_plan.md)进入；外部后台回传才查[回调计划](plans/codex-callback-bridge/task_plan.md)，已有 Paperclip 运维查 [Paperclip 计划](plans/paperclip-based-cm/task_plan.md)。
 
 ## Start Here
 

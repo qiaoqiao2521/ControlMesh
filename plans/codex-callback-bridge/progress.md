@@ -2,6 +2,10 @@
 
 ## Current
 
+2026-10-25：CM 当前采用轻量 CLI 适配，宿主原生能力优先，agent-link 用于外部 CLI 子任务；同步结果回工具调用，独立外部后台任务才走原生 queue。当前入口见[agent-link 进度](../agent-link-subagent-smoke/progress.md)与[最新决定](../../docs/DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)。10 月 24 日控制通道检查为 ENOENT，今天未复测；历史 queue 验收不代表当前通道就绪。MACPIE/Magpie 后续按 CapMesh D029 退出 Codex 模型统筹，不再列为待接入。
+
+以下保留历史时点，最新范围由上段及项目入口约束。
+
 2026-10-20 最新决定：CM 专注同一 Harness 内的多 Agent、多模型／多 Runtime 协作；增加 MACPIE 模型统筹职责，具体项目与接入待确认。以后不研究跨 Harness 编排，不建设多厂商 Agent Runtime 平台。hcom 跨 Harness 接入移出后续计划，acpx／统一 ACP 继续停止。原因与取代范围见[最新决策](../../docs/DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)。本轮仅记录、同步与交付，没有安装、配置变更、任务派发或服务迁移。
 
 以下为历史验收与保留边界，不是继续扩展跨 Harness 的任务清单。MCode 原生后台任务／完成通知仍可复用；Codex App 接收端保留 native queue。旧服务保持运行所有权。
@@ -82,7 +86,7 @@ env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/te
 
 ## Next
 
-本轮方向记录已完成，按既有 Git／closeout 流程交付。后续多 Agent 任务采用单 Harness 原生能力，MACPIE 只承担模型统筹，身份未确认时不安装；不恢复 hcom 跨 Harness 接入、acpx 或多厂商 Agent Runtime 平台研究。已有回调的未知结果仍只对账原 run，原会话独立验收。
+同步 CLI 子任务按 agent-link 当前计划使用；需要外部后台回传时核对并恢复原线程通道，未知结果只对账原 run，由原会话独立验收。不把历史待验列表或网关试验变成默认建设任务。
 
 ## Knowledge closeout
 
