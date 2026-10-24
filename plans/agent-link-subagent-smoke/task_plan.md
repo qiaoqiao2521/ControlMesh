@@ -28,10 +28,12 @@
 
 8. [complete] “后台派发后让出会话”已写入全局/仓库 AGENTS 与 Skill；默认探测 Qoder/AGY，双失败仍派发一次，复用既有 callback。任务与交接索引、10 项局部测试、Skill 校验及 125 个链接/锚点检查通过；真实探测两者 ready。本轮未新建任务或复测 queue。
 
+9. [complete] 用户纠正外部设施故障不应停工：全局/仓库规则、Skill、交接索引和说明改为立即使用宿主内置子 Agent，内置也不可用则主 Agent 继续。原服装线程已收到用户内置派发要求并正在接续，不重复渲染；socket 恢复不作业务前置条件。
+
 ## Acceptance
 
 已安装不等于 App 已加载；工具枚举不等于真实 CLI 任务成功；工具结果不等于后台 queue 消费成功。分别记录证据。
 
 ## Next Step
 
-后台任务使用 skills/cli-dispatch-handoff/SKILL.md；每批运行 scripts/agent_quota_check.py --pick，默认 Qoder/AGY，双失败仍尝试一次。确认完成回调绑定后结束答复，等交接再验收。ZCode使用edit；DSH暂停。Skill安装与局部检查不等于本轮已复测后台queue。
+后台任务使用 skills/cli-dispatch-handoff/SKILL.md；选择外部时每批 --pick，通道不可用立即改用内置子 Agent 沿用任务和交接，不等待修 socket。收到实际结果后按原要求验收。ZCode使用edit；DSH暂停。Skill安装与局部检查不等于本轮已复测后台queue。

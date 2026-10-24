@@ -20,9 +20,9 @@ acpx／统一 ACP、hcom 平台化接入和完整 TS Runtime 重建不在后续�
 
 ## 当前 CLI 派发范围（2026-10-25）
 
-后台派发使用 [cli-dispatch-handoff Skill](skills/cli-dispatch-handoff/SKILL.md)，详细任务与交接入口见[索引模板](skills/cli-dispatch-handoff/references/task-and-handoff.md)。每批运行 `python3 scripts/agent_quota_check.py --pick`，默认 Qoder → AGY，优先探测可用者；两者均未通过时仍按 selected 派发一次并保留 degraded，不循环重试。CBC 显式指定仍可检查；DSH 暂停；ZCode 使用 edit。探测不是精确余额，AGY 的探测 plan 模式不带入正式任务。
+后台派发使用 [cli-dispatch-handoff Skill](skills/cli-dispatch-handoff/SKILL.md)，详细任务与交接入口见[索引模板](skills/cli-dispatch-handoff/references/task-and-handoff.md)。选择外部 CLI 时每批运行 `python3 scripts/agent_quota_check.py --pick`，默认 Qoder → AGY，优先探测可用者；两者均未通过时仍按 selected 尝试一次并保留 degraded，失败则改内置，不循环重试。已知外部通道不可用时直接内置，不检测外部额度。CBC 显式指定仍可检查；DSH 暂停；ZCode 使用 edit。探测不是精确余额，AGY 的探测 plan 模式不带入正式任务。
 
-写清编号要求、输入依据、修改范围、逐项验收、产物索引与交接文件；复用现有 hcom/CLI 完成钩子或 codex_callback.start_job。启动器返回运行记录并绑定原会话后，结束当前答复，等回调再验收。禁止为等开始渲染而反复 listen、查日志/进程/帧或维持同步 MCP 长调用。用户主动问进度或明确异常可针对性查询；通道未就绪则报告具体缺口，不用持续轮询替代回调。已有任务不重复启动，只保留一个通知 owner。具体用法见[子任务说明](docs/agent-link-subagents.md#当前派发范围)。
+写清编号要求、输入依据、修改范围、逐项验收、产物索引与交接文件；外部通道就绪时复用现有 hcom/CLI 完成钩子或 codex_callback.start_job，绑定后结束答复等回调。外部缺 socket、超时或不可用时，立即改用 Codex 内置子 Agent，沿用同一任务与交接，用宿主原生结果/等待工具收回；内置也不可用则主 Agent 直接执行。不能因通知设施缺失停工，不等修 daemon 或重开 App。外部已可能启动时先做一次针对性确认，只接手未运行部分，不重复任务。不循环 listen 或查帧，不维持同步 MCP 长调用；内部原生等待不受外部规则限制。具体用法见[子任务说明](docs/agent-link-subagents.md#当前派发范围)。
 
 ## Start Here
 

@@ -7,7 +7,7 @@
 | 文件 | 写入者 | 最少内容 |
 | --- | --- | --- |
 | 既有计划或 `task.md` | 主 Agent | 目标、输入来源、修改范围、要求编号、验证方法、产物目录、交接位置、停止条件 |
-| `dispatch.json` | 主 Agent | task_id、agent、原线程、cwd、任务和交接路径、探测结果、callback_directory |
+| `dispatch.json` | 主 Agent | task_id、实际 channel、agent/内置 Agent ID、原线程、cwd、任务和交接路径；仅外部通道记录探测结果与 callback_directory |
 | `handoff.md` | CLI worker | 实际状态、原生会话 ID（可获取时）、逐项要求结果、产物索引、验证、遗留、清理 |
 | 回调运行目录 | 既有 callback worker | `status.json`、`job.log`；由 dispatch.json 引用，不复制日志 |
 
@@ -36,9 +36,22 @@
 
 要求必须具体，但不引入哈希锁、前序任务锁、日配额或一处失败卡死整批的规则。缺少可选字段应注明并继续。
 
+## 内置子 Agent 降级
+
+外部通道未就绪时立即采用此路径，不等待 socket 修复，不重新探测额度：
+
+1. 已明确 `preflight_failed_not_started` 时，直接把原任务交给内置 `spawn_agent`。若存在不确定的外部启动，先做一次针对性确认，只接手尚未运行的部分。
+2. 提示传入原任务文件的绝对路径、cwd、交接文件、修改范围和验收要求；让子 Agent 读取并继续，不改业务标准。不需要把全部材料重写成新任务。
+3. 在原 dispatch 索引记录 `channel=native_subagent`、实际内置 Agent ID 和 fallback 原因。任务文件中的外部 start_job 通知 owner 仅适用于外部通道；降级后由宿主内置结果机制负责，不要求伪造 queue 回调。
+4. 使用宿主原生通知/等待工具收回交接；按原要求验收。内置 Agent 不可用时由主 Agent 执行，不因派发设施缺失停止可执行的工作。
+
+例如：`spawn_agent(task_name="wardrobe_envelope", message="在 /absolute/project 读取 /absolute/task.md，继续其中确认未启动的任务。保持 R1-R9 和修改范围，将事实及产物索引写到 /absolute/handoff.md；使用内置结果返回，不发送外部回调。")`。
+
+若原会话已经改用内置 Agent 接续，则沿用该 owner，不再启动第二份。只读查看原会话足以确认此事实，不需要持续监控。
+
 ## 原生回调派发示例
 
-适用于**尚未启动**的 Qoder/AGY CLI 作业。复用 [既有 runtime](../../../vendor/codex_callback/runtime/codex_callback/jobs.py)，不复写其 worker、queue 或生命周期。需要本机已安装 CLI、agent-link 配置，以及原会话可达的 Codex 控制 socket；安装 Skill 本身不等于这些条件已满足。
+仅适用于外部通道已就绪、**尚未启动**的 Qoder/AGY CLI 作业。复用 [既有 runtime](../../../vendor/codex_callback/runtime/codex_callback/jobs.py)，不复写其 worker、queue 或生命周期。需要本机已安装 CLI、agent-link 配置，以及原会话可达的 Codex 控制 socket；条件不满足直接采用上一节内置降级，不把它变成项目开工门槛。
 
 先准备任务文件，确认输出目录；然后在 Codex shell 执行下面 Python，替换 `task_file`、`handoff`、`cwd` 和 `task_id`。代码是派发示例，不是新的后台服务。
 
@@ -81,12 +94,12 @@ task_file.with_name('dispatch.json').write_text(
 print(json.dumps(index, ensure_ascii=False))
 ```
 
-`start_job` 自带启动前连接检查，返回脱离主会话的运行目录。此时记录派发索引并结束答复；**不再调用 read_status 循环等结果**。示例不覆盖用户已有的原生 resume 命令；恢复既有任务用下一节。
+`start_job` 自带启动前连接检查，返回脱离主会话的运行目录。此时记录派发索引并结束答复；**不再调用 read_status 循环等结果**。若检查失败则立即改用内置子 Agent；不只报告错误就收工。示例不覆盖用户已有的原生 resume 命令；恢复既有任务用下一节。
 
 ## 已有任务与 hcom
 
 - 用户指定 hcom 时，沿用既有会话和任务编号发送任务材料路径，保留 hcom 消息 ID 与原生会话 ID。
-- hcom 收到 ACK 只证明接单。现成完成钩子须已绑定原会话和交接文件，才能说“等自动回调”。没有该绑定时报告具体缺口，不靠循环 listen 冒充接续。
+- hcom 收到 ACK 只证明接单。现成完成钩子须已绑定原会话和交接文件，才能说“等自动回调”。没有该绑定且任务未启动时改用内置子 Agent；已启动的只接管未运行部分，不靠循环 listen 冒充接续。
 - 既有进程完成钩子可调用现成 `codex_callback.notify(cwd=..., thread_id=..., followup=..., outcome=...)`。仅由既有任务的通知 owner 调用一次，不再包一层 start_job 重复运行。
 - 原生 resume 延续原会话；先读取上次交接与任务索引，再补充本轮差异要求。不要将上下文重新投给一个新 CLI 实例并宣称已恢复原会话。
 
@@ -99,8 +112,8 @@ print(json.dumps(index, ensure_ascii=False))
 
 ## 异常处理
 
-- 两者探测未通过：`--pick` 仍选一个候选，标记 degraded，派发一次；禁止轮流重试消耗额度。最终以实际任务回调为准。
-- CLI 未安装或无有效配置：保留材料并报告不能启动的原因，不安装新认证层，不循环重试。
-- 控制 socket 不可达：仅做针对性的通道恢复；不自动重开 App、迁移服务或伪造通知。需要中断用户应用时遵循已有授权。
+- 两者探测未通过：`--pick` 仍选一个候选，标记 degraded，尝试一次；失败改内置，禁止轮流重试消耗额度。最终按实际通道的结果验收。
+- CLI 未安装或无有效配置：保留材料并立即改用内置子 Agent，不安装新认证层，不循环重试。
+- 控制 socket 不可达：立即走内置降级继续业务；连接恢复按需另行处理，不自动重开 App、迁移服务或伪造通知。需要中断用户应用时遵循已有授权。
 - `queued submission not found`：按原 clientUserMessageId 查历史对账，禁止盲目重新入队。详见 [callback 文档](../../../docs/codex-callback.md)。
 - 缺交接文件、空 done、产物不符：记录未通过与已有日志入口；不自动重跑收费任务。重复通知只接续原任务，不能再派发同一事件。

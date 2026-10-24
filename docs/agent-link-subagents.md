@@ -42,6 +42,8 @@ python3 scripts/agent_quota_check.py cbc      # 保留显式 CBC 检测
 
 后台任务使用 [CLI 派发与交接 Skill](../skills/cli-dispatch-handoff/SKILL.md)。先写编号要求、输入依据、范围、逐项验收、产物和回调索引；复用现成 start_job 或已有完成钩子，确认绑定后结束答复。收到回调再读交接，不等待开始渲染或轮询。同步 agent-link 本身没有原会话 queue 回调，短同步任务仍可使用；不要将它包住长任务等待返回。完整运行示例与 hcom 既有任务边界见[任务与交接模板](../skills/cli-dispatch-handoff/references/task-and-handoff.md)。
 
+外部回调不可用时立即采用[内置子 Agent 降级](../skills/cli-dispatch-handoff/references/task-and-handoff.md#内置子-agent-降级)，沿用原任务要求与交接文件，不等修 socket，不重复额度检测。内置协作用宿主原生结果/等待工具，不需要外部 queue。若外部可能已启动，先一次确认避免重复执行。内置也不可用则主 Agent 直接完成可做部分，不能仅因派发设施故障停止工作。
+
 ZCode 活动配置已从 `plan` 改为 `edit`。真实测试读取 values.json，修改 summary.txt；主 Agent 独立验证正确总和、输入原文未改、目录仅有原两份文件。该验证不覆盖所有命令执行、会话恢复或后台 queue。
 
 `list_agents.available=true` 只表示命令可执行，上游不检查额度、登录或模型响应。其他自动发现的内置 profile 不在本轮选定范围，不因出现在列表就自动选用。主 Agent 按上述范围派发，再独立验收非空正文和任务结果；遇到额度错误临时跳过该 CLI，当前任务由主 Agent 继续或改派已允许候选，不搭建新的额度服务。
@@ -107,7 +109,7 @@ CBC 的一次 JSON 输出诊断确认同一额度错误，之后停止请求；�
 
 ## 后台接续边界
 
-上游同步工具会等待 CLI 返回结果，没有内置原会话 `codex queue` 回调。若以后增加独立后台派发，完成事件必须按现有约定经 native queue 回原线程。
+上游同步工具会等待 CLI 返回结果，没有内置原会话 `codex queue` 回调。选择外部后台派发时完成事件经 native queue 回原线程；通道故障立即走宿主内置子 Agent，不把恢复外部设施当成开工前提。
 
 2026-10-24 检查时旧控制 socket 返回 ENOENT，未设置共享控制通道。2026-10-25 未重查或修改该通道，也未启动替代 daemon、重开 App、发送 queue 消息或新增 callback。agent-link 独立后台接续尚未接入／验收，不能用同步测试代替；既有 queue 历史验收仍按原路径保留。
 

@@ -2,10 +2,13 @@
 
 ## Current
 
-2026-10-25 后台派发规则已落地：全局与仓库 AGENTS 指向 cli-dispatch-handoff Skill，默认探测 Qoder/AGY，优先可用者，两者未通过仍派发一次并保留 degraded。启动记录绑定回调后让出会话，收到交接再独立验收；不等开始渲染、不持续 listen/查日志。ZCode edit、CBC 显式检查、DSH 暂停保持。本轮真实探测 Qoder、AGY 均 ready；未新增后台任务、未复测 queue 或 hcom 完成钩子。
+2026-10-25 规则纠偏：外部回调是可选通道，不是开工前提。socket/外部通道不可用立即改内置子 Agent，沿用任务要求与交接，不重复测外部额度，不等修通道；内置不可用则主 Agent 直接执行可做部分。内置等待使用宿主工具，不套外部 queue 约束。原服装线程已收到用户“用自带的subagent做先”并正在接续，本线程不重复渲染。外部 socket 仍缺失，本轮没有重启 App 或宣称已修好连接。
 
 ## Done
 
+- 本次同步全局与 CM AGENTS、Skill 触发描述/正文/交接模板/UI 元数据、docs 索引，移除“通道故障只报告停工”的错误规则，补内置降级动作和实际 channel/agent ID 索引。原任务未启动时直接接手，状态不明只一次确认，保护正在运行的工作。
+- 本次仅文档与 Skill 修改：Skill 校验、127 个相关链接/锚点、原派发示例语法与 diff --check 通过；已安装符号链接直接读取修正后的源文件。未改运行脚本，不新增 E2E、收费探测或测试任务。
+- 只读确认原线程正在按用户要求接续；服装集成与渲染仍由原线程 owner 负责。本轮不写该工程或其计划，避免与执行中的改动竞争。
 - 新增 skills/cli-dispatch-handoff/：短入口、openai.yaml、任务/派发/交接详细索引及现成 start_job 示例。复用 vendor/codex_callback/runtime，不增加 worker、调度器、认证或模型代理。全局 ~/.codex/skills/cli-dispatch-handoff 符号链接读回正确；源文件仅在 CM 维护。
 - 同步全局 ~/.agents/AGENTS.md（~/.codex/AGENTS.md 的源）与 CM AGENTS、docs 入口。同步短任务仍用 agent-link，外部异步不靠同步长调用或主会话轮询；hcom ACK 与完成钩子明确区分。
 - 10 项 unittest 通过；Skill 校验通过；125 个相关 Markdown 链接/锚点与 Python 派发示例语法通过，diff --check 通过。双失败降级分支用离线测试覆盖，不额外发送收费任务。本轮一次 Qoder/AGY 实测均 ready，selected=qoder、degraded=false。
@@ -63,9 +66,11 @@
 
 ## Next
 
-真实后台任务从 Skill 进入，每批 --pick 后派发一次，确认原会话回调绑定即结束答复，等交接再验收。已有 hcom 任务只续原任务，不增第二个通知 owner。原生 queue 与 hcom 完成钩子仅在实际任务按需检查，不把本轮 Skill 安装宣称为回调复验。
+外部通道可用才运行 --pick 并派发；不可用立即内置，按宿主机制收回结果。原服装任务继续由原线程处理，不重复派发；真实产物仍待其独立验收。外部通道恢复只按实际需要维护，不作为业务前置条件。
 
 ## Knowledge closeout
+
+本次纠偏 no_reusable_delta：沿用现有“内部协作不属于外界 queue”的边界，直接修正 AGENTS 与 Skill；没有新记忆/知识层或大型临时产物。旧 Orca 等遗留仍按 Issues 由根 Codex 接续。
 
 本轮 already_covered：采用 Wiki/自动化开发范式与智能体协作.md 的“外界 Agent 协作与原生队列”原则。将重复纠正落为 AGENTS 与 Skill 的可执行入口、任务索引和停止行为；具体候选策略留 CM，不增加共享知识或记忆层。既存 Orca/cron 等未验证遗留仍按 Issues 保留并交接根 Codex，本轮不扩大到旧平台发布审查。
 

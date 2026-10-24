@@ -1,6 +1,6 @@
 interface:
   display_name: "CLI 后台派发与交接"
-  short_description: "探测 Qoder 与 AGY，派发后让出会话，凭完成回调和详细交接验收"
-  default_prompt: "使用 $cli-dispatch-handoff 派发这个任务，写清要求和产物索引，派发后等回调。"
+  short_description: "派发 Qoder 或 AGY，外部通道故障就改用内置子 Agent，凭交接验收"
+  default_prompt: "使用 $cli-dispatch-handoff 派发任务，外部不可用就改用内置子 Agent，保持原要求并验收交接。"
 policy:
   allow_implicit_invocation: true
