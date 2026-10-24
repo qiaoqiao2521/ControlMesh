@@ -2,9 +2,14 @@
 
 ## Current
 
-2026-10-25 再次纠正：额度耗尽属于临时状态，已恢复 Qoder/CBC 原配置并经 App list_agents 读回；当前优先 AGY、只读 ZCode。额度恢复按原生重置时间或下次真实任务需求复核，不永久禁用、不后台轮询、不在同批反复撞限。DSH 仍暂停。ZCode 本次真实文件读取与计算独立核对通过；未请求 Qoder/CBC/DSH，后台 queue 未复测。
+2026-10-25 最小修复：Qoder/CBC配置保留，使用前执行 scripts/agent_quota_check.py，以短模型请求检测当前可用性，不冒充精确余额。ZCode已切换edit，真实读取数据并修改指定文件，主Agent回读通过；DSH暂停。没有新增调度/认证/永久阻断服务，queue未复测。
 
 ## Done
+
+- 当前真实检测：Qoder返回ready/usable=true，CBC返回quota_blocked/usable=false。旧额度耗尽记录不再被当成永久状态；恢复无需改配置。
+- 新增标准库检测脚本，检查stdout/stderr/退出码及随机短标记；区分额度耗尽、请求限流、超时与未知，避免CBC exit 0误报。4个局部回归检查通过。
+- 最初使用系统pytest触发仓库全局conftest的旧运行时导入错误；本脚本仅依赖标准库，改用独立unittest运行四个相关用例通过，不修改旧运行时或全局fixture。
+- ZCode edit实际修改summary.txt为独立计算的总和，values.json原文未变，目录仅有原两文件。私有测试目录位于~/.local/state/agent-link-smoke/20261025-zcode-edit，不提交回执或fixture。
 
 - 收尾检查：Qoder/CBC原配置恢复且App枚举读回，DSH暂停；相关文档链接与git diff --check通过。仅提交本次四份文档，本机配置和测试回执保留在私有目录；旧Orca等遗留继续按Issues中的owner和入口交接。
 - 本次仅调用一次 ZCode plan；结果与独立 expected.json 完全相同。私有回执位于 ~/.local/state/agent-link-smoke/20261025-zcode-current/，不提交 fixture、marker 或原始日志。
@@ -37,8 +42,8 @@
 ## Remaining
 
 - App 工具加载与 Qoder 同步调用已于 2026-10-25 完成，后续只在真实任务中按需使用。
-- Qoder/CBC 暂时额度阻断，原生重置时间与独立额度查询入口待核实；根 Codex 在后续实际需要时按 docs/agent-link-subagents.md 的恢复规则处理，不创建周期探测。DSH 暂停。
-- AGY与ZCode只读任务有通过证据；历史DSH结果保留但已停用。ZCode文件写入、取消、恢复未验，不扩展其能力声明。
+- Qoder/CBC后续由根Codex在真实派发前运行小脚本，不再沿用旧额度状态或自行永久禁用。DSH暂停。
+- ZCode指定文件写入已补验；取消、恢复和任意命令执行未覆盖，历史DSH结果保留但已暂停。
 - 后台 queue 不在同步 MCP 测试验收范围。需要时先恢复原线程共享控制通道；本次不启动新 daemon。
 
 ## Issues
@@ -53,7 +58,7 @@
 
 ## Next
 
-当前优先AGY和只读ZCode；Qoder/CBC按额度状态临时避让并允许恢复，不调用暂停的DSH。需要独立后台回传时才处理queue通道。
+按真实任务选用AGY/ZCode(edit)；调用Qoder/CBC前运行小脚本。额度恢复无需重配；DSH暂停。原生queue仍沿用独立验收边界。
 
 ## Knowledge closeout
 
@@ -64,3 +69,7 @@
 already_covered：采用 Wiki/自动化开发范式与智能体协作.md 的“按当前任务选择验收依据”和“外界 Agent 协作与原生队列”。本次安装、同步工具调用、App 加载、后台接续分开记账；共享知识已覆盖这一原则，不新增 Wiki 页面或索引。
 
 本次修正规则 no_reusable_delta：使用既有“真实结果独立验收”原则，仅把当前额度与暂停状态更新为派发约束，不新增知识系统。
+
+本次最小修复 no_reusable_delta：脚本与CLI参数留在CM，不新增知识层或后台服务。
+
+最小修复收尾：脚本真实执行、ZCode写入回读、4项unittest与局部diff检查通过。仅交付本轮脚本/测试/规则及原计划，私有两份小型测试输入输出保留作回执，无大体积临时产物；既存Orca等遗留按Issues继续交接。

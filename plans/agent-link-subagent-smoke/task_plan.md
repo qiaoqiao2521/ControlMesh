@@ -24,10 +24,12 @@
 
 6. [complete] 按用户纠正区分临时额度状态与停用：Qoder/CBC保留配置，额度阻断暂跳过并允许恢复，DSH暂停；ZCode再次通过真实只读文件任务并独立核对。
 
+7. [complete] 最小修复：新增使用前Qoder/CBC短请求检测脚本；ZCode切换edit并完成真实文件修改与回读。
+
 ## Acceptance
 
 已安装不等于 App 已加载；工具枚举不等于真实 CLI 任务成功；工具结果不等于后台 queue 消费成功。分别记录证据。
 
 ## Next Step
 
-当前优先AGY和只读ZCode；Qoder/CBC保留配置，按重置时间或下次真实需求复核恢复，避免同批重复撞限；DSH暂停。仅同步调用，不以本轮结果证明后台 queue、写入或会话恢复可用。
+真实派发 Qoder/CBC 前运行 scripts/agent_quota_check.py，恢复无需重配。ZCode使用edit；DSH暂停。仅同步任务，queue未复测。

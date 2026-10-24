@@ -19,14 +19,23 @@
 | CLI | 可否选择 | 当前依据 |
 | --- | --- | --- |
 | AGY | 可以 | 此前真实文件任务通过；本次未重复调用 |
-| ZCode CLI | 可以，只读 | 本次 App → agent-link → zcode-cli 重新读取随机文件并计算，主 Agent 独立核对通过；plan 模式，写入未验证 |
-| Qoder | 暂时跳过，可恢复 | 用户确认额度耗尽；保留配置，按重置时间或后续真实需求复核 |
-| CBC | 暂时跳过，可恢复 | 已实测额度耗尽；恢复后可再选，exit 0、空 done 不算成功 |
+| ZCode CLI | 可以，edit 模式 | App → agent-link → zcode-cli 读取数据并修改指定文件，主 Agent 回读确认结果正确、输入未变 |
+| Qoder | 本次检测可用 | 小脚本真实请求返回正确短标记，usable=true；后续仍在使用前检测 |
+| CBC | 本次检测额度阻断 | 小脚本返回quota_blocked；配置保留，后续使用前重查 |
 | DSH | 暂停 | 用户明确暂时不用；历史通过不代表继续启用 |
 
-额度耗尽是临时状态，不删除配置、不永久禁用。当前优先 AGY 和只读 ZCode；Qoder/CBC 保留接入，已知额度阻断期间跳过。原生返回重置时间时，后续任务在该时间后恢复候选并以真实结果确认；时间未知时，下次确有该 CLI 需求再优先查询其原生额度。若无已核实的额度查询入口，可用该真实任务尝试恢复，失败后交给其他候选，不在同一批任务中反复撞限。不持续轮询，不新增额度管理服务。成功响应清除临时阻断；DSH 仍按用户要求暂停。
+派发 Qoder/CBC 前先执行：
 
-本次已恢复 Qoder/CBC 原配置并通过 App 枚举读回。只保留 DSH 为暂停状态；没有调用额度阻断的 CLI。
+```bash
+python3 scripts/agent_quota_check.py          # 检查两者
+python3 scripts/agent_quota_check.py qoder    # 只检查待用 CLI
+```
+
+脚本输出 JSON 数组。仅选择 `usable=true` 的目标；`quota_blocked` 表示额度阻断，`rate_limited` 表示请求限流，`unknown`、`timeout` 等不能当成功。它禁用工具、只要求短标记，复用 CLI 原有登录和默认模型；会产生少量模型请求，并非精确余额查询。当前 help/status 未发现可直接使用的余额命令，不新增认证或直连接口。
+
+不缓存永久禁用状态。当前检查失败就换候选，同批不反复检测；下次实际使用前重新检查，额度恢复后自然可用。脚本不输出原始响应、账号字段或凭据，不改登录和默认模型，不启动后台轮询。Qoder/CBC 配置始终保留，DSH 暂停。
+
+ZCode 活动配置已从 `plan` 改为 `edit`。真实测试读取 values.json，修改 summary.txt；主 Agent 独立验证正确总和、输入原文未改、目录仅有原两份文件。该验证不覆盖所有命令执行、会话恢复或后台 queue。
 
 `list_agents.available=true` 只表示命令可执行，上游不检查额度、登录或模型响应。其他自动发现的内置 profile 不在本轮选定范围，不因出现在列表就自动选用。主 Agent 按上述范围派发，再独立验收非空正文和任务结果；遇到额度错误临时跳过该 CLI，当前任务由主 Agent 继续或改派已允许候选，不搭建新的额度服务。
 
@@ -48,18 +57,18 @@
 }
 ```
 
-当前优先设为 `agy` 或 `zcode`；`qoder`、`cbc` 按上述额度恢复规则选择。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用，当前限制见下表。
+`agy`、`zcode` 可按任务选用；`qoder`、`cbc` 先运行上述脚本检测。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用，当前限制见下表。
 
 当前参数组合如下，提示词由 agent-link 放在末尾：
 
 | agent | command | args | promptFlag | promptMode |
 | --- | --- | --- | --- | --- |
 | agy | 本机 agy 绝对路径 | --output-format text | --print | arg |
-| zcode | 本机 zcode-cli 绝对路径 | --mode plan --no-color | --prompt | arg |
+| zcode | 本机 zcode-cli 绝对路径 | --mode edit --no-color | --prompt | arg |
 | qoder | 本机 qoder 绝对路径 | --print --output-format text | null | arg |
 | cbc | 本机 cbc 绝对路径 | --print --output-format text | null | arg |
 
-各项 outputFormat 为 text。ZCode 当前配置是只读 plan 模式，写入任务不在本轮验收范围。ZCode 未配置 modelFlag 或 thinkingFlag。停用 CLI 的历史参数不作为当前派发入口。
+各项 outputFormat 为 text。ZCode 当前配置为 edit 模式，指定文件修改已独立验收。ZCode 未配置 modelFlag 或 thinkingFlag。停用 CLI 的历史参数不作为当前派发入口。
 
 上游还提供 `spawn_agents`、`reply`、`kill_agent`、`list_agents`、`get_status`。`reply` 会重新启动 CLI，并传入记录的对话；它不是 CLI 原生会话恢复。服务重启后内存中的对话记录不保留。
 
