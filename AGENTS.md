@@ -18,6 +18,10 @@ acpx／统一 ACP、hcom 平台化接入和完整 TS Runtime 重建不在后续�
 方向确认不等于生产迁移完成；旧生产入口保持原所有权，未经独立验收不得宣称已接管。
 当前本机子任务从 [agent-link 说明](docs/agent-link-subagents.md)与[计划](plans/agent-link-subagent-smoke/task_plan.md)进入；外部后台回传才查[回调计划](plans/codex-callback-bridge/task_plan.md)，已有 Paperclip 运维查 [Paperclip 计划](plans/paperclip-based-cm/task_plan.md)。
 
+## 当前 CLI 派发范围（2026-10-25）
+
+额度耗尽是临时状态，不删除配置、不永久禁用。当前优先 AGY 和只读 ZCode；Qoder/CBC 保留接入，已知额度阻断期间跳过。原生返回重置时间时，后续任务在该时间后恢复候选并以真实结果确认；时间未知时，下次确有该 CLI 需求再优先查询其原生额度。若无已核实的额度查询入口，可用该真实任务尝试恢复，失败后交给其他候选，不在同一批任务中反复撞限。不持续轮询，不新增额度管理服务。成功响应清除临时阻断；DSH 仍按用户要求暂停。具体状态见[子任务说明](docs/agent-link-subagents.md#当前派发范围)。
+
 ## Start Here
 
 First read:

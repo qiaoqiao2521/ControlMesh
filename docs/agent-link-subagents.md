@@ -6,23 +6,41 @@
 
 - 上游包 `agent-link-mcp@0.5.3`，MIT，Node >=20。
 - 一个名为 `agent-link` 的 Codex stdio MCP 服务，工具超时 600 秒。
-- 本机 `~/.agent-link/config.json` 配置 `agy`、`qoder`、`cbc`、`zcode`、`dsh`。
+- 本机 `~/.agent-link/config.json` 保留 `agy`、`zcode`、`qoder`、`cbc`；仅 DSH 按用户要求暂停，其参数单独保留，不提交仓库。
 - 使用已有 CLI 自身的登录、默认模型和网络配置。没有新认证、模型代理或常驻调度服务。
 - 使用 Node 与包入口的绝对路径，减少桌面启动环境与终端 PATH 差异。
 
 本机入口可用 `codex mcp get agent-link --json` 查询。CLI 本身仍由各自的安装方式维护。
 
+## 当前派发范围
+
+2026-10-25 用户纠正后：
+
+| CLI | 可否选择 | 当前依据 |
+| --- | --- | --- |
+| AGY | 可以 | 此前真实文件任务通过；本次未重复调用 |
+| ZCode CLI | 可以，只读 | 本次 App → agent-link → zcode-cli 重新读取随机文件并计算，主 Agent 独立核对通过；plan 模式，写入未验证 |
+| Qoder | 暂时跳过，可恢复 | 用户确认额度耗尽；保留配置，按重置时间或后续真实需求复核 |
+| CBC | 暂时跳过，可恢复 | 已实测额度耗尽；恢复后可再选，exit 0、空 done 不算成功 |
+| DSH | 暂停 | 用户明确暂时不用；历史通过不代表继续启用 |
+
+额度耗尽是临时状态，不删除配置、不永久禁用。当前优先 AGY 和只读 ZCode；Qoder/CBC 保留接入，已知额度阻断期间跳过。原生返回重置时间时，后续任务在该时间后恢复候选并以真实结果确认；时间未知时，下次确有该 CLI 需求再优先查询其原生额度。若无已核实的额度查询入口，可用该真实任务尝试恢复，失败后交给其他候选，不在同一批任务中反复撞限。不持续轮询，不新增额度管理服务。成功响应清除临时阻断；DSH 仍按用户要求暂停。
+
+本次已恢复 Qoder/CBC 原配置并通过 App 枚举读回。只保留 DSH 为暂停状态；没有调用额度阻断的 CLI。
+
+`list_agents.available=true` 只表示命令可执行，上游不检查额度、登录或模型响应。其他自动发现的内置 profile 不在本轮选定范围，不因出现在列表就自动选用。主 Agent 按上述范围派发，再独立验收非空正文和任务结果；遇到额度错误临时跳过该 CLI，当前任务由主 Agent 继续或改派已允许候选，不搭建新的额度服务。
+
 ## 如何调用
 
 在 Codex 中明确指定工具、CLI、任务和工作目录：
 
-> 调用 agent-link 的 spawn_agent，agent=qoder，cwd=这个项目的绝对路径。让它检查指定文件并返回结果，不再派生其他 Agent。
+> 调用 agent-link 的 spawn_agent，agent=agy，cwd=这个项目的绝对路径。让它检查指定文件并返回结果，不再派生其他 Agent。
 
 相应的工具参数：
 
 ```json
 {
-  "agent": "qoder",
+  "agent": "agy",
   "task": "Read the requested file and report the findings. Do not modify files.",
   "cwd": "/absolute/path/to/project",
   "timeoutMs": 120000,
@@ -30,23 +48,22 @@
 }
 ```
 
-将 `agent` 改为 `agy`、`cbc`、`zcode` 或 `dsh` 可选择对应配置。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用，当前限制见下表。
+当前优先设为 `agy` 或 `zcode`；`qoder`、`cbc` 按上述额度恢复规则选择。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用，当前限制见下表。
 
 当前参数组合如下，提示词由 agent-link 放在末尾：
 
 | agent | command | args | promptFlag | promptMode |
 | --- | --- | --- | --- | --- |
 | agy | 本机 agy 绝对路径 | --output-format text | --print | arg |
+| zcode | 本机 zcode-cli 绝对路径 | --mode plan --no-color | --prompt | arg |
 | qoder | 本机 qoder 绝对路径 | --print --output-format text | null | arg |
 | cbc | 本机 cbc 绝对路径 | --print --output-format text | null | arg |
-| zcode | 本机 zcode-cli 绝对路径 | --mode plan --no-color | --prompt | arg |
-| dsh | 本机 dsh 绝对路径 | headless | null | arg |
 
-各项 outputFormat 为 text。ZCode 当前配置是只读 plan 模式，写入任务不在本轮验收范围。DSH 沿用现有 headless profile 的默认模型，不自动选择 web profile；ZCode/DSH 未配置 modelFlag 或 thinkingFlag。只读测试提示约束 DSH 的任务范围，不代表其所有工具被沙箱强制只读。
+各项 outputFormat 为 text。ZCode 当前配置是只读 plan 模式，写入任务不在本轮验收范围。ZCode 未配置 modelFlag 或 thinkingFlag。停用 CLI 的历史参数不作为当前派发入口。
 
 上游还提供 `spawn_agents`、`reply`、`kill_agent`、`list_agents`、`get_status`。`reply` 会重新启动 CLI，并传入记录的对话；它不是 CLI 原生会话恢复。服务重启后内存中的对话记录不保留。
 
-## 当前验收
+## 历史验收
 
 2026-10-25 后续，用户明确要求实测四个 CLI。测试提示不包含答案或随机标记；各 CLI 从独立目录读取 request.json，只对 state=done 的两项求和。主 Agent 独立核对 marker、total=46、count=2 与 MCP 返回。
 
@@ -58,7 +75,7 @@
 | DSH 0.2.1-rc.2 | 通过 | 原生 headless 读取文件、返回正确正文并正常结束 |
 | Qoder | 此前已通过 | 本日先前已完成真实文档审查，本轮未重复调用 |
 
-CBC 的一次 JSON 输出诊断确认同一额度错误，之后停止请求；未购买额度、换账号或切换模型。上游 agent-link 0.5.3 对 exit 0 只解析 stdout，本轮未改上游。调用者必须核对有意义的结果和实际产物，空 done 不算成功。CBC 额度恢复后再用原任务验收。
+CBC 的一次 JSON 输出诊断确认同一额度错误，之后停止请求；未购买额度、换账号或切换模型。上游 agent-link 0.5.3 对 exit 0 只解析 stdout，本轮未改上游。调用者必须核对有意义的结果和实际产物，空 done 不算成功。CBC 保留配置；后续按当前派发范围的额度恢复规则处理，不永久停用。
 
 本轮只修改本机 agent-link 配置和文档，没有新增 CLI 包、wrapper、登录或服务。原生后台 queue、写入、取消与会话恢复不属于这次测试。下文保留早期证据。
 

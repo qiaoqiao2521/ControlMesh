@@ -2,9 +2,14 @@
 
 ## Current
 
-2026-10-25：CM 轻量方向已交付。本轮按用户要求补验 AGY、CBC、ZCode CLI、DSH：前三个成功调用为 AGY/ZCode/DSH，随机文件标记与筛选求和均独立通过；CBC 额度耗尽，不能使用空 done 冒充成功。Qoder 保留此前验收。本机配置已修正 AGY 参数并加入 zcode、dsh，无新登录、wrapper 或调度服务；后台 queue 未复测。
+2026-10-25 再次纠正：额度耗尽属于临时状态，已恢复 Qoder/CBC 原配置并经 App list_agents 读回；当前优先 AGY、只读 ZCode。额度恢复按原生重置时间或下次真实任务需求复核，不永久禁用、不后台轮询、不在同批反复撞限。DSH 仍暂停。ZCode 本次真实文件读取与计算独立核对通过；未请求 Qoder/CBC/DSH，后台 queue 未复测。
 
 ## Done
+
+- 收尾检查：Qoder/CBC原配置恢复且App枚举读回，DSH暂停；相关文档链接与git diff --check通过。仅提交本次四份文档，本机配置和测试回执保留在私有目录；旧Orca等遗留继续按Issues中的owner和入口交接。
+- 本次仅调用一次 ZCode plan；结果与独立 expected.json 完全相同。私有回执位于 ~/.local/state/agent-link-smoke/20261025-zcode-current/，不提交 fixture、marker 或原始日志。
+- 曾把临时额度状态误当停用移除，用户纠正后已恢复 Qoder/CBC；当前 App 枚举包含 AGY/ZCode/Qoder/CBC，DSH 不在活动配置。没有修改上游或引入状态服务。
+- 更新全局/项目 AGENTS、调用说明和原计划；历史验收保留为历史，不冒充当前可派发。没有改上游，也未实现额度探测或新 wrapper。
 
 - 四 CLI 本轮验收：AGY 参数修正后通过；ZCode CLI 的只读 plan profile 通过；DSH 原生 headless 通过；CBC 通过一次原生 JSON 诊断确认 429，额度恢复前停止请求。各回执与独立比较结果保存在私有目录，公开文档不含会话 UUID、原始日志或凭据。
 - agent-link list_agents 已读取五个自定义 profile；新配置无需重启 App 即可调用。说明记录原生 argv、DSH profile 边界、ZCode 只读范围和 CBC 的空成功问题。全局 AGENTS 仅同步已配置 CLI 名称。
@@ -32,8 +37,8 @@
 ## Remaining
 
 - App 工具加载与 Qoder 同步调用已于 2026-10-25 完成，后续只在真实任务中按需使用。
-- CBC 真实任务未通过，原生 429 额度已用尽；额度恢复后再验收，owner 根 Codex，最短入口为 docs/agent-link-subagents.md 的当前验收。本轮不购买、换账号或切换模型。
-- AGY、ZCode CLI、DSH 的同步文件读取已通过；文件写入、取消、恢复等未在本轮测试，不自动扩展测试矩阵。
+- Qoder/CBC 暂时额度阻断，原生重置时间与独立额度查询入口待核实；根 Codex 在后续实际需要时按 docs/agent-link-subagents.md 的恢复规则处理，不创建周期探测。DSH 暂停。
+- AGY与ZCode只读任务有通过证据；历史DSH结果保留但已停用。ZCode文件写入、取消、恢复未验，不扩展其能力声明。
 - 后台 queue 不在同步 MCP 测试验收范围。需要时先恢复原线程共享控制通道；本次不启动新 daemon。
 
 ## Issues
@@ -48,7 +53,7 @@
 
 ## Next
 
-本轮四 CLI 验证完成，结果为三项通过、一项额度阻断。后续使用已验收入口，CBC 额度恢复后再验；需要独立后台回传时才处理 queue 通道。
+当前优先AGY和只读ZCode；Qoder/CBC按额度状态临时避让并允许恢复，不调用暂停的DSH。需要独立后台回传时才处理queue通道。
 
 ## Knowledge closeout
 
@@ -57,3 +62,5 @@
 2026-10-25 updated：能力取舍已串行写入并读回 CapMesh D030、PROJECT、capabilities/index.md、PIT-002 与社区入口；D024 标明被细化，D028 补同步 MCP 边界，D029 的 Magpie 退出决定回填 CM。Wiki 原有“按当前任务选择验收依据”继续适用，原则 already_covered，不新建知识页或全局记忆记录。
 
 already_covered：采用 Wiki/自动化开发范式与智能体协作.md 的“按当前任务选择验收依据”和“外界 Agent 协作与原生队列”。本次安装、同步工具调用、App 加载、后台接续分开记账；共享知识已覆盖这一原则，不新增 Wiki 页面或索引。
+
+本次修正规则 no_reusable_delta：使用既有“真实结果独立验收”原则，仅把当前额度与暂停状态更新为派发约束，不新增知识系统。
