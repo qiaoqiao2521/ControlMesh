@@ -6,7 +6,7 @@
 
 - 上游包 `agent-link-mcp@0.5.3`，MIT，Node >=20。
 - 一个名为 `agent-link` 的 Codex stdio MCP 服务，工具超时 600 秒。
-- 本机 `~/.agent-link/config.json` 配置 `agy`、`qoder`、`cbc`。
+- 本机 `~/.agent-link/config.json` 配置 `agy`、`qoder`、`cbc`、`zcode`、`dsh`。
 - 使用已有 CLI 自身的登录、默认模型和网络配置。没有新认证、模型代理或常驻调度服务。
 - 使用 Node 与包入口的绝对路径，减少桌面启动环境与终端 PATH 差异。
 
@@ -30,11 +30,37 @@
 }
 ```
 
-将 `agent` 改为 `agy` 或 `cbc` 可使用另外两个已配置 CLI。`cbc` 是本机 CodeBuddy Code 的实际入口；没有创建 `bcb` 别名。
+将 `agent` 改为 `agy`、`cbc`、`zcode` 或 `dsh` 可选择对应配置。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用，当前限制见下表。
+
+当前参数组合如下，提示词由 agent-link 放在末尾：
+
+| agent | command | args | promptFlag | promptMode |
+| --- | --- | --- | --- | --- |
+| agy | 本机 agy 绝对路径 | --output-format text | --print | arg |
+| qoder | 本机 qoder 绝对路径 | --print --output-format text | null | arg |
+| cbc | 本机 cbc 绝对路径 | --print --output-format text | null | arg |
+| zcode | 本机 zcode-cli 绝对路径 | --mode plan --no-color | --prompt | arg |
+| dsh | 本机 dsh 绝对路径 | headless | null | arg |
+
+各项 outputFormat 为 text。ZCode 当前配置是只读 plan 模式，写入任务不在本轮验收范围。DSH 沿用现有 headless profile 的默认模型，不自动选择 web profile；ZCode/DSH 未配置 modelFlag 或 thinkingFlag。只读测试提示约束 DSH 的任务范围，不代表其所有工具被沙箱强制只读。
 
 上游还提供 `spawn_agents`、`reply`、`kill_agent`、`list_agents`、`get_status`。`reply` 会重新启动 CLI，并传入记录的对话；它不是 CLI 原生会话恢复。服务重启后内存中的对话记录不保留。
 
 ## 当前验收
+
+2026-10-25 后续，用户明确要求实测四个 CLI。测试提示不包含答案或随机标记；各 CLI 从独立目录读取 request.json，只对 state=done 的两项求和。主 Agent 独立核对 marker、total=46、count=2 与 MCP 返回。
+
+| CLI | 当前结果 | 说明 |
+| --- | --- | --- |
+| AGY | 通过 | 修正 --print 参数位置后，App → agent-link → AGY → 当前调用通过 |
+| CodeBuddy / CBC | 未通过：额度耗尽 | 原生 stderr 返回 429 额度已用尽；stdout 为空且进程退出 0，agent-link 误报空 done |
+| ZCode CLI 0.16.5 | 通过 | 使用 zcode-cli 原生 --prompt，当前配置为只读 plan 模式 |
+| DSH 0.2.1-rc.2 | 通过 | 原生 headless 读取文件、返回正确正文并正常结束 |
+| Qoder | 此前已通过 | 本日先前已完成真实文档审查，本轮未重复调用 |
+
+CBC 的一次 JSON 输出诊断确认同一额度错误，之后停止请求；未购买额度、换账号或切换模型。上游 agent-link 0.5.3 对 exit 0 只解析 stdout，本轮未改上游。调用者必须核对有意义的结果和实际产物，空 done 不算成功。CBC 额度恢复后再用原任务验收。
+
+本轮只修改本机 agent-link 配置和文档，没有新增 CLI 包、wrapper、登录或服务。原生后台 queue、写入、取消与会话恢复不属于这次测试。下文保留早期证据。
 
 2026-10-24，使用 MCP SDK 连接已安装的上游 stdio 服务：
 

@@ -7,7 +7,7 @@
 | 需要 | 复用方式 | 验收范围 |
 | --- | --- | --- |
 | 宿主内多 Agent 协作 | 宿主原生子 Agent、线程与任务工具 | 按具体任务验收 |
-| 调用另一个 CLI 做子任务 | [agent-link-mcp](docs/agent-link-subagents.md)，沿用 CLI 自己的配置 | Qoder 同步任务和 App 直接调用已验；AGY/CBC 已配置，真实任务待验 |
+| 调用另一个 CLI 做子任务 | [agent-link-mcp](docs/agent-link-subagents.md)，沿用 CLI 自己的配置 | Qoder、AGY、ZCode CLI、DSH 同步返回已验；CBC 当前额度耗尽，未通过 |
 | 后台任务完成后继续 | 发起端原生完成通知；Codex 外部后台回传使用 [native queue](docs/codex-callback.md) | MCode idle 与本机 queue 闭环有历史验收；当前通道需按任务核对 |
 | 个人陪伴记忆 | 可选 [DSH Companion Memory](plugins/dsh-companion-memory/README.md) | 插件行为已测试；真实模型长期记忆质量待验证 |
 

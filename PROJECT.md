@@ -255,7 +255,7 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
-2026-10-25：把当前轻量方向用于真实任务，复用原生能力和 agent-link，主 Agent 独立验收。只在实际缺口出现时补小适配；AGY/CBC 按需验收，外部后台任务有需要时核对并恢复原会话 queue 通道。全 CLI 测试矩阵、网关接入和平台迁移均不作为使用前置步骤。
+2026-10-25：把当前轻量方向用于真实任务，复用原生能力和 agent-link，主 Agent 独立验收。Qoder、AGY、ZCode CLI、DSH 同步任务已有验收，CBC 受额度耗尽阻断，详见当前计划。只在实际缺口出现时补小适配；外部后台任务有需要时核对并恢复原会话 queue 通道。全 CLI 测试矩阵、网关接入和平台迁移均不作为使用前置步骤。
 
 ### 历史优先级（按原日期保留，不自动恢复为待办）
 

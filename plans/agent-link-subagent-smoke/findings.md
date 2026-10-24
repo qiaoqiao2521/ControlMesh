@@ -1,5 +1,15 @@
 # Findings
 
+## 2026-10-25：四 CLI 真实调用
+
+- AGY/CBC/ZCode/DSH 各用独立私有 fixture，提示词不含随机 marker 或预期答案。主 Agent 读取原文件和 MCP 返回，比较 marker、筛选后总数与求和。AGY、ZCode、DSH 三项通过；CBC 未通过。
+- AGY 首次在解析参数时退出 2：旧 args 中 --print 把随后 --output-format 吃作提示词。改用 args=[--output-format,text]、promptFlag=--print、promptMode=arg；其余登录、模型与网络配置不变。修正后真实调用通过。
+- 本机 zcode 命令启动 Electron 桌面程序；误用 --help 时因当前执行环境无 DISPLAY 退出 139。真正的非交互命令是 zcode-cli 0.16.5，支持 --prompt。新增 zcode profile 指向该路径，使用 --mode plan --no-color；读取测试通过，未验收文件写入。
+- DSH 0.2.1-rc.2 原生 headless 接收位置参数或 stdin，默认 stdout 是最终文本，当前默认模型来自 headless profile。帮助命令输出后未及时退出，子 Agent 已定向结束此次 help；真实任务正常返回。新增 dsh profile 直接执行 headless，无模型覆盖或新服务。
+- CBC 的第一次 MCP 调用返回空 done。一次原生 --output-format json 诊断同样 stdout 为空、exit=0，stderr 明确 429 额度耗尽。agent-link 的 process-runner.js 仅以非零退出报错，spawn-agent.js 只将 stdout 交给 parser，因此该错误未显示在 MCP 结果。保留上游实现，不新增 wrapper；明确记录不能接受空 done，停止进一步额度请求。
+- agent-link 每次 getAgentProfile 都读取 config.json；本次两个新 profile 通过 list_agents 立即可见，无需重启 App。列举成功只证明入口存在，真实任务结果单独检查。
+- 本机私有回执目录：~/.local/state/agent-link-smoke/20261025-cli-hy91dcxu/。config.before.json、各 CLI request/MCP 回执、CBC 原生诊断与 verification.json 均不入库。最终 verification 为 agy/zcode/dsh=true、cbc=false。一次进行中的编排 cell 尚未提交 store 时，曾读到 AGY 首次失败回执；保留为 mcp-attempt-1.json，cell 完成后重新读取实际成功返回并核验，最终报告不引用中间结果。
+
 ## 2026-10-25：CM 定位收敛
 
 - 用户复盘要求轻量结合 CLI 本身做适配。沿用已有 agent-link 子任务能力，不接管各 CLI 的认证、模型、代理、上下文或原生生命周期。
