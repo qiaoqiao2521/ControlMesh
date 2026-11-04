@@ -9,5 +9,13 @@
 - 用户明确批准创建专用长期 API Key，界面显示 Active/Restricted；仅开放模型列表读取和 Responses 调用所需权限。
 - 官方 GET models 成功；真实 run 使用 openai/gpt-6.1-sol，6 个 read/edit/bash 步骤，21 秒完成，5 项测试通过。
 - 默认 headless 原生权限足够完成本地编辑与测试；无需新增危险权限策略。
-- 原生 web profile 使用同一独立 Home 和会话，监听 127.0.0.1:3082；已在日常 Chrome 通过原生本机登录 URL 打开。
+- 最初的独立 Home/3082 验证已被用户纠正。现在复用原 ~/.dsh，原生 dsh web 监听 127.0.0.1:3080，日常 Chrome 实际完成官方 OpenAI 回复；原会话仍在。
 - 截止本轮检查，未观测到赠送额度扣减刷新，不能声称已验证具体费用；账户金额不入库。
+- Magpie 原生服务最初 inactive/disabled，并非已证实的进程崩溃。恢复原生 systemd daemon，关闭 Web 管理界面，只服务本机 3425。
+- 仅启用 ZCode、MiniMax Code 订阅插件；停用 Qoder、WorkBuddy 与非目标原生 provider，保留既有账号数据。
+- 原生账号 discovery 是两路订阅插件的认证依赖，不能全局关闭。批量关闭 builtin 已回滚至原基线；warmups 独立停用。
+- 初始 plugin-auth.json 缺失，历史 signedIn 缓存不能证明当前认证。ZCode 通过原生 app-sign-in 关联本机既有账号，实际返回 zcode-proxy-ok。
+- MiniMax 插件有独立设备 OAuth，不读取 mcode 原有 auth。CLI 登录首次缺少 service 的代理环境而超时；已退出且未取得 device code 后，使用同一代理环境发起唯一第二次流程。
+- Magpie 既有原生同步会更新已连接 DSH 的模型 catalog，保留 direct OpenAI，不需另写同步器或管理平台。
+- MCode 同次设备授权成功；两路 catalog 共七项。当前 MCode 型号为 M3.1-Flash-Preview、M2.7、M2.7-highspeed，旧 Flash 名称失效。
+- 日常 DSH 网页分别返回 daily-zcode-ok（8 秒）、daily-mcode-ok（4 秒），均不调用项目工具；最后恢复默认 ZCode。

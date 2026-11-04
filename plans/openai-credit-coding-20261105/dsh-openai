@@ -4,7 +4,7 @@ set -e
 if [[ $# -eq 0 || ${1:-} == --help ]]; then
   printf '%s\n' \
     '用法：在项目目录运行 dsh-openai "修改要求，并运行相关测试"' \
-    '网页界面：dsh-openai web' \
+    '日常网页界面：dsh web（使用原 ~/.dsh）' \
     '事件输出：dsh-openai --json "任务"'
   exit 0
 fi
@@ -14,9 +14,9 @@ if [[ ! -s "$credit_key" ]]; then
   printf '%s\n' "尚未配置 OpenAI API Key：$credit_key" >&2
   exit 2
 fi
-IFS= read -r OPENAI_API_KEY < "$credit_key" || true
-export OPENAI_API_KEY
-export DSH_HOME="$HOME/.local/share/dsh-openai-credits"
+IFS= read -r OPENAI_CREDITS_API_KEY < "$credit_key" || true
+export OPENAI_CREDITS_API_KEY
+export DSH_HOME="$HOME/.dsh"
 export DSH_TELEMETRY_MODE=DISABLED
 
 profile=headless
@@ -24,4 +24,4 @@ if [[ ${1:-} == web ]]; then
   profile=web
   shift
 fi
-exec "$HOME/.local/bin/dsh" --profile "$profile" "$@"
+exec "$HOME/.local/bin/dsh" --profile "$profile" --patch "$HOME/.dsh/openai-api.patch.yml" "$@"
