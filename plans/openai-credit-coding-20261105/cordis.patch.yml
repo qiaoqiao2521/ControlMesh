@@ -1,0 +1,16 @@
+- id: agent-default-model
+  config:
+    provider: openai
+    model: gpt-6.1-sol
+    reasoningEffort: high
+
+- id: llm-pi-ai
+  config:
+    providers:
+      openai:
+        apiKeyEnv: OPENAI_API_KEY
+        api: openai-responses
+        baseURL: https://api.openai.com/v1
+        models:
+          - id: gpt-6.1-sol
+          - id: gpt-6-astra
