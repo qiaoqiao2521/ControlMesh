@@ -41,3 +41,12 @@
 
 ## Knowledge
 no_reusable_delta：沿用现有 CM D030 与原生 DSH 配置；本次账户与额度状态保留在本计划。
+
+## Follow-up: unexpected AGY sign-in and responsiveness
+- 用户反馈未经手动登录却出现 AGY Google OAuth。Magpie 非目标 provider 仍 off；相关时段无登录事件，AGY 原生同步未改用户设置。同期信息处理 timer 固定调用纯 OpenCode/MiniMax，没有 AGY 调用证据，保持其正常运行。
+- 另一个 Codex 聊天的原生事件确认：04:28:15.284–04:29:35.383 执行 agent_quota_check.py --pick，Qoder ready 后仍启动 AGY，最后 AGY timeout。用户链接中的时间值为 04:28:46.430，位于该区间。时间及触发机制高度吻合；缺少浏览器启动的直接父进程证据，不作为绝对归属结论。
+- 最小修复：--pick 首个 ready 后停止，不再为了选择 Qoder 而额外启动 AGY；所有探测关闭 stdin 并新建进程会话，避免继承交互终端。Qoder 不可用时仍保留 AGY fallback；checks 仅含实际已探测项。
+- 官方 headless 文档要求缓存认证及无终端环境：https://antigravity.google/docs/cli/headless/ 。本轮没有发起新的真实 AGY 登录/模型请求；终端隔离不宣称为所有认证状态下的浏览器阻断保证。
+- 局部 12 项 unittest 全部通过，覆盖首选可用不启动 AGY、首选失败仍检查 fallback；独立只读审阅通过。
+- 卡顿采样：Magpie/Bun RSS 合计约 126 MiB、合计约 1% 单核 CPU、无自身 swap；服务组约 554 MiB，其中约 474 MiB 为文件缓存。历史服务组内存峰值约 2.13 GiB，发生时间未确定。当前全机可用约 9.1 GiB，CPU 空闲 73–83%，IO wait 0%，短时存在少量换页；不能据此判定用户卡顿瞬间的原因。未停止其他进程或清空 swap。
+- 本次只修改既有探测脚本、相关回归测试和本进度。无新增 daemon、登录状态或临时产物需要清理；属于局部修复，沿用现有知识约定。

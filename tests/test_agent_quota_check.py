@@ -57,6 +57,8 @@ class QuotaCheckTests(unittest.TestCase):
             assert "--tools" not in command
             assert "--no-session-persistence" not in command
             assert kwargs["timeout"] == 12
+            assert kwargs["stdin"] == quota_check.subprocess.DEVNULL
+            assert kwargs["start_new_session"] is True
             return SimpleNamespace(stdout="quota_probe_test\n", stderr="", returncode=0)
         with patch.object(quota_check.secrets, "token_hex", return_value="test"), \
              patch.object(quota_check.subprocess, "run", side_effect=run):
@@ -79,6 +81,29 @@ class QuotaCheckTests(unittest.TestCase):
         assert [call.args[0] for call in check.call_args_list] == ["qoder", "agy"]
         assert json.loads(stdout.getvalue()) == {"selected": "qoder", "degraded": True, "checks": checks}
         assert "WARNING" in stderr.getvalue()
+
+    def test_pick_ready_qoder_does_not_launch_agy(self):
+        ready = {"agent": "qoder", "status": "ready", "usable": True}
+        stdout = io.StringIO()
+        with patch.object(quota_check.sys, "argv", ["probe", "--pick"]), \
+             patch.object(Path, "read_text", return_value=json.dumps({"agents": {"qoder": {"command": "qoder"}, "agy": {"command": "agy"}}})), \
+             patch.object(quota_check, "check", side_effect=[ready]) as check, \
+             contextlib.redirect_stdout(stdout):
+            quota_check.main()
+        assert [call.args[0] for call in check.call_args_list] == ["qoder"]
+        assert json.loads(stdout.getvalue()) == {"selected": "qoder", "degraded": False, "checks": [ready]}
+
+    def test_pick_unavailable_primary_still_checks_fallback(self):
+        checks = [{"agent": "qoder", "status": "timeout", "usable": False},
+                  {"agent": "agy", "status": "ready", "usable": True}]
+        stdout = io.StringIO()
+        with patch.object(quota_check.sys, "argv", ["probe", "--pick"]), \
+             patch.object(Path, "read_text", return_value=json.dumps({"agents": {"qoder": {"command": "qoder"}, "agy": {"command": "agy"}}})), \
+             patch.object(quota_check, "check", side_effect=checks) as check, \
+             contextlib.redirect_stdout(stdout):
+            quota_check.main()
+        assert [call.args[0] for call in check.call_args_list] == ["qoder", "agy"]
+        assert json.loads(stdout.getvalue())["selected"] == "agy"
 
 
 if __name__ == "__main__":

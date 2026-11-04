@@ -43,7 +43,9 @@ def check(agent, profile, timeout):
             else:
                 command += ["--output-format", "json", "--max-turns", "1"]
         command.append("Reply with exactly " + marker + ". Do not use tools.")
-        result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, cwd="/tmp")
+        # Unattended probes must not inherit interactive stdin or a controlling terminal.
+        result = subprocess.run(command, stdin=subprocess.DEVNULL, start_new_session=True,
+                                capture_output=True, text=True, timeout=timeout, cwd="/tmp")
         status = classify(result.stdout, result.stderr, result.returncode, marker)
     except subprocess.TimeoutExpired:
         status = "timeout"
@@ -64,7 +66,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("agents", nargs="*", metavar="CLI")
     parser.add_argument("--timeout", type=float, default=60)
-    parser.add_argument("--pick", action="store_true", help="Select once; both-failed falls back without claiming readiness")
+    parser.add_argument("--pick", action="store_true", help="Stop at the first ready CLI; retain one fallback if none are ready")
     args = parser.parse_args()
     agents = list(dict.fromkeys(args.agents or ["qoder", "agy"]))
     if any(agent not in ("qoder", "agy", "cbc") for agent in agents):
@@ -76,7 +78,10 @@ def main():
     results = []
     for agent in agents:
         profile = profiles.get(agent)
-        results.append(check(agent, profile, args.timeout) if profile else {"agent": agent, "status": "unconfigured", "usable": False})
+        result = check(agent, profile, args.timeout) if profile else {"agent": agent, "status": "unconfigured", "usable": False}
+        results.append(result)
+        if args.pick and result["usable"]:
+            break
     output = pick(results) if args.pick else results
     if args.pick and output["degraded"]:
         print("WARNING: No probe-ready CLI; select once with degraded=true, without retrying probes.", file=sys.stderr)
