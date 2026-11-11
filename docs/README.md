@@ -49,6 +49,7 @@ Runtime behavior notes:
 ## Documentation Index
 
 - [Architecture](ARCHITECTURE.md)
+- [Cron 安全规范与任务契约](cron-safety-contract.md)（Paperclip薄适配，规范未部署）
 - [Decisions](DECISIONS.md)
 - [Codex Original-chat Callback](codex-callback.md)
 - [CLI 后台派发与交接 Skill](../skills/cli-dispatch-handoff/SKILL.md)：Qoder/AGY 探测与单次选择、外部不可用立即改内置子 Agent、按交接验收。
