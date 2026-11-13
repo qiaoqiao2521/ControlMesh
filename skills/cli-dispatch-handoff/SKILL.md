@@ -1,6 +1,6 @@
 ---
 name: cli-dispatch-handoff
-description: 派发 Qoder、AGY 的独立后台任务，探测可用性并复用既有回调；外部通道不可用时立即改用宿主内置子 Agent，沿用任务和交接继续工作。用于“交给 Qoder/AGY”“hcom 派发”“干完汇报”“不要一直盯着”等请求；短同步子任务仍用 agent-link。
+description: 派发 Qoder 的独立后台任务，探测可用性并复用既有回调；外部通道不可用时立即改用宿主内置子 Agent，沿用任务和交接继续工作。用于“交给 Qoder”“hcom 派发”“干完汇报”“不要一直盯着”等请求；短同步子任务仍用 agent-link。AGY 已移出自动化派发（2026-11-13 起，仅限用户显式点名时人工前台使用）。
 ---
 
 # CLI 后台派发与交接
@@ -15,7 +15,7 @@ description: 派发 Qoder、AGY 的独立后台任务，探测可用性并复用
 | --- | --- |
 | 写清任务、逐项验收、产物索引 | [任务与交接模板](references/task-and-handoff.md#任务材料) |
 | 外部通道故障、超时或不可用 | [立即改用内置子 Agent](references/task-and-handoff.md#内置子-agent-降级) |
-| 检查 Qoder、AGY，选择一次 | `python3 /home/muqiao/桌面/controlmesh-review/scripts/agent_quota_check.py --pick` |
+| 检查 Qoder，选择一次 | `python3 /home/muqiao/桌面/controlmesh-review/scripts/agent_quota_check.py --pick` |
 | CLI 尚未启动，需要原会话回调 | [复用 start_job](references/task-and-handoff.md#原生回调派发示例) |
 | 已有 hcom 任务或原生完成钩子 | [已有任务](references/task-and-handoff.md#已有任务与-hcom) |
 | 收到完成或失败通知 | [回调验收](references/task-and-handoff.md#回调验收) |
@@ -24,8 +24,8 @@ description: 派发 Qoder、AGY 的独立后台任务，探测可用性并复用
 ## 派发
 
 1. 沿用项目已有计划，写明目标、输入来源、允许修改范围、不得修改项、逐项验收方法、交付目录、交接文件及停止条件。重要要求逐条编号，不能只写“做好一点”。小任务使用短任务文件即可。
-2. 选择外部 CLI 时，每批运行一次探测。默认顺序 Qoder → AGY，优先 `usable=true`；都未通过时仍按 `selected` 尝试一次，失败则改用内置子 Agent，不循环重试。通道已知不可用时直接走内置，无需再消耗外部额度探测。CBC 仅显式指定；DSH 暂停。
-3. 正式任务沿用 CLI 已有登录、模型、网络和权限配置。**不要把 AGY 的探测用 plan 模式带入实现任务**；不自行添加跳过权限参数。
+2. 选择外部 CLI 时，每批运行一次探测。默认只探 Qoder，优先 `usable=true`；未通过时仍按 `selected` 尝试一次，失败则改用内置子 Agent，不循环重试。通道已知不可用时直接走内置，无需再消耗外部额度探测。CBC 仅显式指定；DSH 暂停。**AGY 禁止自动派发**：不探测、不 spawn、不作为后台通道（2026-11-13 起防消费者订阅 ToS 风控封号，保 Google AI Ultra 主力号；仅限用户显式点名时人工前台使用，查额度走 agy 交互界面 `/usage`）。
+3. 正式任务沿用 CLI 已有登录、模型、网络和权限配置。不自行添加跳过权限参数。
 4. 复用当前已就绪的完成回调。Codex 外部后台结果走原线程 queue；已有 hcom 路由先确认其完成事件确实接回原会话，不能将 hcom ACK 当完成回调。新 CLI 进程优先复用仓库的 `codex_callback.start_job`。
 5. 外部通道缺 socket、未就绪、超时或启动失败时，立即使用宿主 `spawn_agent` 等内置子 Agent 工具，传入同一任务文件、工作目录、交接位置与验收要求。内置协作不需要外部 socket、额度检测或 queue，不等修复外部设施。内置工具也不可用时，主 Agent 直接执行可做的部分；仅真实业务障碍需要报告。
 6. 将任务编号、实际通道、worker/内置 Agent ID、原线程、任务与交接路径写入原索引。外部绑定回调后可结束答复等通知；内置 Agent 使用宿主结果通知或原生等待工具收回结果，继续独立验收。不得将内部等待误判为外部轮询。

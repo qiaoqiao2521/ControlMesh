@@ -51,7 +51,7 @@
 
 ## 原生回调派发示例
 
-仅适用于外部通道已就绪、**尚未启动**的 Qoder/AGY CLI 作业。复用 [既有 runtime](../../../vendor/codex_callback/runtime/codex_callback/jobs.py)，不复写其 worker、queue 或生命周期。需要本机已安装 CLI、agent-link 配置，以及原会话可达的 Codex 控制 socket；条件不满足直接采用上一节内置降级，不把它变成项目开工门槛。
+仅适用于外部通道已就绪、**尚未启动**的 Qoder CLI 作业。复用 [既有 runtime](../../../vendor/codex_callback/runtime/codex_callback/jobs.py)，不复写其 worker、queue 或生命周期。需要本机已安装 CLI、agent-link 配置，以及原会话可达的 Codex 控制 socket；条件不满足直接采用上一节内置降级，不把它变成项目开工门槛。
 
 先准备任务文件，确认输出目录；然后在 Codex shell 执行下面 Python，替换 `task_file`、`handoff`、`cwd` 和 `task_id`。代码是派发示例，不是新的后台服务。
 
@@ -69,7 +69,7 @@ choice = json.loads(subprocess.check_output(
 profiles = json.loads((Path.home() / '.agent-link/config.json').read_text())['agents']
 agent = choice['selected']
 profile = profiles[agent]
-# 只使用当前 Qoder/AGY 的已核实 arg 模式；不将探测参数带入工作任务。
+# 只使用当前 Qoder 的已核实 arg 模式；不将探测参数带入工作任务。
 prompt = (f'读取任务文件 {task_file}，按编号要求执行。'
           f'将结果与产物索引写入 {handoff}；失败也写原因，然后退出。'
           '不要自行发送完成通知，启动器会负责通知原会话。')

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Probe Qoder/AGY before dispatch; retain explicit CBC support."""
+"""Probe Qoder before dispatch; retain explicit CBC/AGY support (AGY opt-in only).
+
+AGY is excluded from defaults since 2026-11-13: automated subprocess probing of
+agy risks consumer-subscription ToS enforcement. Probe it only by naming it
+explicitly as a positional CLI argument for manual, deliberate checks."""
 import argparse
 import json
 import re
@@ -68,7 +72,8 @@ def main():
     parser.add_argument("--timeout", type=float, default=60)
     parser.add_argument("--pick", action="store_true", help="Stop at the first ready CLI; retain one fallback if none are ready")
     args = parser.parse_args()
-    agents = list(dict.fromkeys(args.agents or ["qoder", "agy"]))
+    # Default probes Qoder only; agy must be named explicitly (manual opt-in).
+    agents = list(dict.fromkeys(args.agents or ["qoder"]))
     if any(agent not in ("qoder", "agy", "cbc") for agent in agents):
         parser.error("CLI must be qoder, agy or cbc")
     try:
