@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -107,7 +108,7 @@ def test_sync_memory_index_updates_by_content_hash_and_prunes_deleted_files(tmp_
     assert [hit.source_path for hit in result.hits] == ["memory/2026-04-08.md"]
 
 
-def test_search_memory_index_returns_empty_hits_for_invalid_fts_query(tmp_path: Path) -> None:
+def test_search_memory_index_distinguishes_invalid_fts_query_from_valid_empty_query(tmp_path: Path) -> None:
     paths = _make_paths(tmp_path)
     initialize_memory_v2(paths)
 
@@ -115,6 +116,25 @@ def test_search_memory_index_returns_empty_hits_for_invalid_fts_query(tmp_path: 
         result = search_memory_index(paths, query, refresh=False)
         assert result.query == query
         assert result.hits == []
+        assert result.error_code == "invalid_query"
+
+    absent = search_memory_index(paths, "neverpresentword", refresh=False)
+    assert absent.hits == []
+    assert absent.error_code is None
+
+
+def test_search_memory_index_reports_operational_error_on_lookup_or_refresh(tmp_path, monkeypatch):
+    paths = _make_paths(tmp_path)
+    initialize_memory_v2(paths)
+
+    def unavailable(*args, **kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(sqlite3, "connect", unavailable)
+    for refresh in (False, True):
+        result = search_memory_index(paths, "word", refresh=refresh)
+        assert result.hits == []
+        assert result.error_code == "index_unavailable"
 
 
 def test_search_memory_index_promotion_candidates_return_shared_scope(tmp_path: Path) -> None:

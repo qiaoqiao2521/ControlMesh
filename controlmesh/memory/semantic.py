@@ -22,6 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from controlmesh.infra.atomic_io import atomic_text_save
 from controlmesh.memory.models import (
     MemoryDocumentKind,
     MemoryScope,
@@ -35,7 +36,7 @@ from controlmesh.workspace.paths import ControlMeshPaths
 # Constants
 # ---------------------------------------------------------------------------
 
-_INDEX_VERSION = 2
+_INDEX_VERSION = 3
 _TRIGRAM_SIZE = 3
 _MIN_NGRAM_LENGTH = 3  # skip texts shorter than this after normalization
 _DEFAULT_LIMIT = 10
@@ -113,13 +114,14 @@ def _semantic_index_path(paths: ControlMeshPaths) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def _extract_authority_entries(paths: ControlMeshPaths) -> list[_SourceEntry]:
+def _extract_authority_entries(paths: ControlMeshPaths, *, text: str | None = None) -> list[_SourceEntry]:
     """Parse individual entries from MEMORY.md grouped by section."""
     authority_path = paths.authority_memory_path
-    if not authority_path.exists():
-        return []
-
-    text = authority_path.read_text(encoding="utf-8")
+    if text is None:
+        try:
+            text = authority_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return []
     lines = text.splitlines()
 
     entries: list[_SourceEntry] = []
@@ -215,17 +217,16 @@ def _split_sections_with_offset(
     return sections
 
 
-def _extract_daily_note_entries(paths: ControlMeshPaths) -> list[_SourceEntry]:
+def _extract_daily_note_entries(
+    paths: ControlMeshPaths, *, snapshot: dict[Path, str] | None = None,
+) -> list[_SourceEntry]:
     """Parse entries from all daily notes (Events, Signals, Open Candidates, Promotion Candidates)."""
     daily_dir = paths.memory_v2_daily_dir
-    if not daily_dir.exists():
-        return []
-
     entries: list[_SourceEntry] = []
-    daily_paths = sorted(path for path in daily_dir.glob("*.md") if path.is_file())
-
-    for daily_path in daily_paths:
-        note_text = daily_path.read_text(encoding="utf-8")
+    sources = _read_sources(paths) if snapshot is None else snapshot
+    for daily_path, note_text in sources.items():
+        if daily_path.parent != daily_dir:
+            continue
         sections = _split_sections_with_offset(note_text)
 
         for section_name, section_body, section_start in sections:
@@ -299,6 +300,26 @@ def _build_entry_record(entry: _SourceEntry, trigram_set: set[str]) -> dict[str,
     }
 
 
+def _read_sources(paths: ControlMeshPaths) -> dict[Path, str]:
+    sources: dict[Path, str] = {}
+    for path in (paths.authority_memory_path, *sorted(paths.memory_v2_daily_dir.glob("*.md"))):
+        if not path.is_file():
+            continue
+        try:
+            sources[path] = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            # The note disappeared after enumeration. Do not preserve old hits.
+            continue
+    return sources
+
+
+def _source_digests(paths: ControlMeshPaths, sources: dict[Path, str]) -> dict[str, str]:
+    return {
+        path.relative_to(paths.workspace).as_posix(): hashlib.sha256(text.encode("utf-8")).hexdigest()
+        for path, text in sources.items()
+    }
+
+
 def sync_semantic_index(paths: ControlMeshPaths) -> SemanticIndexSyncResult:
     """Build or rebuild the semantic index from authority and daily note markdown.
 
@@ -307,12 +328,19 @@ def sync_semantic_index(paths: ControlMeshPaths) -> SemanticIndexSyncResult:
     Markdown files remain the sole source of truth.
     """
     initialize_memory_v2(paths)
+    snapshot = _read_sources(paths)
+    return _sync_semantic_snapshot(paths, snapshot, _source_digests(paths, snapshot))
+
+
+def _sync_semantic_snapshot(
+    paths: ControlMeshPaths, snapshot: dict[Path, str], digests: dict[str, str],
+) -> SemanticIndexSyncResult:
     index_path = _semantic_index_path(paths)
     index_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Collect all entries
-    authority_entries = _extract_authority_entries(paths)
-    daily_entries = _extract_daily_note_entries(paths)
+    authority_entries = _extract_authority_entries(paths, text=snapshot.get(paths.authority_memory_path, ""))
+    daily_entries = _extract_daily_note_entries(paths, snapshot=snapshot)
     all_entries = authority_entries + daily_entries
 
     # Build index records
@@ -327,6 +355,7 @@ def sync_semantic_index(paths: ControlMeshPaths) -> SemanticIndexSyncResult:
     index_data: dict[str, Any] = {
         "version": _INDEX_VERSION,
         "indexed_at": datetime.now(UTC).isoformat(),
+        "sources": digests,
         "entry_count": len(records),
         "authority_count": len(authority_entries),
         "daily_count": len(daily_entries),
@@ -345,9 +374,7 @@ def sync_semantic_index(paths: ControlMeshPaths) -> SemanticIndexSyncResult:
 
 def _atomic_json_save(path: Path, data: dict[str, Any]) -> None:
     """Write JSON atomically using a temp file + rename."""
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-    tmp.rename(path)
+    atomic_text_save(path, json.dumps(data, indent=2, ensure_ascii=False))
 
 
 # ---------------------------------------------------------------------------
@@ -395,9 +422,9 @@ def _load_index(paths: ControlMeshPaths) -> dict[str, Any] | None:
         return None
     try:
         data = json.loads(index_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    except (ValueError, OSError):
         return None
-    if data.get("version") != _INDEX_VERSION:
+    if not isinstance(data, dict) or data.get("version") != _INDEX_VERSION:
         return None
     return data
 
@@ -411,25 +438,27 @@ def search_semantic_index(
 ) -> SemanticSearchResult:
     """Perform trigram-Jaccard similarity search over the semantic index.
 
-    If the index is missing or ``rebuild=True``, it is rebuilt from source files
-    before searching.
+    If the index is missing, its source digests changed, or ``rebuild=True``,
+    rebuild it before searching.
 
     Returns ``SemanticSearchResult`` with hits sorted by similarity descending.
     Each hit carries a source reference so users can inspect the original
     markdown directly.
     """
-    initialize_memory_v2(paths)
-
-    if rebuild:
-        sync_semantic_index(paths)
-
-    index_data = _load_index(paths)
-    if index_data is None:
-        # Graceful degradation: rebuild and try again
-        sync_semantic_index(paths)
+    try:
+        initialize_memory_v2(paths)
+        snapshot = _read_sources(paths)
+        digests = _source_digests(paths, snapshot)
         index_data = _load_index(paths)
-        if index_data is None:
-            return SemanticSearchResult(query=query, hits=[], index_available=False)
+        if rebuild or index_data is None or index_data.get("sources") != digests:
+            _sync_semantic_snapshot(paths, snapshot, digests)
+            index_data = _load_index(paths)
+    except (OSError, UnicodeError):
+        return SemanticSearchResult(query=query, index_available=False)
+    # Another process may have replaced the cache in between writing and
+    # reading it. Never report results from a different source snapshot.
+    if index_data is None or index_data.get("sources") != digests:
+        return SemanticSearchResult(query=query, index_available=False)
 
     query_trigram_set = set(_trigrams(_normalize(query)))
     if not query_trigram_set:

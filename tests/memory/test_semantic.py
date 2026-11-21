@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -196,7 +197,8 @@ def test_sync_semantic_index_builds_json_sidecar(tmp_path: Path) -> None:
     assert result.daily_count == 1
 
     data = json.loads(index_path.read_text(encoding="utf-8"))
-    assert data["version"] == 2
+    assert data["version"] == 3
+    assert set(data["sources"]) == {"MEMORY.md", "memory/2026-04-08.md"}
     assert data["entry_count"] == 2
     assert len(data["entries"]) == 2
     # Each entry should have a stable entry_id and trigrams
@@ -381,14 +383,14 @@ def test_search_semantic_index_rebuild_flag(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    # Without rebuild flag, should not find new entry
+    # Changed Markdown is automatically visible even without rebuild=True
     result_old = search_semantic_index(paths, "new entry", limit=5, rebuild=False)
     # With rebuild flag, should find new entry
     result_new = search_semantic_index(paths, "new entry", limit=5, rebuild=True)
 
     contents_old = [h.content for h in result_old.hits]
     contents_new = [h.content for h in result_new.hits]
-    assert "New entry added after first sync" not in contents_old
+    assert "New entry added after first sync" in contents_old
     assert "New entry added after first sync" in contents_new
 
 
@@ -748,3 +750,42 @@ def test_sync_semantic_index_records_scope_only_for_scoped_candidate_sections(
         records[("Promotion Candidates", "Local promotion candidate for fallback plan")]["scope"]
         == "local"
     )
+
+
+def test_semantic_tracks_same_stat_content_edit_and_deleted_note(tmp_path):
+    paths = _make_paths(tmp_path)
+    note = ensure_daily_note(paths, date(2026, 4, 8))
+    note.write_text("## Signals\n- [fact] aardvark zebra\n", encoding="utf-8")
+    assert search_semantic_index(paths, "aardvark").hits
+    before = _semantic_index_path(paths).read_bytes()
+    search_semantic_index(paths, "aardvark")
+    assert _semantic_index_path(paths).read_bytes() == before
+
+    old = note.stat()
+    note.write_text("## Signals\n- [fact] elephant zebra\n", encoding="utf-8")
+    os.utime(note, ns=(old.st_atime_ns, old.st_mtime_ns))
+    assert note.stat().st_size == old.st_size
+    assert not search_semantic_index(paths, "aardvark").hits
+    assert search_semantic_index(paths, "elephant").hits
+
+    note.unlink()
+    result = search_semantic_index(paths, "elephant")
+    assert result.index_available
+    assert not result.hits
+    assert "memory/2026-04-08.md" not in json.loads(_semantic_index_path(paths).read_text())["sources"]
+
+
+def test_semantic_reports_unavailable_when_refresh_cannot_persist(tmp_path, monkeypatch):
+    paths = _make_paths(tmp_path)
+    note = ensure_daily_note(paths, date(2026, 4, 8))
+    note.write_text("## Signals\n- [fact] aardvark zebra\n", encoding="utf-8")
+    assert search_semantic_index(paths, "aardvark").hits
+    note.unlink()
+
+    def denied(*args, **kwargs):
+        raise PermissionError("read-only cache")
+
+    monkeypatch.setattr("controlmesh.memory.semantic._atomic_json_save", denied)
+    result = search_semantic_index(paths, "aardvark")
+    assert not result.index_available
+    assert not result.hits

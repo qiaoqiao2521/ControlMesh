@@ -631,6 +631,12 @@ async def test_memory_search_no_results(orch: Orchestrator) -> None:
     assert "No results found" in result.text
 
 
+async def test_memory_search_invalid_query_is_not_reported_as_empty(orch: Orchestrator) -> None:
+    result = await cmd_memory(orch, SessionKey(chat_id=0), "/memory search (")
+    assert "Invalid search query" in result.text
+    assert "No results found" not in result.text
+
+
 async def test_memory_search_shows_shared_scope_for_shared_authority_hit(orch: Orchestrator) -> None:
     """Test /memory search shows [shared] for shared authority entries."""
     orch.paths.authority_memory_path.write_text(

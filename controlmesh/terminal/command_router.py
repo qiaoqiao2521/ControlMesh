@@ -112,7 +112,14 @@ class TerminalCommandRouter:
         query = text.removeprefix("/memory search").strip()
         if not query:
             return OrchestratorResult(text="Usage: /memory search <query>")
-        hits = await self.runtime.memory.search(query)
+        from controlmesh.terminal.memory_context import TerminalMemorySearchError
+
+        try:
+            hits = await self.runtime.memory.search(query)
+        except TerminalMemorySearchError as error:
+            if error.code == "invalid_query":
+                return OrchestratorResult(text="Invalid search query. Use FTS5 syntax; quote phrases and terms with punctuation.")
+            return OrchestratorResult(text="Memory search index unavailable. No search result was determined.")
         if not hits:
             return OrchestratorResult(text=f"No results found for: {query}")
         lines = [f"## Search: {query}", ""]

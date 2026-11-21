@@ -13,6 +13,7 @@ from controlmesh.memory.models import (
     MemoryDocumentKind,
     MemoryIndexSyncResult,
     MemoryScope,
+    MemorySearchError,
     MemorySearchHit,
     MemorySearchResult,
 )
@@ -259,13 +260,14 @@ def search_memory_index(
     refresh: bool = True,
 ) -> MemorySearchResult:
     """Search indexed memory-v2 content through SQLite FTS5."""
-    initialize_memory_v2(paths)
-    if refresh:
-        sync_memory_index(paths)
-
+    matching = False
     try:
+        initialize_memory_v2(paths)
+        if refresh:
+            sync_memory_index(paths)
         with sqlite3.connect(paths.memory_search_index_path) as connection:
             _initialize_schema(connection)
+            matching = True
             rows = connection.execute(
                 """
                 SELECT
@@ -290,8 +292,30 @@ def search_memory_index(
                 """,
                 (_SEARCH_SNIPPET_TOKENS, query, limit),
             ).fetchall()
-    except sqlite3.OperationalError:
-        return MemorySearchResult(query=query, hits=[])
+    except sqlite3.OperationalError as error:
+        # FTS5 exposes its query grammar failures as SQLITE_ERROR (the same
+        # code used by other operational errors), so identify its diagnostics
+        # narrowly and only while executing the MATCH statement.
+        message = str(error).lower()
+        column = message.removeprefix("no such column:").strip()
+        # An unquoted hyphen or unknown FTS column filter can produce this
+        # diagnostic too. Do not classify a missing SQL schema column as syntax.
+        wrong_fts_column = (
+            message.startswith("no such column:")
+            and re.fullmatch(r"[\w]+", column) is not None
+            and column in re.findall(r"[\w]+", query.lower())
+        )
+        invalid_query = matching and (
+            wrong_fts_column
+            or message.startswith((
+                "fts5: syntax error",
+                "unterminated string",
+                "malformed match expression:",
+                "fts5: unknown special query:",
+            ))
+        )
+        code = MemorySearchError.INVALID_QUERY if invalid_query else MemorySearchError.INDEX_UNAVAILABLE
+        return MemorySearchResult(query=query, error_code=code)
 
     authority_path = paths.authority_memory_path
 

@@ -144,11 +144,17 @@ class MemorySearchHit(BaseModel):
     scope: MemoryScope | None = None
 
 
+class MemorySearchError(StrEnum):
+    INVALID_QUERY = "invalid_query"
+    INDEX_UNAVAILABLE = "index_unavailable"
+
+
 class MemorySearchResult(BaseModel):
     """Ranked search results from the local FTS5 index."""
 
     query: str
     hits: list[MemorySearchHit] = Field(default_factory=list)
+    error_code: MemorySearchError | None = None
 
 
 class SemanticSearchHit(BaseModel):

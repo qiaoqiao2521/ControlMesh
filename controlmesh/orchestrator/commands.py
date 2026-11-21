@@ -425,6 +425,10 @@ async def _cmd_memory_search(orch: Orchestrator, parts: list[str]) -> Orchestrat
         return OrchestratorResult(text="Usage: /memory search <query>")
     query = parts[2]
     result = await asyncio.to_thread(search_memory, orch.paths, query)
+    if result.error_code == "invalid_query":
+        return OrchestratorResult(text="Invalid search query. Use FTS5 syntax; quote phrases and terms with punctuation.")
+    if result.error_code == "index_unavailable":
+        return OrchestratorResult(text="Memory search index unavailable. No search result was determined.")
     if not result.hits:
         return OrchestratorResult(text=f"No results found for: {query}")
     lines = [f"## Search: {query}\n"]
@@ -442,6 +446,8 @@ async def _cmd_memory_semantic(orch: Orchestrator, parts: list[str]) -> Orchestr
         return OrchestratorResult(text="Usage: /memory semantic <query>")
     query = parts[2]
     result = await asyncio.to_thread(search_semantic_index, orch.paths, query)
+    if not result.index_available:
+        return OrchestratorResult(text="Semantic search index unavailable. No search result was determined.")
     if not result.hits:
         lines = [
             "## Semantic Search",

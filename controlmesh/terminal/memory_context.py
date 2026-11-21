@@ -5,7 +5,14 @@ from __future__ import annotations
 import asyncio
 
 from controlmesh.memory.commands import search_memory
+from controlmesh.memory.models import MemorySearchError
 from controlmesh.workspace.paths import ControlMeshPaths
+
+
+class TerminalMemorySearchError(Exception):
+    def __init__(self, code: MemorySearchError) -> None:
+        self.code = code
+        super().__init__(code.value)
 
 
 class TerminalMemoryContext:
@@ -20,6 +27,8 @@ class TerminalMemoryContext:
         """Search memory and cache terminal-local hit ids."""
         result = await asyncio.to_thread(search_memory, self._paths, query)
         self._last_hits.clear()
+        if result.error_code is not None:
+            raise TerminalMemorySearchError(result.error_code)
         rows: list[tuple[str, str]] = []
         for index, hit in enumerate(result.hits, start=1):
             hit_id = f"hit_{index:03d}"

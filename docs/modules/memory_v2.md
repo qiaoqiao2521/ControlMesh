@@ -161,9 +161,20 @@ current boundary, not a roadmap for new behavior.
 - `/memory patterns`
   - repeated-pattern output shows scope labels and section summaries only for
     `Open Candidates` and `Promotion Candidates`
+- `/memory search <query>`
+  - valid queries with no matches return empty hits and no error;
+    `MemorySearchResult.error_code` distinguishes `invalid_query` (FTS5 query
+    syntax; quote terms with punctuation) from `index_unavailable` (SQLite
+    operational failure). Neither error proves the index has no matches.
 - `/memory semantic <query>`
   - semantic hits surface stored scope for authority entries and for scoped
     daily-note candidate entries
+  - automatically validates the local JSON cache against current authority and
+    daily Markdown contents, including additions, edits, and deletions. It
+    rebuilds from that source snapshot without embeddings or remote I/O. A
+    cache/source failure is reported as unavailable rather than returning stale
+    entries. Digest validation reads the Markdown for each query, but unchanged
+    queries reuse the extracted entries and trigrams.
 - `/memory deprecate`, `/memory dispute`, `/memory supersede`
   - lifecycle mutation responses echo the affected authority entry scope
 
