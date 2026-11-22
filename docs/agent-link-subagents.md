@@ -6,7 +6,7 @@
 
 - 上游包 `agent-link-mcp@0.5.3`，MIT，Node >=20。
 - 一个名为 `agent-link` 的 Codex stdio MCP 服务，工具超时 600 秒。
-- 本机 `~/.agent-link/config.json` 保留 `agy`、`zcode`、`qoder`、`cbc`；仅 DSH 按用户要求暂停，其参数单独保留，不提交仓库。
+- 本机 `~/.agent-link/config.json` 保留 `agy`、`zcode`、`qoder`、`cbc`；AGY 不参与自动派发，DSH 按用户要求暂停。参数私有保留，不提交仓库。
 - 使用已有 CLI 自身的登录、默认模型和网络配置。没有新认证、模型代理或常驻调度服务。
 - 使用 Node 与包入口的绝对路径，减少桌面启动环境与终端 PATH 差异。
 
@@ -14,29 +14,29 @@
 
 ## 当前派发范围
 
-2026-10-25 用户纠正后：
+2026-11-13 起以 [CLI 派发与交接约定](../skills/cli-dispatch-handoff/SKILL.md)为准：
 
-| CLI | 可否选择 | 当前依据 |
+| CLI | 当前使用范围 | 使用前核验 |
 | --- | --- | --- |
-| AGY | 可以 | 此前真实文件任务通过；本次未重复调用 |
-| ZCode CLI | 可以，edit 模式 | App → agent-link → zcode-cli 读取数据并修改指定文件，主 Agent 回读确认结果正确、输入未变 |
-| Qoder | 本次检测可用 | 小脚本真实请求返回正确短标记，usable=true；后续仍在使用前检测 |
-| CBC | 本次检测额度阻断 | 小脚本返回quota_blocked；配置保留，后续使用前重查 |
-| DSH | 暂停 | 用户明确暂时不用；历史通过不代表继续启用 |
+| Qoder | 默认自动候选 | 每批外部任务最多探测一次；历史可用不代表当前额度 |
+| ZCode CLI | 按任务选用，edit 模式；不进入默认候选 | 核对当前配置与本轮实际产物 |
+| CBC | 仅显式指定 | 使用前检查；历史额度阻断不等于永久停用 |
+| AGY | 仅用户显式点名时人工前台使用 | 不自动探测、不 spawn、不作为后台或降级候选；额度人工查看 `/usage` |
+| DSH | 暂停 | 历史通过不代表继续启用 |
 
-以上表格是此前单次验收记录，不能当作后续实时额度。2026-10-25 后续以本节的新规则为准：后台任务默认 Qoder、AGY，先探测再选一次。
+下文历史验收保留原日期和结果，不覆盖这些当前选择规则。宿主原生协作无需外部额度探测。
 
-派发前先执行：
+选择外部 CLI 时，从 CM 仓库根目录执行一次所需检查：
 
 ```bash
-python3 scripts/agent_quota_check.py --pick   # 默认 Qoder、AGY，优先可用者
+python3 scripts/agent_quota_check.py --pick   # 默认仅 Qoder
 python3 scripts/agent_quota_check.py qoder    # 只检查待用 CLI
-python3 scripts/agent_quota_check.py cbc      # 保留显式 CBC 检测
+python3 scripts/agent_quota_check.py cbc      # 用户显式指定 CBC 时检查
 ```
 
-默认输出 JSON 数组；`--pick` 输出 selected、degraded、checks。默认顺序 Qoder → AGY，优先 `usable=true`；两者均未通过时仍选择一个候选并派发一次，degraded=true，原探测失败事实保持不变。`quota_blocked` 表示额度阻断，`rate_limited` 表示限流，`unknown`、`timeout` 不能当成功。
+默认输出 JSON 数组；`--pick` 输出 selected、degraded、checks，默认候选只有 Qoder。未通过时保留 degraded=true，按 selected 尝试一次，失败则改用宿主内置子 Agent，不循环探测或轮换候选。外部通道已知不可用时直接内置，不再探测。`quota_blocked` 表示额度阻断，`rate_limited` 表示限流，`unknown`、`timeout` 不能当成功。
 
-探测只要求短标记，复用 CLI 原有登录和默认模型，会产生少量模型请求，并非精确余额查询。Qoder/CBC 使用禁用工具参数；AGY 没有该参数，使用原生 plan、sandbox 和禁用 slash 展开，并在提示中要求不调用工具。探测参数不带入正式任务，不改变默认工作模式。不新增认证或直连接口。
+探测只要求短标记，复用 CLI 原有登录和默认模型，会产生少量模型请求，并非精确余额查询。Qoder/CBC 使用禁用工具参数；探测参数不带入正式任务，不改变默认工作模式。不新增认证或直连接口，也不因脚本保留 AGY 兼容参数而自动调用它。
 
 不缓存永久禁用状态。同批不反复检测；下次实际使用前重查，额度恢复后自然可用。脚本不输出原始响应、账号字段或凭据，不改登录和默认模型，不启动后台轮询。CLI 配置保留，DSH 暂停。
 
@@ -52,13 +52,13 @@ ZCode 活动配置已从 `plan` 改为 `edit`。真实测试读取 values.json�
 
 在 Codex 中明确指定工具、CLI、任务和工作目录：
 
-> 调用 agent-link 的 spawn_agent，agent=agy，cwd=这个项目的绝对路径。让它检查指定文件并返回结果，不再派生其他 Agent。
+> 调用 agent-link 的 spawn_agent，agent=qoder，cwd=这个项目的绝对路径。让它检查指定文件并返回结果，不再派生其他 Agent。
 
 相应的工具参数：
 
 ```json
 {
-  "agent": "agy",
+  "agent": "qoder",
   "task": "Read the requested file and report the findings. Do not modify files.",
   "cwd": "/absolute/path/to/project",
   "timeoutMs": 120000,
@@ -66,9 +66,9 @@ ZCode 活动配置已从 `plan` 改为 `edit`。真实测试读取 values.json�
 }
 ```
 
-`agy`、`zcode` 可按任务选用；`qoder`、`cbc` 先运行上述脚本检测。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用，当前限制见下表。
+`qoder` 使用上述单次检查，`cbc` 仅显式指定时检查，`zcode` 沿用 edit 配置。AGY 不通过此示例自动派发。`cbc` 是 CodeBuddy Code；`zcode` 配置实际执行 `zcode-cli`，不是同名桌面程序。可执行文件存在不代表额度和模型调用可用。
 
-当前参数组合如下，提示词由 agent-link 放在末尾：
+保留的本机参数组合如下，提示词由 agent-link 放在末尾；AGY 行只记录原配置，不是自动派发入口：
 
 | agent | command | args | promptFlag | promptMode |
 | --- | --- | --- | --- | --- |

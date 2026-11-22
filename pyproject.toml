@@ -82,6 +82,7 @@ Changelog = "https://github.com/qiaoqiao2521/ControlMesh/releases"
 controlmesh = "controlmesh.__main__:main"
 cm = "controlmesh.__main__:main"
 cm-closeout = "controlmesh.closeout:main"
+cm-workflow = "controlmesh.workflow:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["controlmesh", "controlmesh_runtime"]

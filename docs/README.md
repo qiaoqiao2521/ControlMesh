@@ -1,6 +1,6 @@
 # controlmesh Docs
 
-CM 当前围绕 CLI 做轻量协作适配。默认入口是 [agent-link 子任务调用](agent-link-subagents.md)；外部后台结果回 Codex 时使用[既有 queue 回调](codex-callback.md)。[当前项目方向](../PROJECT.md)和[最新决策](DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)优先于下面保留的旧 Python CM 模块说明。
+CM 当前把真实开发工作流做成多个 Harness 可复用的步骤与验收约定。默认入口是[带证据的小改动交付](workflows/small-change.md)；需要外部 CLI 时再查 [agent-link](agent-link-subagents.md)，外部后台结果回 Codex 时查[既有 queue 回调](codex-callback.md)。[当前项目方向](../PROJECT.md)和[最新决策](DECISIONS.md#2026-11-22--把开发工作流作为-cm-核心)优先于下面保留的旧 Python CM 模块说明。
 
 Feishu、Telegram、WeChat、Matrix、TaskHub、cron 与 Web/API 文档保留原实现及部署范围，不是新任务的必装依赖。
 
@@ -21,6 +21,9 @@ Load module and transport documentation only when the task reaches that area.
 
 ## System in 60 Seconds
 
+- `docs/workflows/small-change.md`: portable workflow using existing plans, evidence, native tools and independent acceptance.
+- `controlmesh/workflow.py`: stdlib `prepare` / `check` composition of independent SpecMesh handoff commands; no Runtime import or service.
+- The following paths describe preserved runtime capabilities, loaded only when the task needs them.
 - `controlmesh/__main__.py`: thin CLI entrypoint (dispatch) + config loading.
 - `controlmesh/cli_commands/`: concrete CLI subcommand implementations (`agents`, `docker`, `service`, `api`, `install`, lifecycle/status helpers).
 - `controlmesh/terminal/`: enhanced local terminal, native provider line-mode bridge, inbox, and explicit memory injection.
@@ -50,8 +53,9 @@ Runtime behavior notes:
 
 - [Architecture](ARCHITECTURE.md)
 - [Decisions](DECISIONS.md)
+- [带证据的小改动交付](workflows/small-change.md)：首条工作流、可选材料检查、实际样例和验收边界。
 - [Codex Original-chat Callback](codex-callback.md)
-- [CLI 后台派发与交接 Skill](../skills/cli-dispatch-handoff/SKILL.md)：Qoder/AGY 探测与单次选择、外部不可用立即改内置子 Agent、按交接验收。
+- [CLI 后台派发与交接 Skill](../skills/cli-dispatch-handoff/SKILL.md)：默认仅 Qoder、AGY 仅显式人工前台、外部不可用立即改内置子 Agent、按交接验收。
 - [任务与交接索引](../skills/cli-dispatch-handoff/references/task-and-handoff.md)：编号要求、输入依据、产物目录、dispatch/handoff 字段、现成 start_job 示例、hcom 与失败恢复边界。
 - [System Overview](system_overview.md)
 - [Installation](installation.md)

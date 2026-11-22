@@ -2,11 +2,23 @@
 
 ## Overview
 
-CM connects existing CLI agents through lightweight task calls, handoffs, and native completion mechanisms.
-The initiating conversation owns task scope and independent acceptance. Prefer its native subagents;
-use [agent-link](agent-link-subagents.md) for bounded calls to another installed CLI.
-Each CLI retains authentication, models, proxy configuration, tools, permissions, context and native sessions.
-CM does not unify those runtimes or maintain a second scheduler.
+CM packages reusable development workflows using existing project files and Mesh capabilities.
+The first [small-change workflow](workflows/small-change.md) covers selected evidence, bounded implementation,
+independent validation and authorized delivery. The initiating conversation owns scope and acceptance;
+each harness retains authentication, models, tools, permissions, context and native execution.
+
+`controlmesh.workflow` is an independent stdlib entry. `prepare` invokes the trusted SpecMesh checkout's
+`specmesh_port --handoff json`; `check` invokes `--verify-handoff` with the caller's independently chosen
+task and scope. SpecMesh owns source binding, fingerprints and freshness checks. CM returns its JSON
+without a parallel schema, index or persisted state. `executable` means consumable materials, not
+business success or execution authorization. Normal edits require fresh materials only when another
+handoff is needed. History evidence comes from AgentTraceMesh on demand; current source and reviewed
+project files remain authoritative for current implementation and intent.
+
+### Optional execution and completion paths
+
+Prefer native tools and agents; use [agent-link](agent-link-subagents.md) for a bounded call to another
+installed CLI only when needed. CM adds no scheduler, quota router or native-session migration.
 
 | Path | Invocation and return | Ownership |
 | --- | --- | --- |
@@ -19,7 +31,7 @@ The queue path requires the original thread and its reachable shared control cha
 MCP result does not prove background queue readiness. agent-link reply supplies recorded conversation
 to a new CLI process; it does not establish native CLI session resume.
 See [current evidence](../plans/agent-link-subagent-smoke/progress.md) and the
-[current decision](DECISIONS.md#2026-10-25--围绕-cli-做轻量适配).
+[current decision](DECISIONS.md#2026-11-22--把开发工作流作为-cm-核心).
 
 The earlier MACPIE/Magpie direction is superseded by CapMesh D029: Magpie left the Codex model path.
 This is a recorded decision, not a fresh service-state check. No model gateway is required.

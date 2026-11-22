@@ -27,14 +27,19 @@ The operating rule is:
 - review evidence before promotion
 - update canonical state only after adjudication
 
-## Current work (2026-10-12)
+## Current work (2026-11-22)
+
+- [带证据的小改动交付](workflow-small-change-20261122/task_plan.md)：首条跨 Harness 可复用工作流与独立 SpecMesh 薄入口；[实际进度与限制](workflow-small-change-20261122/progress.md)。
+- 新任务按当前项目目标选用工作流；以下记录保留历史验收或已有部署，不自动排入当前队列。
+
+## Previous work and existing deployments (2026-10-12)
 
 - Mesh omissions: [plan](mesh-omissions-20261012/task_plan.md), [acceptance](mesh-omissions-20261012/progress.md). Canonical CapMesh entry, current-state sources, research revision and local callback recovery.
 - Current overview: [Paperclip-based CM](paperclip-based-cm/progress.md). Dated entries below retain their original acceptance scope; later Feishu conversation acceptance is in [2026-10-07 progress](feishu-native-conversation-20261006/progress.md).
 
 - Codex original-chat callback (2026-10-11): [usage](../docs/codex-callback.md), [plan](codex-callback-bridge/task_plan.md), [status](codex-callback-bridge/progress.md). Reuse codex_callback; local adapter verification and actual CM completion delivery have separate acceptance boundaries.
 
-Current work is selected here; older task files are dated evidence, not competing priorities.
+The dated entries below retain their original scope; current work is selected above and in `PROJECT.md`.
 
 - Opt-in decision consultation v1: [usage](../docs/decision-consultation-v1.md), [plan](decision-consultation-v1/task_plan.md), [acceptance](decision-consultation-v1/progress.md). Native Paperclip lifecycle; no mandatory debate or automatic implementation approval.
 
@@ -45,7 +50,7 @@ Current work is selected here; older task files are dated evidence, not competin
 
 - Cross-repository closeout: [CLI](../docs/closeout.md), [status](cli-closeout/progress.md) — one CLI, check/sync, no runtime Agent; declared committed-state references only.
 
-- Current plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified; 436 thin integration and default-entry cutover landed. The repaired post path, fleet rollout, group/recovery semantics retain their own acceptance boundaries.
+- Existing deployment plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified; 436 thin integration and default-entry cutover landed. The repaired post path, fleet rollout, group/recovery semantics retain their own acceptance boundaries.
 - Historical canary report: [Feishu + greenrise](paperclip-feishu-canary/task_plan.md), [status](paperclip-feishu-canary/progress.md) — local existing-bot text delivery and 4GB deployment/restart evidence preserved. Its stopped candidate/HTTPS/cron blockers describe the earlier trial; current greenrise headless takeover and 12 schedules are accepted in the fleet status above.
 - Repository closeout policy: [Closeout policy](repository-closeout-policy/task_plan.md), [status](repository-closeout-policy/progress.md) — routine commit/push default convention landed across shared specifications.
 - Preserved Orca candidate: [Orca bridge candidate status](../docs/orca-bridge-status.md) — superseded as the default direction on 2026-09-30; implementation and canary evidence retained locally, unfinished acceptance is not marked complete.
@@ -123,4 +128,4 @@ If the line is valid but should not continue now:
 
 Do not mix them.
 
-- Historical combined direction and reusable evidence: [runtime-convergence](runtime-convergence/task_plan.md). Current selection comes only from [Paperclip-based CM](paperclip-based-cm/task_plan.md).
+- Historical combined direction and reusable evidence: [runtime-convergence](runtime-convergence/task_plan.md). Current selection comes from `PROJECT.md` and the current work section above.

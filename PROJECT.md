@@ -1,10 +1,20 @@
 # ControlMesh Project Context
 
+## 当前方向（2026-11-22）
+
+CM 的核心是把开发工作流沉淀为多个 Harness 都可以使用的步骤、材料与验收约定。优先完成真实任务，复用已有 Mesh 和项目文件；Harness 负责工具、权限、模型和执行。评价标准是减少重复解释、交接遗漏和维护负担，不是接入了多少厂商。
+
+首条流程是[带证据的小改动交付](docs/workflows/small-change.md)：明确需求，按需读取历史证据与代码职责，最小实施，独立核验实际结果，再按已有授权交付。真正换执行者或跨会话时，使用独立的 `python3 -S -m controlmesh.workflow prepare|check` 组合 SpecMesh 原生材料导出和消费前核验。它不启动旧 CM Runtime，不调用模型或创建状态库；材料有效不等于业务验收。
+
+SpecMesh 管当前意图、进度、约束与代码职责，AgentTraceMesh 提供原始历史及压缩检索，CapMesh 记录能力取舍，宿主保留执行所有权。知识炼油、CapMesh 按需加固和选择性记忆作为真实流程的后续候选保留，不同时铺开。当前实现与实测限制见[计划](plans/workflow-small-change-20261122/task_plan.md)及[进度](plans/workflow-small-change-20261122/progress.md)。
+
+跨 Harness 可复用指材料和工作方法可接续，不承诺迁移原生会话、共享额度或统一认证。已有 agent-link、通知桥与旧部署按原范围保留；当前投入由[2026-11-22 决定](docs/DECISIONS.md#2026-11-22--把开发工作流作为-cm-核心)选择。
+
 ## 可选 DSH 陪伴记忆插件（2026-10-23）
 
 新增 [DSH Companion Memory](plugins/dsh-companion-memory/README.md)，将旧 CM 的可编辑记忆思路用于个人陪伴。插件使用 DSH 原生工具与上下文，保存人物、偏好、共同经历、承诺和按需总结。它是独立可选模块，不恢复 CM 通用记忆服务或跨 Harness 平台。旧记忆代码与数据保留；导入仅针对明确选定文件并默认预览。源码比较与验收见[当前计划](plans/dsh-companion-memory/task_plan.md)。
 
-## 当前本机方向（2026-10-25）
+## 历史本机方向（2026-10-25；调用能力按需保留）
 
 CM 是 **围绕现有 CLI 的轻量 Agent 协作与适配层**。用户在原会话给出目标，主 Agent 拆分任务，复用宿主原生子 Agent 或 agent-link 调用已有 CLI，收到结果后独立验收。适配仅补必要的调用入口、结果交接与完成通知；衡量标准是减少手工协调和维护负担。
 
@@ -23,7 +33,7 @@ Harness 继续拥有上下文、工具、权限与任务生命周期。优先使
 ## 既有 Paperclip 路径定位（2026-10-01）
 
 CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
-此段仅约束已有部署。Paperclip 承担该路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。新的本机协作按文首轻量 CLI 适配决定执行。
+此段仅约束已有部署。Paperclip 承担该路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。新的开发投入按文首工作流决定执行。
 2026-10-01 曾完成 8 台服务器的默认 CLI 迁移和 63 项有效定时任务接管。后续设备取舍以 Ops 的当前记录为准，不将此历史数量当成当前运行状态。历史实现作为一次性执行库和恢复依据保留。账号登录、飞书绑定、风险判读与外部发布分别验收。
 
 2026-10-08 当前服务器范围仅 bf2025、436、qiaobird、greenrise、cy、moonrise；六机 Paperclip manager 已逐机验为普通用户。52 个重复维护 routine 已归档并删除时钟，11 个旧内容 routine 暂停，13 条冗余 OS cron 移除；旧 Python CM 程序与无用源码正在按依赖退役，业务目录和当前身份保留。逐机当前事实以 Ops-Vault 的 `plans/fleet-agy-opencode-feishu-20261008/cleanup-list.md` 为源，不将下文历史八机／63 schedules 当作当前基线。
@@ -34,9 +44,11 @@ CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https:/
 
 ## Why
 
-ControlMesh connects existing CLI agents through lightweight task calls, handoffs, and native completion mechanisms.
-The initiating Agent dispatches work and independently accepts results in its original conversation.
-The harness owns tools, context, permissions, and task lifecycle; model routing remains a separate responsibility.
+ControlMesh makes useful development workflows reusable across harnesses through existing project files, evidence, and explicit acceptance.
+The initiating Agent owns scope and judgment; each harness keeps its tools, permissions, execution, and native sessions.
+Reuse SpecMesh and AgentTraceMesh so a new executor can recover the selected task without a second index or runtime.
+
+## Historical deployment context
 
 Historical deployment choice: on 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
 Paperclip-based improved CM as the next direction. Reuse upstream task execution and event
@@ -60,36 +72,19 @@ results and distinct scheduled/agent/human provenance through CM's parent/task m
 
 ## User Intent
 
-The product should let a user move naturally between local terminal work and long-running
-chat-native work without losing context or handing control of private project state to a
-remote platform.
+The user wants small workflows that can enter daily production without maintaining every vendor's harness behavior.
 
-The important user outcomes are:
-
-- use existing CLI/TUI surfaces for dispatch, task status and result review; do not build a new TUI for this workflow;
-- prefer the selected harness's native agents; call other CLIs through agent-link when needed and preserve their native configuration;
-- tasks have stable identities, persistent state, artifacts, interruption, resume, and
-  result-delivery behavior;
-- Feishu is the selected fleet transport. Historical Telegram/WeChat capabilities and
-  identities stay preserved; they are not selected ingress or notification routes;
-- existing Feishu application bots can be bound to native mode directly; onboarding must
-  distinguish creating/binding an app from choosing native/bridge runtime behavior;
-- multi-agent work is explicit, bounded, inspectable, and coordinated through shared
-  runtime primitives;
-- use native subagents and completion events; use agent-link for bounded CLI tasks; model gateways are not a dependency;
-  retain existing deployment ownership. SpecMesh records intent, handoff and acceptance;
-  the initiating Agent independently judges worker results;
-- one coordinating conversation can dispatch multiple workers and block while they work;
-  waiting must not continuously invoke the coordinator model or modify code; no claim of
-  zero total tokens. Completion-triggered revival is verified for the selected local
-  Paperclip CLI workflow, not all crash/recovery or transport paths;
-- project and task knowledge survives a new terminal, a new agent, or a long gap without
-  requiring the user to explain everything again;
-- the user spends attention on intent and judgment, while agents handle exploration,
-  implementation, tests, review, and memory maintenance.
+- Keep goals, selected evidence, allowed scope, actual validation, and the next action in existing project records.
+- Let a new executor continue from those records while preserving source revisions, original history locations, and current code authority.
+- Prefer native tools and agents; add bounded CLI calls only when the task needs them.
+- Independently inspect artifacts and real behavior before delivery; material freshness and completion notifications are not business acceptance.
+- Retain useful knowledge refinery, capability hardening, and selective memory ideas, introducing each only for a concrete task.
+- Preserve existing deployment identities and ownership; changing direction does not migrate running services.
 
 ## Non-goals
 
+- Do not add a workflow database, background service, generic scheduler, new index, quota router, or model gateway for this direction.
+- Do not make machine handoff checks or knowledge writeback mandatory for every small task.
 - Do not build a unified cross-harness runtime platform. Bounded CLI child-task calls through agent-link are within scope.
 - Do not resume hcom interoperability, ACP adapters, or symmetric CLI tests without an explicit change of direction.
 - Do not resume full CM platform construction or full TypeScript migration as the default
@@ -111,10 +106,10 @@ The important user outcomes are:
 
 ## Success
 
-ControlMesh succeeds when a user can start or resume real provider-backed work from the
-terminal or a supported chat, let it run persistently, answer task questions, inspect
-status and artifacts, recover from interruption, and receive a trustworthy result without
-breaking existing workspaces or transport behavior.
+ControlMesh succeeds when a real change can move from requirement through selected evidence,
+implementation, independent validation, and authorized delivery with less user coordination.
+A new executor can identify what is current, what actually passed, what remains unverified,
+and where to continue. Claims about another vendor's harness require a real run there.
 
 The project-memory system succeeds when a new agent can read `AGENTS.md`, this file, the
 relevant architecture/decision links, and one active task directory, then continue work
@@ -151,6 +146,8 @@ change runtime ownership, auto-load a vault into workers, or require a knowledge
   build output must remain untracked.
 
 ## Current State
+
+2026-11-22：首条[小改动工作流](docs/workflows/small-change.md)与独立 SpecMesh 薄入口已实现并通过本地验收，实际测试与样例结果集中在[进度](plans/workflow-small-change-20261122/progress.md)。这批未复测设备、部署和厂商模型，不将下文历史运行记录当作当前服务状态。
 
 2026-10-25：当前默认入口是[轻量 CLI 子任务调用](docs/agent-link-subagents.md)，实际验收见[进度](plans/agent-link-subagent-smoke/progress.md)。旧 Paperclip 回传、MCode 通知和 DSH 插件各有自己的验收范围。以下是按日期保留的历史实现，不能据此推定当前服务、通道或所有 CLI 已可用。
 
@@ -255,9 +252,11 @@ to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, o
 
 ## Current Priority
 
-2026-10-25：把当前轻量方向用于真实任务，复用原生能力和 agent-link，主 Agent 独立验收。Qoder、AGY、ZCode CLI、DSH 同步任务已有验收，CBC 受额度耗尽阻断，详见当前计划。只在实际缺口出现时补小适配；外部后台任务有需要时核对并恢复原会话 queue 通道。全 CLI 测试矩阵、网关接入和平台迁移均不作为使用前置步骤。
+2026-11-22：完成并实际使用[带证据的小改动交付](plans/workflow-small-change-20261122/task_plan.md)。先把一个流程用顺，再从生产任务中选择下一项知识炼油、CapMesh 加固或记忆改进；不同时扩建工作流引擎、厂商适配矩阵或新 Runtime。
 
 ### 历史优先级（按原日期保留，不自动恢复为待办）
+
+2026-10-25：把轻量方向用于真实任务，复用原生能力和 agent-link，主 Agent 独立验收。Qoder、AGY、ZCode CLI、DSH 同步任务已有当时验收，CBC 当时受额度耗尽阻断。只在实际缺口出现时补小适配；外部后台任务按需核对原会话 queue 通道。
 
 2026-10-20：记录单 Harness 协作和 MACPIE 模型统筹方向，停止把跨 Harness／hcom 接入当作待完成任务。MACPIE 名称与接入待确认；本轮同步现有项目入口、CapMesh 与长期记忆，不安装、复测或迁移服务。历史 MCode → AGY 验收保留，不恢复 acpx／统一 ACP。
 
@@ -314,7 +313,7 @@ pushing the dirty checkout. SpecMesh and History remain independent projects.
 ## Historical priorities before the 2026-09-14 split
 
 The following records preserve earlier decisions and evidence; they no longer select the
-next task or override the current Paperclip-based CM plan.
+next task or override the current workflow direction.
 
 Native OpenCode continuity shipped in v0.42.2: local Viewer discovery, explicit TaskHub
 adoption, model preflight and same-session completion passed real terminal acceptance.
@@ -354,8 +353,9 @@ acceptance. The following runtime and operational work remains queued:
 - Full documentation catalog → `docs/README.md`
 - TypeScript migration contracts and status → `docs/typescript-migration/`
 - Historical and active work → `plans/`
-- Current plan → [Agent dispatch and original-session continuation](plans/codex-callback-bridge/task_plan.md)
-- Current status → [Native completion and messaging](plans/codex-callback-bridge/progress.md)
+- Current plan → [Small-change workflow](plans/workflow-small-change-20261122/task_plan.md)
+- Current status → [Workflow evidence and limits](plans/workflow-small-change-20261122/progress.md)
+- Optional original-session callback → [Native completion and messaging](plans/codex-callback-bridge/progress.md)
 - Existing Paperclip deployments → [Paperclip direction progress](plans/paperclip-based-cm/progress.md)
 - Preserved Orca candidate → [Orca bridge candidate status](docs/orca-bridge-status.md)
 - Historical full-TS queue → [plans/bounded-delivery/](plans/bounded-delivery/task_plan.md)
@@ -370,11 +370,11 @@ acceptance. The following runtime and operational work remains queued:
 
 ## Workflow integration (v0.43.0)
 
-Local cron transaction/ownership fixes and an opt-in independent SpecMesh CLI adapter are described in [CODEKIT-INTEGRATION](docs/CODEKIT-INTEGRATION.md). This batch complements the queued terminal/runtime work; it does not complete TypeScript migration, distributed dispatch or operational rollout.
+Historical local cron transaction/ownership fixes and the older opt-in SpecMesh check adapter are described in [CODEKIT-INTEGRATION](docs/CODEKIT-INTEGRATION.md). The new material handoff entry is documented in [small-change workflow](docs/workflows/small-change.md); neither establishes TypeScript migration, distributed dispatch or operational rollout.
 
 ## Historical approved direction (2026-09-30)
 
-当前本机投入以文首 2026-10-25 轻量 CLI 适配决定为准；以下保留既有 Paperclip 路径的历史依据。
+当前投入以文首 2026-11-22 工作流决定为准；以下保留既有 Paperclip 路径的历史依据。
 
 CM becomes a Paperclip-based improvement tailored to the user's workflow. Native upstream
 execution/wakeups, real provider CLIs, SpecMesh handoff and coordinator judgment are the

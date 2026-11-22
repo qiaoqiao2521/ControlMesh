@@ -1,8 +1,8 @@
 # Codex 原会话完成回调
 
-## 当前范围（2026-10-20）
+## 当前范围（2026-11-22）
 
-CM 当前方向是单 Harness 内的多 Agent 协作，并加入 MACPIE 模型统筹职责；具体组件身份与接入待确认。hcom 跨 Harness 接入移出后续计划。本文仅维护已有 Codex App native queue 路径，不构成继续研究跨 Harness 的任务。详见[最新决策](DECISIONS.md#2026-10-20--单-harness-协作与模型统筹)。
+CM 当前以多个 Harness 可复用的开发工作流为核心，由宿主原生工具与子 Agent 执行，既有 CLI 轻适配和完成通知按需保留。各 Harness 保留自己的配置与生命周期；MACPIE/Magpie 已退出 Codex 主流程，不再列为待接入，hcom 平台化接入保持停止。本文仅维护已有 Codex App native queue 路径。详见[当前决策](DECISIONS.md#2026-11-22--把开发工作流作为-cm-核心)。
 
 下文 `cm-codex-callback` 和 `cm-codex-task` 是已实现的 Paperclip 专用路径，仍要求其原生身份与回执契约，不能直接拿任意 CLI 的退出码冒充 Paperclip run。社区 `codex_callback` 的通知基础保留；不扩展为通用 CLI 互通层，本次没有新增或验证该路径。
 
