@@ -1,1 +1,0 @@
-"""Feishu messenger tests."""

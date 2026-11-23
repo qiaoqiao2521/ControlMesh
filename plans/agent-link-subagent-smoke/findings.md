@@ -1,5 +1,7 @@
 # Findings
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## 2026-10-25：四 CLI 真实调用
 
 - AGY/CBC/ZCode/DSH 各用独立私有 fixture，提示词不含随机 marker 或预期答案。主 Agent 读取原文件和 MCP 返回，比较 marker、筛选后总数与求和。AGY、ZCode、DSH 三项通过；CBC 未通过。

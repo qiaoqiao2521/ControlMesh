@@ -1,1 +1,0 @@
-"""Runtime red-contract tests."""

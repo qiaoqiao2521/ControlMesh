@@ -7,7 +7,6 @@ on:
 
 env:
   UV_VERSION: "0.11.7"
-  BUN_VERSION: "1.3.11"
 
 permissions:
   contents: read
@@ -130,13 +129,6 @@ jobs:
           cache-dependency-glob: uv.lock
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-      - name: Toolchain doctor
-        run: python scripts/doctor_toolchain.py --strict --require-bun
-      - name: Install build environment
-        run: uv sync --all-extras --dev
       - name: Verify version consistency
         run: |
           python - <<'PY'
@@ -159,47 +151,8 @@ jobs:
         run: uv build
       - name: Twine check
         run: uvx twine check dist/*
-      - name: Verify dist contents
-        run: |
-          python - <<'PY'
-          import tarfile
-          import zipfile
-          from pathlib import Path
-
-          dist = Path("dist")
-          pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
-          project_version = next(
-              line.split("=", 1)[1].strip().strip('"')
-              for line in pyproject.splitlines()
-              if line.startswith("version = ")
-          )
-          wheel = dist / f"controlmesh-{project_version}-py3-none-any.whl"
-          sdist = dist / f"controlmesh-{project_version}.tar.gz"
-
-          if not wheel.exists() or not sdist.exists():
-              raise SystemExit(f"Missing expected dist files: wheel={wheel.exists()} sdist={sdist.exists()}")
-
-          with zipfile.ZipFile(wheel) as zf:
-              wheel_hits = [name for name in zf.namelist() if name.startswith("controlmesh_runtime/")]
-              dashboard_hits = [
-                  name for name in zf.namelist() if name.startswith("controlmesh/web_static/")
-              ]
-          with tarfile.open(sdist) as tf:
-              sdist_hits = [name for name in tf.getnames() if "controlmesh_runtime/" in name]
-
-          if not wheel_hits or not sdist_hits or not dashboard_hits:
-              raise SystemExit(
-                  "Built distributions are missing runtime or dashboard files. "
-                  f"wheel_hits={len(wheel_hits)} sdist_hits={len(sdist_hits)} "
-                  f"dashboard_hits={len(dashboard_hits)}"
-              )
-
-          print(
-              "Dist contents verified: "
-              f"wheel_hits={len(wheel_hits)} sdist_hits={len(sdist_hits)} "
-              f"dashboard_hits={len(dashboard_hits)}"
-          )
-          PY
+      - name: Verify installed package and real task behavior
+        run: python scripts/check_package.py
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dist

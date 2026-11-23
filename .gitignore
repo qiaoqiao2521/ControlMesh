@@ -67,11 +67,9 @@ playwright/.locks/
 # Requirements, implementation notes, handoffs, task plans, findings, progress,
 # and evidence are repository state when they are created inside this workspace.
 
-# Local release/certification runtime outputs
-/task_artifacts/**/api_runtime_home/
-/task_artifacts/**/fresh_home*/
-/task_artifacts/**/live_drill/config.before.json
-/task_artifacts/**/live_drill/state.env
+# Local task reports, logs, handoff files, and CI checkout
+/.runtime/
+/.ci-specmesh-workflow/
 
 # Personal / dev-only (not part of the project)
 start_bot.sh

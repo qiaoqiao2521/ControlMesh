@@ -1,5 +1,7 @@
 # Progress
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## Current
 
 首版实现与本地验收完成。
@@ -13,7 +15,7 @@
 
 ## Evidence
 
-当前范围和验收要求见 [task_plan.md](task_plan.md)，源代码调查见 [findings.md](findings.md)。本轮从 ControlMesh `31d65d540711f429fe583675ad090e40f562f4f3` 开始，源代码及记录随同一变更交付；远端提交以 Git 的 main 引用为准。
+当前范围和验收要求见 [task_plan.md](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/plans/workflow-small-change-20261122/task_plan.md)，源代码调查见 [findings.md](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/plans/workflow-small-change-20261122/findings.md)。本轮从 ControlMesh `31d65d540711f429fe583675ad090e40f562f4f3` 开始，源代码及记录随同一变更交付；远端提交以 Git 的 main 引用为准。
 
 ## 实际验证（2026-11-22）
 

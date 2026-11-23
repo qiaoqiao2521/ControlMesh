@@ -1,5 +1,7 @@
 # Findings
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 - 本机 DSH 0.2.1-rc.2，OpenCode 1.18.34，均已有安装。
 - DSH 官方有 dsh-llm-pi-ai 的 openai API-key 路由；用户粘贴的示例仍须对照本机版本。
 - OpenAI 官方说明赠送额度覆盖 Responses 等 API，但不支持 Codex API-key 用量。第三方客户端名称本身不构成计费证明。

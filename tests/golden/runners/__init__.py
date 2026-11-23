@@ -1,1 +1,0 @@
-"""Golden fixture runner helpers."""

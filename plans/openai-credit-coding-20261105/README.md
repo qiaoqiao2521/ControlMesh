@@ -1,5 +1,7 @@
 # DSH · OpenAI API 编程入口
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 已复用本机 DSH 0.2.1-rc.2，配置普通 API 模型 `gpt-6.1-sol` / `gpt-6-astra`。
 命令行辅助入口默认选择 `gpt-6.1-sol`，推理级别 high。
 官方地址为 `https://api.openai.com/v1`，协议为 `openai-responses`。
@@ -33,8 +35,8 @@ dsh-openai --json "读取当前项目，完成修改并运行测试"
 
 ## 配置位置
 
-- 启动器：`~/.local/bin/dsh-openai`，链接到本目录的 [dsh-openai](dsh-openai)。
-- OpenAI 配置片段：[cordis.patch.yml](cordis.patch.yml)，供参考，已合并到日常配置。
+- 启动器：`~/.local/bin/dsh-openai`，链接到本目录的 [dsh-openai](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/plans/openai-credit-coding-20261105/dsh-openai)。
+- OpenAI 配置片段：[cordis.patch.yml](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/plans/openai-credit-coding-20261105/cordis.patch.yml)，供参考，已合并到日常配置。
 - 日常配置：`~/.dsh/profiles/{web,headless,tui}/cordis.patch.yml`。
 - 命令行临时模型选择：`~/.dsh/openai-api.patch.yml`；仅切换默认模型。
 - 私有 API Key：`~/.config/dsh-openai-credits/api-key`，权限 600；无密钥值入库。

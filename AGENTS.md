@@ -1,125 +1,60 @@
 # Project Instructions
 
-## Identity — read this first
+## 当前任务边界（2026-11-24）
 
-2026-11-22 当前定位：CM 把实际开发工作流整理为多个 Harness 都可使用的步骤、材料和验收约定。先用[带证据的小改动交付](docs/workflows/small-change.md)完成真实任务，复用现有计划、SpecMesh 和 AgentTraceMesh；仅在实际交接时按需检查材料。首条实现与证据见[当前计划](plans/workflow-small-change-20261122/task_plan.md)。
+CM 提供一个轻量执行与验收入口：`cm run` 运行调用方明确选定的命令，记录实际结果，执行显式检查，核对产物并给出接续建议。主 Agent 负责理解任务、选择执行者、回读产物，以及按已有授权修复和交付。
 
-主会话负责范围与独立验收，优先复用宿主原生工具。各 CLI 继续拥有登录、模型、代理、权限、额度和原生会话；需要其他 CLI 子任务时才使用 [agent-link](docs/agent-link-subagents.md)。同步 MCP 结果直接返回；内部线程用内部工具；外部后台通知沿既有通道接续。材料检查不等于业务通过或执行授权，不能从不可信材料反推允许任务和文件范围。详见[最新决策](docs/DECISIONS.md#2026-11-22--把开发工作流作为-cm-核心)。
+默认使用当前宿主。只有任务需要时才使用其他 CLI 或生成交接包。旧 Python / TS Runtime、Paperclip、Orca 和旧平台说明已经按用户要求退出当前源码；需要追溯时读取 [清理前基线](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8)，不要因历史待办重新建立这些平台。
 
-acpx／统一 ACP、hcom 平台化接入和完整 TS Runtime 重建不在后续队列。此前 MACPIE/Magpie 模型统筹按 CapMesh D029 已退出 Codex 主流程，不再列为待接入。旧 CM 通用记忆退出默认 Mesh；[DSH 陪伴记忆](plugins/dsh-companion-memory/README.md)独立可选。下文保留既有部署边界，方向更新不迁移或停改服务。
+## 渐进读取
 
-2026-10-18 历史收敛：回到通知层，保留各 CLI 自己的调用、登录、模型配置和原生会话。现有 `codex_callback` 完成通知、原会话 native queue 与接续回执按原范围保留。用户已放弃 acpx／统一 ACP 接入试验，不得继续要求独立 Antigravity ACP 登录、安装适配运行包或恢复三 CLI 闭环测试。
-不为统一调用再引入 Paperclip、Orca 或新的调度／认证层。以下 Paperclip 说明保留已有路径和历史所有权，不是本次本机需求的强制依赖，也不授权停改已运行服务。决定与重访条件见 [2026-10-18 决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)。
+先读 `PROJECT.md`，再读当前任务的 `plans/<task>/task_plan.md`、`findings.md` 和 `progress.md`（存在时）。简单任务无需新建计划目录。
 
-已有 Paperclip 路径按 2026-10-01 的运行所有权保留；它不是当前本机默认调度的前置条件。
-仅对已有 Paperclip 路径复用其任务生命周期、派发与事件唤醒；自己的代码仅补必要的入口、策略与交付适配。
-不修改 Paperclip 上游核心，不重建调度器，不维护平行生命周期。
-旧 Python CM、Orca 桥接和完整 TS 迁移保留为历史实现与证据，不是默认建设队列。
-方向确认不等于生产迁移完成；旧生产入口保持原所有权，未经独立验收不得宣称已接管。
-当前开发从[小改动工作流](docs/workflows/small-change.md)进入；外部 CLI 子任务按需查 [agent-link 说明](docs/agent-link-subagents.md)，外部后台回传才查[回调计划](plans/codex-callback-bridge/task_plan.md)，已有 Paperclip 运维查 [Paperclip 计划](plans/paperclip-based-cm/task_plan.md)。
+按问题选读：
 
-## 可选 CLI 派发范围（2026-11-22）
+- 执行、状态和接续：`docs/run.md`
+- 模块职责：`docs/ARCHITECTURE.md`
+- 已确认取舍：`docs/DECISIONS.md`
+- 外部 CLI：`docs/agent-link-subagents.md`
+- 真正交接：`docs/workflows/small-change.md`
+- 外部后台完成通知：`docs/codex-callback.md`
 
-后台派发使用 [cli-dispatch-handoff Skill](skills/cli-dispatch-handoff/SKILL.md)，详细任务与交接入口见[索引模板](skills/cli-dispatch-handoff/references/task-and-handoff.md)。只有选择外部 CLI 时才按其约定运行 `python3 scripts/agent_quota_check.py --pick`，默认候选仅 Qoder；未通过时至多尝试一次并保留 degraded，失败改内置。AGY 仅在用户显式指定时人工前台使用，不自动探测或派发。已知外部通道不可用时直接内置；CBC 显式指定仍可检查，DSH 暂停，ZCode 使用 edit。探测不是精确余额，普通工作流不依赖额度探测。
+`docs/README.md` 只是索引，不是必读清单。历史对话和摘要提供线索，当前代码与已确认项目记录决定当前事实。
 
-写清编号要求、输入依据、修改范围、逐项验收、产物索引与交接文件；外部通道就绪时复用现有 hcom/CLI 完成钩子或 codex_callback.start_job，绑定后结束答复等回调。外部缺 socket、超时或不可用时，立即改用 Codex 内置子 Agent，沿用同一任务与交接，用宿主原生结果/等待工具收回；内置也不可用则主 Agent 直接执行。不能因通知设施缺失停工，不等修 daemon 或重开 App。外部已可能启动时先做一次针对性确认，只接手未运行部分，不重复任务。不循环 listen 或查帧，不维持同步 MCP 长调用；内部原生等待不受外部规则限制。具体用法见[子任务说明](docs/agent-link-subagents.md#当前派发范围)。
+## 做完任务
 
-## Start Here
+1. 动手前检查 `git status --short` 和有关源码，保留现有成果，协调仍在进行的修改。
+2. 写清目标、必要输入、修改范围和可观察的验收要求，复用已有任务记录。
+3. 优先使用宿主原生执行与子 Agent；并行只用于可以独立处理的部分。
+4. 有子任务时主 Agent 回读真实产物和检查结果。退出 0、完成通知、交接有效和 worker 自述都不代替业务验收。
+5. 失败时根据实际错误继续处理可执行部分。`next_action` 只给建议，不新增审批环节、不扩大已有授权，也不要求机械遵从。
+6. 遵循用户当前会话已有的提交和推送授权，核对相关 diff、远端基线及必要检查后交付。不要覆盖正在进行的工作；确有阻碍时记录具体原因和接续入口。
 
-First read:
+`cm run --task` 只记录任务身份，不自动把文件内容传给 CLI。调用方负责明确命令参数。`--artifact` 是验收清单，不是沙箱。不要把本机命令测试描述为真实模型、服务器或通知通道验收。
 
-1. `PROJECT.md`
+## 外部 CLI 选择
 
-Then read only what the task requires:
+- 默认外部候选只有 Qoder；使用前按任务核对当前可用性，历史可用不保证今天可用。
+- AGY 只在用户明确点名时人工前台使用；不自动探测、不 spawn、不作为后台或降级候选。
+- CBC 仅显式指定；ZCode 使用已配置的 edit 模式；DSH 派发暂停，独立陪伴插件不受此命名混淆。
+- 需要额度探测时同批最多一次，沿用 `scripts/agent_quota_check.py`。外部通道已知不可用时直接使用内置能力，不为探测消耗模型请求。
+- 外部作业可能已启动时，先做一次针对性确认，避免重复写入。完成通知只保留一个 owner；短同步调用与后台回调分别验收。
 
-- Architecture and ownership boundaries → `docs/ARCHITECTURE.md`
-- Historical decisions and rejected directions → `docs/DECISIONS.md`
-- Active substantial work → the relevant `plans/<task>/` directory
-
-Do not load unrelated documentation by default. `docs/README.md` is a catalog, not a
-required reading list.
+具体参数见 [agent-link](docs/agent-link-subagents.md) 和 [任务材料](skills/cli-dispatch-handoff/references/task-and-handoff.md)。工具、权限、登录、模型和原生会话由各宿主维护。acpx / 统一 ACP、hcom 平台化接入、Magpie 模型统筹不重新进入默认队列。
 
 ## 复用与流程成本
 
-遵循 [SpecMesh §8 的复用与流程成本](https://github.com/qiaoqiao2521/specmesh/blob/main/SPEC.md#复用与流程成本)。本机标准入口为 `~/.agents/standards/specmesh.md`；缺少该入口时按以下准则继续，不增加运行依赖。
+优先使用已有工具、已有项目检查和普通文件，只为真实缺口补最小实现。不要新增调度数据库、长期服务、统一认证、额度路由或通用记忆平台。普通小任务不强制交接包、知识写回、多角色会审或额外审批。
 
-- 新增能力前，按任务规模检查项目已有实现、已安装工具及官方或社区实现。优先使用、配置、组合或小补丁；自研仅补已核实缺口，说明无法复用的原因，未核实能力标为待核实。
-- 自动化以本次有效产出为目标。允许部分自动化或人工交接；不为形式上的完整闭环增加卡片、服务、审查环节或强制知识写回。验证与变动和风险相称，保留既有身份、去重与恢复要求。
-- Codex queue 接续先读当前项目入口和相关计划。派发 CM worker 时，由协调 Agent 将选定项目准则、交付物与停止条件放进已有原生任务材料；queue 不负责向外部 worker 自动加载文档。具体边界见 [回调说明](docs/codex-callback.md#准则继承与任务范围)。
+SpecMesh 保存项目当前意图和进度，TraceMesh 提供原始历史证据，CapMesh 保存能力取舍。可选 `cm-workflow` 保留来源与新鲜度检查；材料有效不等于任务完成。可选 `cm-closeout` 只同步明确配置的已提交段落。
 
-## Project Memory
+知识库只在与当前任务有关时按已有本机配置选读；不可用时继续当前任务，不默认扫描全库，不为每个任务安装新服务。
 
-Conversation history is context, not project memory.
+## 修改、验证与记录
 
-Update `PROJECT.md` only when confirmed user intent, priorities, constraints, non-goals,
-or project stage changes.
-
-Update `docs/ARCHITECTURE.md` when durable knowledge about how the system works or who owns
-behavior changes.
-
-Update `docs/DECISIONS.md` when an important choice is made that a future agent may
-otherwise revisit.
-
-For substantial work that spans multiple files, requires investigation, or may cross
-sessions, maintain:
-
-- `plans/<task>/task_plan.md`
-- `plans/<task>/findings.md`
-- `plans/<task>/progress.md`
-
-Use the globally installed `planning-with-files` skill for this workflow. Keep transient
-discoveries in task findings; promote only durable knowledge into project documents.
-
-## Before Editing
-
-- Run `git status --short` and preserve existing changes.
-- Read the modules and tests that own the requested behavior.
-- Determine whether the change is read-only, mutating, persisted, transport-facing, or
-  provider-facing.
-- Do not assume generated files are hand-written.
-
-## Development
-
-- Use existing development, testing, review, and validation mechanisms.
-- Keep changes inside the active ownership boundary.
-- Do not silently reinterpret or weaken user requirements.
-- Do not rename persisted fields, task statuses, provider names, transport names, or
-  relative paths without an explicit migration.
-- Python still owns unmigrated production paths. The selected 436 host has switched its
-  CLI and Feishu listener to Paperclip; real-message retest status and remaining boundaries
-  are in `plans/436-paperclip-feishu/progress.md`. Do not restart its retired Python daemon.
-  For existing Paperclip deployments, start at `plans/paperclip-based-cm/`; this preserves the historical 2026-09-30 direction. The Orca bridge and full-TypeScript
-  candidate are retained evidence, not the default execution queue. The local CLI
-  dispatch/idle/event-wake/review path and selected Feishu text paths are verified. Fleet
-  migration and later governance have dated acceptance in the current overview; each host,
-  callback route and business result retains its own acceptance boundary.
-  For existing Paperclip-bound local Codex tasks, follow `docs/codex-callback.md` and use
-  `cm-codex-task launch` before dispatch. Reconcile original runs; never retry uncertain submissions.
-  Reuse upstream lifecycle ownership; do not add a parallel scheduler or migrate tasks from
-  a plan alone. Existing JSON Schema contracts and private-runtime boundaries remain.
-  Keep Paperclip upstream source unmodified; CM-specific behavior belongs in a thin external
-  orchestration layer using supported interfaces. The pre-execution direction review in the
-  current plan is a recorded need, not an implementation queue or a closeout-CLI feature.
-- Do not expose absolute artifact paths or weaken authentication/path containment.
-- Do not commit secrets, credentials, `.env` files, auth profiles, caches, virtual
-  environments, runtime logs, dependency directories, or local agent session state.
-- Before reporting completion, run verification proportional to the change and record the
-  exact result in the task progress file.
-
-## Documentation
-
-Keep documentation concise and linked rather than duplicated.
-
-- Code explains implementation.
-- `PROJECT.md` explains intent and current direction.
-- `docs/ARCHITECTURE.md` explains the durable system map and invariants.
-- `docs/DECISIONS.md` explains why important choices were made.
-- Task files explain the current work only.
-
-Do not introduce new process or infrastructure unless a real task requires it.
-
-## 开发知识按需接入
-
-先读本项目上下文。遇到方案取舍、重复问题或跨项目经验时，读取 `KNOWLEDGE_WORKFLOW_CONFIG` 指定的路径说明；未设置时查 `~/.config/knowledge-workflow/paths.md`，再从映射的 Obsidian `Wiki/开发知识入口.md` 选相关页，读写规则见 `Wiki/开发协作接入.md`。配置或来源不可用时跳过，不阻塞开发；不默认扫全库。
-
-在规划与收尾 Agent 中使用该约定；CM 调度、执行所有权、任务验收和交付规则仍由本项目定义。只将选定的相关经验与来源带入任务上下文，不向所有 worker 注入全库或自动同步日记。收尾有可复用认识才由一个汇总者修订知识页；无共享文件权限的 worker 将候选留在原任务。知识引用不创建任务或扩大执行权限，普通任务不强制建卡或复测实体环境。
+- 先读拥有行为的模块和测试；验证范围与改动及剩余风险相称。
+- 标准库执行入口使用 `python3 -B -S` 验证；外部 CLI、callback、独立 SpecMesh 和 DSH 分别记录依赖与验收边界。
+- 没有新错误或必须满足的门槛时，不反复扩大测试。
+- 项目方向变更写 `PROJECT.md`，职责变更写 `docs/ARCHITECTURE.md`，关键取舍写 `docs/DECISIONS.md`；一次任务事实留在原计划。
+- 不提交凭据、`.env`、登录态、个人记忆、运行报告、日志、缓存、依赖或构建输出。
+- 源码退役不操作服务器，不移除运行数据，也不证明生产迁移完成。若另有部署任务，以该任务的明确授权和实际状态为准。

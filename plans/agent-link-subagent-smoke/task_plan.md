@@ -1,5 +1,7 @@
 # agent-link-mcp 本机子任务接入
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## Goal
 
 使用用户选定的 agent-link-mcp，让 Codex 调用已有 CLI 并收回结果。只验证 CLI 子任务，不恢复 ACP、hcom 或跨 Harness 管理平台。

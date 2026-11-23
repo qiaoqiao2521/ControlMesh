@@ -1,5 +1,7 @@
 # Findings
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 - 用户确认“一个 CLI、两个动作，默认零 Agent”；零 Agent 是运行时约束。
 - 已有 SpecMesh port 提供只读检查与交接，hostjob 提供任务等待；均无需扩展为文本同步引擎。独立标准库入口避免加载 CM provider/runtime。
 - CM 当前来源是 plans/paperclip-based-cm/progress.md 的 Current。来源记录本机 CLI/飞书文本通过，生产仍未接管。

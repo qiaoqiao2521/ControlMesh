@@ -1,5 +1,7 @@
 # Findings — 仓库收尾与交付规范落地
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## 1. 共享规范修订与精确 Patch
 
 共享规范 `/home/muqiao/.agents/AGENTS.md` 为不在 Git 追踪的本机核心规范文件。

@@ -1,387 +1,43 @@
 # ControlMesh Project Context
 
-## 当前方向（2026-11-22）
+## 当前方向（2026-11-24）
 
-CM 的核心是把开发工作流沉淀为多个 Harness 都可以使用的步骤、材料与验收约定。优先完成真实任务，复用已有 Mesh 和项目文件；Harness 负责工具、权限、模型和执行。评价标准是减少重复解释、交接遗漏和维护负担，不是接入了多少厂商。
+用户需要能直接完成实际任务的编排入口，并已允许清理旧 Paperclip 路线。CM 当前保留一次命令执行、独立验收、产物核对和失败接续报告。任务选择、理解与最终交付由当前主 Agent 负责，各 CLI 沿用自己的工具、权限、登录和会话。
 
-首条流程是[带证据的小改动交付](docs/workflows/small-change.md)：明确需求，按需读取历史证据与代码职责，最小实施，独立核验实际结果，再按已有授权交付。真正换执行者或跨会话时，使用独立的 `python3 -S -m controlmesh.workflow prepare|check` 组合 SpecMesh 原生材料导出和消费前核验。它不启动旧 CM Runtime，不调用模型或创建状态库；材料有效不等于业务验收。
+核心入口是 `cm run`：给它现成执行命令、已有检查命令和产物清单，得到一份记录真实状态的 JSON。无检查时标为未验收；失败时给出下一步建议，宿主可在已有授权范围内继续修复。它不自动重新调用模型、不长期轮询、不维护另一套任务服务。
 
-SpecMesh 管当前意图、进度、约束与代码职责，AgentTraceMesh 提供原始历史及压缩检索，CapMesh 记录能力取舍，宿主保留执行所有权。知识炼油、CapMesh 按需加固和选择性记忆作为真实流程的后续候选保留，不同时铺开。当前实现与实测限制见[计划](plans/workflow-small-change-20261122/task_plan.md)及[进度](plans/workflow-small-change-20261122/progress.md)。
+使用说明见 [执行与验收](docs/run.md)，实际实现、测试和未覆盖项集中在 [本轮计划](plans/cm-usable-orchestration-20261124/task_plan.md) 与 [进度](plans/cm-usable-orchestration-20261124/progress.md)。
 
-跨 Harness 可复用指材料和工作方法可接续，不承诺迁移原生会话、共享额度或统一认证。已有 agent-link、通知桥与旧部署按原范围保留；当前投入由[2026-11-22 决定](docs/DECISIONS.md#2026-11-22--把开发工作流作为-cm-核心)选择。
+## 保留能力
 
-## 可选 DSH 陪伴记忆插件（2026-10-23）
+| 能力 | 范围 |
+| --- | --- |
+| `cm run` | 一次显式命令、检查、产物和报告；不管理厂商原生会话 |
+| `cm-workflow prepare/check` | 真正交接时组合独立 SpecMesh 的材料导出与核验 |
+| `cm-closeout check/sync` | 同步明确配置的、已提交的跨仓状态段落 |
+| agent-link 说明与额度检查脚本 | 选用既有 CLI；当前默认外部候选 Qoder，AGY 不自动派发 |
+| `vendor/codex_callback` | 可选的原 Codex 线程通知，保留上游来源与局部修复 |
+| DSH Companion Memory | 独立可选的个人陪伴插件，与编排核心分开安装和验收 |
 
-新增 [DSH Companion Memory](plugins/dsh-companion-memory/README.md)，将旧 CM 的可编辑记忆思路用于个人陪伴。插件使用 DSH 原生工具与上下文，保存人物、偏好、共同经历、承诺和按需总结。它是独立可选模块，不恢复 CM 通用记忆服务或跨 Harness 平台。旧记忆代码与数据保留；导入仅针对明确选定文件并默认预览。源码比较与验收见[当前计划](plans/dsh-companion-memory/task_plan.md)。
+SpecMesh 管当前项目意图、约束、进度和代码职责；TraceMesh 保存与检索原始历史；CapMesh 记录能力取舍。CM 组合本次任务需要的能力，普通任务不要求同时启用所有 Mesh。
 
-## 历史本机方向（2026-10-25；调用能力按需保留）
+## 已退役的仓库内容
 
-CM 是 **围绕现有 CLI 的轻量 Agent 协作与适配层**。用户在原会话给出目标，主 Agent 拆分任务，复用宿主原生子 Agent 或 agent-link 调用已有 CLI，收到结果后独立验收。适配仅补必要的调用入口、结果交接与完成通知；衡量标准是减少手工协调和维护负担。
+旧 Python / TS Runtime、Paperclip / Orca 专有接线、旧面板与平台迁移清单从当前源码删除。旧源码、历史发布和部署证据可从 [清理前提交](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8) 查阅，不复制为新归档目录。
 
-Harness 继续拥有上下文、工具、权限与任务生命周期。优先使用一个宿主的原生能力；需要 AGY、Qoder、CodeBuddy 等已有 CLI 时，通过 [agent-link](docs/agent-link-subagents.md)执行边界明确的子任务，各 CLI 沿用自己的登录、模型、网络与配置。允许 CLI 子任务调用，不建设统一登录、会话同步、跨 Harness 调度或多厂商 Agent Runtime 平台。
+这次变更只清理仓库，不停止、重启或迁移服务器，也不读写凭据、个人记忆、历史任务数据或原生会话。当前服务器是否仍使用旧版本没有在这次源码工作中验收。
 
-同步结果由 MCP 工具返回；MCode 后台任务复用其原生完成通知；Codex 外部独立后台任务经既有 native queue 接回原会话。Codex 内部线程与子 Agent 使用内部工具。能力与验收分别记录，不把一次调用成功扩展为任意 CLI、后台唤醒或断线恢复都已可用。
+## 约束与成功标准
 
-此前 **MACPIE/Magpie** 模型统筹以 CapMesh D029 的后续决定为准：Magpie 已退出 Codex 主流程，不再列为待接入；本轮核对的是决定记录，未复测配置或服务。hcom 与 acpx／统一 ACP 不再推进。旧通用记忆退出 Mesh 默认建设，陪伴需求使用文首的可选 DSH 插件。最新边界见[决策](docs/DECISIONS.md#2026-10-25--围绕-cli-做轻量适配)与[当前计划](plans/agent-link-subagent-smoke/task_plan.md)。
+- 默认走当前宿主；只在可拆分、可验收的具体任务上增加协作。
+- 执行命令使用调用方权限。任务文件与产物清单不提供操作系统隔离，不能替代宿主的授权。
+- 真实产物和行为决定验收；报告完成仅表示本轮显式检查通过，不证明未覆盖需求。
+- 不建设调度数据库、后台平台、统一认证、模型代理、额度路由或跨厂商会话迁移。
+- 不恢复 AGY 自动探测与派发；不因旧配置仍存在而重新启用暂停的 CLI。
+- 当前源码验证与真实厂商模型、跨会话恢复、部署和通知连接分别报告。
 
-2026-10-18 历史实测：MCode 0.5.9 常驻 TUI 用原生后台 Bash 启动 AGY，首轮结束且会话空闲后，原生完成事件自动开启同会话的新轮次；新轮读取 task_output、独立核对结果和 SHA256，完成验收。沿用既有登录，未安装适配层。仅接受这一单次 idle 接续；不据此宣称同一 Harness 已支持全部 Runtime，也不继续补齐跨 Harness 测试矩阵。具体证据见[回调进度](plans/codex-callback-bridge/progress.md)。
+有效性的判断是完成实际任务时少了多少重复解释、手工协调和返工，同时保留必要检查。研究中的按需协作、有限信息交接和任务匹配只作为工程取舍依据，不宣称复现论文或得到相同收益。
 
-用户已否决本次 acpx／统一 ACP 接入：AGY 需要独立官方运行包和首次 OAuth，增加维护负担。停止该试验及其登录、模型调用和 App 切换安排，不把“统一协议”当作通知的前提。除非用户明确重新选择，不再推进这条路线。
+## Current
 
-下文 Paperclip／Orca 记录保留既有实现与运行所有权；它们不是当前本机通知需求的必需依赖。本次决定不表示停用、删除或迁移既有服务。详见[决策](docs/DECISIONS.md#2026-10-18--回到通知层停止-acpx统一-acp-接入)和[回调进度](plans/codex-callback-bridge/progress.md)。
-
-## 既有 Paperclip 路径定位（2026-10-01）
-
-CM 是工作流概念与薄适配层；实际运行底座是 [Paperclip](https://github.com/paperclipai/paperclip)，不是自研独立运行时。
-此段仅约束已有部署。Paperclip 承担该路径的生命周期、派发与事件唤醒；CM 只补必要入口、策略和交付适配，不修改上游核心或维护平行调度器。新的开发投入按文首工作流决定执行。
-2026-10-01 曾完成 8 台服务器的默认 CLI 迁移和 63 项有效定时任务接管。后续设备取舍以 Ops 的当前记录为准，不将此历史数量当成当前运行状态。历史实现作为一次性执行库和恢复依据保留。账号登录、飞书绑定、风险判读与外部发布分别验收。
-
-2026-10-08 当前服务器范围仅 bf2025、436、qiaobird、greenrise、cy、moonrise；六机 Paperclip manager 已逐机验为普通用户。52 个重复维护 routine 已归档并删除时钟，11 个旧内容 routine 暂停，13 条冗余 OS cron 移除；旧 Python CM 程序与无用源码正在按依赖退役，业务目录和当前身份保留。逐机当前事实以 Ops-Vault 的 `plans/fleet-agy-opencode-feishu-20261008/cleanup-list.md` 为源，不将下文历史八机／63 schedules 当作当前基线。
-
-可选 [AGY AUTH 任务入口](docs/paperclip-agy-auth.md) 已完成离线行为审查，未部署；六机普通用户 Google AUTH 仍待完成，不将它与 root 历史认证合并。
-
-2026-10-07 飞书普通私聊改为外部插件调用 Paperclip 原生 Agent Chat。完成一次任务后仍能接新需求，不依赖回复旧消息；执行任务保持独立。入口、复现构建与限制见[插件说明](plugins/feishu-connector/README.md)，实机交接见[持续对话进度](plans/feishu-native-conversation-20261006/progress.md)。原生问题卡在飞书提交及 UI continuation 的完整关联尚未验收。
-
-## Why
-
-ControlMesh makes useful development workflows reusable across harnesses through existing project files, evidence, and explicit acceptance.
-The initiating Agent owns scope and judgment; each harness keeps its tools, permissions, execution, and native sessions.
-Reuse SpecMesh and AgentTraceMesh so a new executor can recover the selected task without a second index or runtime.
-
-## Historical deployment context
-
-Historical deployment choice: on 2026-09-30, after a real CLI dispatch/wait/review experiment, the user chose a
-Paperclip-based improved CM as the next direction. Reuse upstream task execution and event
-wakeups; retain valuable CM CLI, Feishu/group policy and delivery behavior. This supersedes
-Orca as the default future backend. The old Python task libraries and partial Orca candidate
-remain preserved; neither is the default server daemon after the accepted fleet cutover.
-
-2026-10-01 selected deployment: all 8 servers now use a host-pinned Paperclip default CLI;
-63 effective CM schedules are native routines. Old consumers are stopped, with identities,
-disabled definitions and independent OS cron/timers preserved. The existing 436 Feishu
-listener and publishing timer remain in place. [Fleet acceptance](plans/fleet-paperclip-agy-20261001/progress.md)
-separates runtime cutover from the six missing Feishu bindings and deferred per-host AGY login;
-[436 acceptance](plans/436-paperclip-feishu/progress.md) retains its real-message retest boundary.
-
-Google CLI direction (confirmed 2026-09-13): AGY is the user's forward Google runtime.
-Keep historical Gemini IDs/session formats as explicit compatibility profiles; do not
-alias AGY to the old executable or retry retired personal-account CLI endpoints. Routine
-implementation/testing uses locally configured CLIs; the initiating conversation's coordinating Agent
-owns task dispatch and acceptance. Preserve actual native session IDs, durable
-results and distinct scheduled/agent/human provenance through CM's parent/task mechanisms.
-
-## User Intent
-
-The user wants small workflows that can enter daily production without maintaining every vendor's harness behavior.
-
-- Keep goals, selected evidence, allowed scope, actual validation, and the next action in existing project records.
-- Let a new executor continue from those records while preserving source revisions, original history locations, and current code authority.
-- Prefer native tools and agents; add bounded CLI calls only when the task needs them.
-- Independently inspect artifacts and real behavior before delivery; material freshness and completion notifications are not business acceptance.
-- Retain useful knowledge refinery, capability hardening, and selective memory ideas, introducing each only for a concrete task.
-- Preserve existing deployment identities and ownership; changing direction does not migrate running services.
-
-## Non-goals
-
-- Do not add a workflow database, background service, generic scheduler, new index, quota router, or model gateway for this direction.
-- Do not make machine handoff checks or knowledge writeback mandatory for every small task.
-- Do not build a unified cross-harness runtime platform. Bounded CLI child-task calls through agent-link are within scope.
-- Do not resume hcom interoperability, ACP adapters, or symmetric CLI tests without an explicit change of direction.
-- Do not resume full CM platform construction or full TypeScript migration as the default
-  investment. Preserve the existing candidate and evidence without treating them as delivered.
-- Do not rebuild a parallel execution core or generic protocol SDK around Paperclip.
-  Reuse or clone Paperclip with its upstream source unmodified. Keep CM-specific behavior in
-  a thin external orchestration layer over supported interfaces; decline an addition if it
-  requires invasive changes or a second scheduler. This supersedes the earlier fork option.
-- Do not remove existing Feishu integrations, group policy, other transports or old task data
-  to make the new scope appear complete. Each selected path needs its own acceptance.
-- Do not replace official provider CLIs with a proprietary model runtime.
-- Do not treat a TypeScript facade or a wrapper around Python as a completed runtime migration.
-- Do not let the Web UI or SDK read or write private ControlMesh files directly.
-- Do not expose a remote-first dashboard, arbitrary shell endpoint, or arbitrary file read.
-- Do not infer orchestration topology from prose; topology selection remains explicit.
-- Do not add process documents, agent roles, evidence systems, or empty structures without
-  a real need.
-- Do not make conversation history the source of project truth.
-
-## Success
-
-ControlMesh succeeds when a real change can move from requirement through selected evidence,
-implementation, independent validation, and authorized delivery with less user coordination.
-A new executor can identify what is current, what actually passed, what remains unverified,
-and where to continue. Claims about another vendor's harness require a real run there.
-
-The project-memory system succeeds when a new agent can read `AGENTS.md`, this file, the
-relevant architecture/decision links, and one active task directory, then continue work
-without loading the whole repository or asking the user to repeat established context.
-
-## Constraints
-
-新增能力与任务接续遵循 [AGENTS.md 的复用与流程成本](AGENTS.md#复用与流程成本)。协调 Agent 向 CM worker 传递当前项目的选定准则与停止条件；Codex queue 只传递接续消息，不替外部 worker 加载项目文件。有效的部分自动化或人工交接可以满足任务，不把形式上的完整闭环作为通用交付目标。
-
-Development knowledge is an optional planning/closeout input through [AGENTS.md](AGENTS.md).
-Obsidian keeps reusable explanations; SpecMesh project files keep current facts, CapMesh keeps
-capability decisions, and History keeps source evidence. This file-based convention does not
-change runtime ownership, auto-load a vault into workers, or require a knowledge service.
-
-- Python remains the preserved one-shot task library for old jobs. On the migrated servers,
-  Paperclip owns scheduling and execution; the coordinator owns judgment, with ingress,
-  binding and delivery boundaries explicit. Planning does not switch existing task owners.
-- Electron/Xvfb in the headless backend is acceptable. A pure-Node runtime is optional,
-  not a prerequisite or a second implementation track.
-- Group/bot provenance and execution restrictions must survive the bridge. Unsupported
-  enforcement fails closed; a local backend connection is not permission to run on the host.
-- JSON Schema under `schemas/controlmesh/v1/` is authoritative for cross-language payload
-  shape; generated Python and TypeScript models are not edited directly.
-- Public protocol fields use stable snake_case names, allow additive unknown fields where
-  forwarding requires it, and never expose absolute artifact paths.
-- Persisted fields, task statuses, provider/transport names, and workspace layouts require
-  explicit migrations.
-- The historical TypeScript candidate remains non-default; any separately approved cutover
-  still requires canonical Python fixtures demonstrating
-  create, tell, ask_parent, resume, cancel, provider, recovery, workspace, and artifact
-  parity with rollback gates.
-- The Web product remains local-first and binds to `127.0.0.1` by default.
-- Secrets, credentials, auth profiles, runtime state, caches, dependency directories, and
-  build output must remain untracked.
-
-## Current State
-
-2026-11-22：首条[小改动工作流](docs/workflows/small-change.md)与独立 SpecMesh 薄入口已实现并通过本地验收，实际测试与样例结果集中在[进度](plans/workflow-small-change-20261122/progress.md)。这批未复测设备、部署和厂商模型，不将下文历史运行记录当作当前服务状态。
-
-2026-10-25：当前默认入口是[轻量 CLI 子任务调用](docs/agent-link-subagents.md)，实际验收见[进度](plans/agent-link-subagent-smoke/progress.md)。旧 Paperclip 回传、MCode 通知和 DSH 插件各有自己的验收范围。以下是按日期保留的历史实现，不能据此推定当前服务、通道或所有 CLI 已可用。
-
-2026-10-12：当前进展从 [Paperclip 当前总览](plans/paperclip-based-cm/progress.md)进入。总览链接飞书持续对话、本机 Codex 原会话回传和运行归属；各路径验收回源对应计划，历史八机/63 schedules 不作为当前数量。本次[遗漏修复](plans/mesh-omissions-20261012/progress.md)统一 CapMesh 入口与状态引用，保留业务返工和持续连接的独立边界。
-
-2026-10-01 用户将[迁移复盘](plans/436-paperclip-feishu/migration-review-20261001.md)中的次日安排提前到现在。8 台 AGY 程序更新、默认 CLI 与 63 项有效定时任务接管已接受，最新逐机状态见[批量进度](plans/fleet-paperclip-agy-20261001/progress.md)。登录按用户安排后置，每机不同账号；业务可用与文章 QA、特定消息验收分开记录。
-
-436 的当前入口与限制见 [运行说明](docs/paperclip-436.md) 和 [验收进度](plans/436-paperclip-feishu/progress.md)。
-2026-10-01 已切换默认命令与消费者；首次真实 post 消息暴露空正文问题，修复后待复测。
-以下实验与实现描述保留其原日期，不覆盖这份主机级状态。
-
-The 2026-09-30 Paperclip 2026.916.1 local experiment dispatched real AGY/ZCode/CBC CLIs,
-ended the coordinating Codex run for 589.998 seconds, then woke it on completed handoffs.
-Independent review accepted AGY/CBC (two new tests; combined 15 passed) and rejected ZCode,
-including after one bounded native-session correction. Three coordinator runs in total:
-dispatch, review, re-review. Feishu, broad recovery and production migration were not tested.
-Evidence and integration boundary: [Paperclip findings](plans/paperclip-based-cm/findings.md).
-
-2026-09-30 historical canary: [Feishu and greenrise](plans/paperclip-feishu-canary/progress.md). Local Feishu text receipt/execution/reply passed; the unused greenrise candidate stopped with data preserved after provider/Telegram constraints. That dated result is superseded by the 2026-10-01 headless fleet cutover; greenrise now has 12 native schedules and no old consumer. All servers now select Feishu only, so no Telegram HTTPS bridge is queued.
-The following describes preserved implementations and dated evidence, not a new rollout.
-
-As of the 2026-09-26 implementation, CM HEAD is `3596526` with preserved uncommitted work.
-The first isolated Orca 1.4.201 AGY launch failed at readiness. A separately authorized
-second attempt completed the task, woke the blocking coordinator wait and passed independent
-file checks; delivery replay/ACK and resource release were observed. The new opt-in path has
-pinned local dispatch/reconciliation, durable coordinator handoff, a CLI/TUI skeleton and a
-strict reply sender. A real CM child-crash/mailbox recovery drill passed with synthetic messages,
-not provider tasks. A later isolated greenrise deployment ran two real Claude workers through
-CM dispatch and preserved both committed results. Formal CLI/TUI operations are wired; a
-Node-only hook-authority gap found during final acceptance was patched using Orca's existing
-callbacks. Those strict acceptance/recovery results remain in the historical Orca plan.
-Formal Q&A/refusal correction, restricted group execution and Feishu product acceptance remain open.
-The following
-records describe the existing CM baseline, not evidence that Orca already preserves it.
-
-Terminal UX remains a basic line-oriented shell. Runtime and read-only Alpha gates do
-not establish terminal product readiness. The user has prioritized an interactive
-terminal redesign; its implementation and real-terminal acceptance are still pending.
-
-The historical Python runtime provides the preserved baseline and one-shot execution library. It provides the enhanced
-terminal, legacy bot runtime, provider adapters, persistent TaskHub, message transports,
-memory/workspace behavior, multi-agent supervision, four approved topologies, recovery,
-and operational tooling.
-
-The approved TypeScript foundation is complete:
-
-- versioned JSON Schemas and synchronized generated Python/TypeScript models;
-- Bearer-protected, read-only Python `/api/v1` facade for tasks, events, providers,
-  topologies, artifact metadata, and descriptor-safe artifact downloads;
-- runtime-validated TypeScript SDK;
-- local read-only Web dashboard;
-- protocol, provider and task-lifecycle golden, SDK, facade, artifact-security, and Web build gates.
-- GitHub CI runs the frozen protocol/golden/SDK/Web gate as a required product-layer job
-  and exposes one aggregate `CI success` check for the complete workflow.
-
-The read-only Alpha introduced in `0.42.0a1` is installable as one Python artifact: the
-deterministic dashboard build ships in the wheel, `controlmesh api serve` exposes the
-authenticated facade and dashboard only on `127.0.0.1`, and the public Alpha SDK surface
-contains only supported read operations. CI includes a required isolated-wheel smoke that
-exercises the installed CLI, real HTTP/SDK reads, artifact containment, mutation rejection,
-and wheel-bundled dashboard assets.
-
-Mutation-shaped public SDK ideas are not supported product behavior. Production task
-mutation and transport/provider execution remain Python-owned. The isolated TS candidate
-has additional execution capabilities; its scoped evidence is not a default-runtime cutover.
-
-The canonical Python task-lifecycle parity matrix now executes create, tell, ask_parent,
-resume, cancel, recovery, workspace, and artifact ownership paths and records normalized,
-JSON-Schema-validated observations. It is a required CI drift gate, not authorization to
-add mutation APIs.
-
-The private TypeScript runtime-facade candidate consumes those case inputs and independently
-matches all 14 observations. CI dual-runs the live Python oracle and TypeScript candidate,
-reports JSON-path drift, and verifies a digest-bound rollback gate that retains Python as
-production and rollback owner. OpenAPI, the public SDK, and Web remain read-only.
-
-Provider authentication tests isolate operator XDG paths while retaining explicit XDG
-override coverage. The Codex streaming timeout test uses a complete stderr stream double,
-so the full Python suite passes with runtime warnings promoted to errors.
-
-Result writeback now fail-closes on cross-identity packets, non-owner reporters, stale
-recovery episodes, and conflicting retries. Identical result retries reuse the original
-event. Controller promotion requires the current episode's single `completed` result and
-rechecks execution, review, and summary freshness immediately before canonical writes. A
-production-Python-generated ten-case golden matrix is a required drift gate.
-
-Provider execution now carries a Python-issued source context from ingress to the final
-provider boundary. Group messages, bot handoffs, API, cron, webhook, and heartbeat work
-fail closed when the confirmed Docker sandbox is unavailable; local foreground and direct
-message compatibility remains explicit. Both normal CLI construction and one-shot cron/
-webhook/background execution share the same policy evaluator, and task persistence keeps
-the context across resume/recovery without storing raw message content or paths.
-
-Feishu groups can opt into multi-bot coordination without changing legacy mention policy:
-ordinary messages select one configured coordinator, exact bot mentions select only that
-bot, `/all` broadcasts explicitly, silent peers retain bounded passive context, and
-bot-authored handoffs require a configured sender, explicit local target, and loop budget.
-
-Feishu domestic long-connection attempts are generation-isolated: startup timeout, stop,
-and reconnect cancel exactly the in-flight attempt, superseded connections cannot deliver
-to the owner loop, and repeated start/stop cycles leak no threads, ping tasks, or sockets.
-
-## Current Priority
-
-2026-11-22：完成并实际使用[带证据的小改动交付](plans/workflow-small-change-20261122/task_plan.md)。先把一个流程用顺，再从生产任务中选择下一项知识炼油、CapMesh 加固或记忆改进；不同时扩建工作流引擎、厂商适配矩阵或新 Runtime。
-
-### 历史优先级（按原日期保留，不自动恢复为待办）
-
-2026-10-25：把轻量方向用于真实任务，复用原生能力和 agent-link，主 Agent 独立验收。Qoder、AGY、ZCode CLI、DSH 同步任务已有当时验收，CBC 当时受额度耗尽阻断。只在实际缺口出现时补小适配；外部后台任务按需核对原会话 queue 通道。
-
-2026-10-20：记录单 Harness 协作和 MACPIE 模型统筹方向，停止把跨 Harness／hcom 接入当作待完成任务。MACPIE 名称与接入待确认；本轮同步现有项目入口、CapMesh 与长期记忆，不安装、复测或迁移服务。历史 MCode → AGY 验收保留，不恢复 acpx／统一 ACP。
-
-2026-10-12：先完成[已核实遗漏修复](plans/mesh-omissions-20261012/task_plan.md)，复用已验收的派发、回传与收尾工具；新业务按其原计划继续，不恢复历史建设队列。
-
-2026-10-01：按需启用[关键决策会审 v1](docs/decision-consultation-v1.md)：两位独立咨询者、一次可选补充、引用与分歧保留、协调者独立判断；Paperclip 仍拥有运行生命周期。不是所有任务的必经流程，也不是自动实施批准。实现与验收见[进度](plans/decision-consultation-v1/progress.md)。
-
-2026-10-01 最新状态：[服务器批量迭代](plans/fleet-paperclip-agy-20261001/progress.md)已完成默认 CLI、63 项有效定时任务与 8 台 AGY 程序更新。真实 AGY 实施主要程序部署，额度退出后由根协调 CLI 收口并独立审批。下一步是各机独立 AGY 登录、六台缺失飞书绑定和所选真实任务验收；登录不急，不新开授权或常驻 Agent。
-
-2026-09-30: follow [Paperclip-based CM](plans/paperclip-based-cm/task_plan.md).
-Reuse the demonstrated CLI handoff/wait/review workflow and the accepted local Feishu
-text path: existing bot receipt, Agent execution, and one reply to the original thread.
-The earlier greenrise canary is dated evidence, not the current migration state.
-See [fleet status](plans/fleet-paperclip-agy-20261001/progress.md). Do not repeat the accepted
-local text test or resume Orca/full-TS work as the default queue. Group and recovery
-semantics still need acceptance when selected for a real task.
-
-The [earlier batch handoff](plans/436-paperclip-feishu/migration-review-20261001.md) remains the
-review of actual migration friction; its next-day timing is superseded. Preserve each host's
-bot, model configuration and cron inventory. The [436 post-path retest](plans/436-paperclip-feishu/progress.md)
-remains open and resumes when a new user message is available; do not keep invoking models
-while waiting. The user uses only Feishu across the fleet; no Telegram HTTPS deployment is required.
-
-### Historical Orca priority (2026-09-26; superseded)
-
-The dated scope below is retained for continuity and does not authorize a new dispatch:
-
-2026-09-26: [Orca bridge candidate status](docs/orca-bridge-status.md) (historical; superseded)
-with native orchestration reuse. The pinned source has persisted dependencies and readiness
-promotion; its legacy automatic coordinator commands are retired. The read-only native
-task/dependency projection is implemented in CLI/TUI, without a new scheduler or core extraction.
-Formal question/acceptance interaction is now wired through the existing narrow controller
-interfaces. Close the remaining real acceptance/recovery and restricted Feishu cases; do not
-repeat completed implementation or treat the reuse audit as product acceptance.
-CM focuses on CLI/TUI, messaging/group policy and trustworthy delivery; Orca is the selected
-future execution backend. B1 has real single-worker success after an explicitly authorized
-retry; B2 now wires local dispatch, original-request queries and coordinator mailbox recovery.
-Two real CM worker dispatches completed on the isolated server. After repairing native headless
-hook attestation, an explicitly rebound coordinator independently checked both Git commits and
-recorded strict native acceptances; persisted receipts were read back. Full TUI/Feishu integration,
-real rejection/correction and the complete restart matrix remain unaccepted.
-The earlier drill did not authorize further deployment. On 2026-09-26 the user explicitly
-requested remaining implementation and real-server deployment/testing, then allowed existing
-server Codex/Claude and selection of an existing bot. The canary uses greenrise without changing
-its production CM service; preserve data and keep attribution and source enforcement intact.
-
-This supersedes the 2026-09-14 full-TS endpoint as the default queue, not its implementation
-history or safety requirements. Preserve original CM-R/CM-A IDs, unfinished work and evidence.
-The user's current request is to finish this full bridge plan, not stop at a foundation card;
-the latest explicit server-test request supersedes the old offline-only boundary, not identity,
-source-policy or rollback requirements. It does not authorize unrelated fleet work or committing/
-pushing the dirty checkout. SpecMesh and History remain independent projects.
-
-## Historical priorities before the 2026-09-14 split
-
-The following records preserve earlier decisions and evidence; they no longer select the
-next task or override the current workflow direction.
-
-Native OpenCode continuity shipped in v0.42.2: local Viewer discovery, explicit TaskHub
-adoption, model preflight and same-session completion passed real terminal acceptance.
-See `plans/native-session-adoption/`. This does not close A.1 or terminal product readiness.
-History Viewer owns history discovery; CM owns execution; SpecMesh owns reviewed project
-intent and status. Native history is contextual evidence, never automatic project truth.
-
-Tool-grant v1 landed at `3417ae0`: provider mapping/rejection, optional task snapshots and
-golden drift checks are present. This does not yet establish end-to-end grant enforcement.
-The next safety unit is A.1 (`plans/execution-tool-grants-enforcement-closure/`), covering
-trusted issuance wiring, network/approval semantics and recovery/delivery identity checks,
-before cross-node diagnosis. CI 34041126119 passed for that exact implementation SHA.
-
-The immediate user-facing priority is Terminal Product v1
-(`plans/terminal-product-v1/`): deliver a usable terminal workbench with explicit UX
-acceptance. The following runtime and operational work remains queued:
-
-1. Collect operational evidence for the hardened writeback/promotion and source-aware
-   sandbox gates; keep `test_execution`, `code_review`, and `patch_candidate` task-local/
-   controller-promoted.
-2. Establish cross-server execution trace/diagnose without recording message bodies or
-   credentials, then run process-kill/restart recovery fault injection.
-3. Run the documented two-node Feishu multi-bot canary in
-   `oc_cdf6d69446db7e9e480067de4f309192` after replacing all open-ID placeholders; do not
-   distribute broadly until coordinator, exact-mention, broadcast, loop, and thread checks pass.
-4. Review the deferred create/tell/resume/cancel API admission choices—operation scopes,
-   idempotency retention, task revisions, audit access, canary policy, and rollback triggers—
-   before proposing any public mutation surface.
-5. Collect read-only Alpha feedback without expanding the localhost/browser security
-   boundary.
-6. Decide browser credential storage and operator scope before any non-local Web use.
-
-## Knowledge Map
-
-- System structure and ownership → `docs/ARCHITECTURE.md`
-- Important choices and rejected alternatives → `docs/DECISIONS.md`
-- Full documentation catalog → `docs/README.md`
-- TypeScript migration contracts and status → `docs/typescript-migration/`
-- Historical and active work → `plans/`
-- Current plan → [Small-change workflow](plans/workflow-small-change-20261122/task_plan.md)
-- Current status → [Workflow evidence and limits](plans/workflow-small-change-20261122/progress.md)
-- Optional original-session callback → [Native completion and messaging](plans/codex-callback-bridge/progress.md)
-- Existing Paperclip deployments → [Paperclip direction progress](plans/paperclip-based-cm/progress.md)
-- Preserved Orca candidate → [Orca bridge candidate status](docs/orca-bridge-status.md)
-- Historical full-TS queue → [plans/bounded-delivery/](plans/bounded-delivery/task_plan.md)
-- Preserved runtime implementation and evidence → `plans/runtime-convergence/`
-- Terminal product backlog → `plans/terminal-product-v1/`
-- Native continuity delivery (complete) → `plans/native-session-adoption/`
-- Weekly report gaps and queued safety work → `plans/weekly-report-followthrough/`
-- Tool-grant enforcement closure (Unit A.1) → `plans/execution-tool-grants-enforcement-closure/`
-- Most recent landed safety implementation (Unit A v1) → `plans/execution-tool-grants/`
-
-- Plan status index → [plans/README.md](plans/README.md)
-
-## Workflow integration (v0.43.0)
-
-Historical local cron transaction/ownership fixes and the older opt-in SpecMesh check adapter are described in [CODEKIT-INTEGRATION](docs/CODEKIT-INTEGRATION.md). The new material handoff entry is documented in [small-change workflow](docs/workflows/small-change.md); neither establishes TypeScript migration, distributed dispatch or operational rollout.
-
-## Historical approved direction (2026-09-30)
-
-当前投入以文首 2026-11-22 工作流决定为准；以下保留既有 Paperclip 路径的历史依据。
-
-CM becomes a Paperclip-based improvement tailored to the user's workflow. Native upstream
-execution/wakeups, real provider CLIs, SpecMesh handoff and coordinator judgment are the
-baseline. Retain useful messaging and delivery capabilities based on evidence. This is a
-confirmed direction with one accepted local orchestration experiment, not a completed CM
-replacement or blanket Feishu/production acceptance. See the current plan before extending it.
-
-2026-09-30 clarification: preserve upstream Paperclip source; only consider thin external
-orchestration. Pre-execution direction review is a real recorded need, currently deferred;
-see [scope and acceptance](plans/paperclip-based-cm/task_plan.md#执行前方向核对已记录待选用).
+2026-11-24：已完成 0.44.0 的执行验收入口、旧平台源码退役、零运行时依赖打包和当前 CI 对齐。本地完整检查通过 111 项测试及 20 项子测试，安装后的真实正确／错误产物均按预期判定；具体边界见本轮 [progress.md](plans/cm-usable-orchestration-20261124/progress.md)。远端提交和 CI 状态以对应 GitHub 检查为准。

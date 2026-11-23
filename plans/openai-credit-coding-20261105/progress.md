@@ -1,5 +1,7 @@
 # Progress
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## Current
 已完成用户纠正：原 ~/.dsh 的日常 web 已接入 OpenAI；Magpie 仅反代 ZCode/MCode。三路均在日常 3080 网页实测返回，原有会话保留。旧独立入口仅保留历史材料，服务已停止。
 

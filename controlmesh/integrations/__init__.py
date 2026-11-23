@@ -1,2 +1,0 @@
-"""Optional external integration adapters."""
-

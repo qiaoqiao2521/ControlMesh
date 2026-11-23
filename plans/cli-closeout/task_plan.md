@@ -1,5 +1,7 @@
 # 任务收尾 CLI
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## Goal
 一个 CLI、check/sync 两个动作、默认零 Agent。以 CM → CapMesh 的已确认状态引用证明跨仓闭环，避免每仓一套动作、后台服务和语义推断。
 

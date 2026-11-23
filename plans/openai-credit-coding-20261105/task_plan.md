@@ -1,5 +1,7 @@
 # OpenAI API 额度编程工具配置
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## Goal
 使用已领取的 OpenAI Platform 赠送额度，配置可直接编辑项目并运行测试的现有编程工具。
 

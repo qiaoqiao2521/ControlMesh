@@ -1,5 +1,7 @@
 # Progress
 
+> 历史记录：以下保留原任务日期与验收范围，不是当前待办或机器状态。文中的历史文件链接固定到清理前提交；当前方向见 [PROJECT.md](../../PROJECT.md)，当前验收见 [本轮进度](../cm-usable-orchestration-20261124/progress.md)。
+
 ## Current
 2026-09-30（Asia/Shanghai）：首版实现、本机安装和 CM → CapMesh 同步已通过，两个仓库成果已提交并推送。
 
@@ -17,7 +19,7 @@
 CapMesh 原目录仍处于旧实验分支；为保护既有工作，本机配置暂指本轮基于远端 main 的隔离整合目录。接续者可读取本机配置找到准确目标，不推旧实验分支。
 
 ## Retained legacy
-CM 既有 64 份变更与 CapMesh 原目录 89 份变更保留；不把“非本人修改”作为跳过理由。具体阻碍和 Owner 已核对：CM 的 Orca 未接受、cron 待审批见 [既有收尾](../repository-closeout-policy/progress.md)；CapMesh 原目录沿用 plans/recall-tracemesh-routing/legacy-closeout.md，包含已吸收差异、账号 D016 编号冲突、待核来源与实验运行态。根 Codex 接续，不在这次小型同步 CLI 中混入整套遗留发布。
+CM 既有 64 份变更与 CapMesh 原目录 89 份变更保留；不把“非本人修改”作为跳过理由。具体阻碍和 Owner 已核对：CM 的 Orca 未接受、cron 待审批见 [既有收尾](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/plans/repository-closeout-policy/progress.md)；CapMesh 原目录沿用 plans/recall-tracemesh-routing/legacy-closeout.md，包含已吸收差异、账号 D016 编号冲突、待核来源与实验运行态。根 Codex 接续，不在这次小型同步 CLI 中混入整套遗留发布。
 
 ## Next
 只在真实接收需求出现时扩展声明关系；其余仓库尚未接入，不创建自动任务。

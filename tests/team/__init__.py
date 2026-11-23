@@ -1,1 +1,0 @@
-"""Team tests package."""

@@ -1,131 +1,18 @@
-# ControlMesh Plans
+# 任务记录
 
-Repository-level memory is indexed by `AGENTS.md` and `PROJECT.md`. Architecture and
-durable rationale live in `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`.
+当前工作：[可用的执行与验收入口](cm-usable-orchestration-20261124/task_plan.md)，[进度与限制](cm-usable-orchestration-20261124/progress.md)。
 
-This directory contains historical plans and active task memory. For substantial new work,
-create only:
+普通小任务复用已有记录；跨文件或需接续的工作按需保留 `task_plan.md`、`findings.md`、`progress.md`。记录目标、实际结果、未通过项和下一步即可。
 
-```text
-plans/<task>/
-  task_plan.md
-  findings.md
-  progress.md
-```
+## 独立能力的历史依据
 
-Simple tasks do not need a plan directory.
+下列记录保留原日期与验收范围，不代表今天的机器连接仍可用，也不自动进入待办。
 
-This directory is the working control plane for ControlMesh.
+- [SpecMesh 小改动交接](workflow-small-change-20261122/progress.md)
+- [agent-link CLI 调用](agent-link-subagent-smoke/progress.md)
+- [跨仓状态收尾](cli-closeout/progress.md)
+- [仓库交付约定](repository-closeout-policy/progress.md)
+- [DSH 陪伴记忆](dsh-companion-memory/progress.md)
+- [DSH API 编程历史入口](openai-credit-coding-20261105/README.md)
 
-ControlMesh does not treat chat history as project truth.
-It treats files as project truth.
-
-The operating rule is:
-
-- read canonical files first
-- dispatch bounded work second
-- review evidence before promotion
-- update canonical state only after adjudication
-
-## Current work (2026-11-22)
-
-- [带证据的小改动交付](workflow-small-change-20261122/task_plan.md)：首条跨 Harness 可复用工作流与独立 SpecMesh 薄入口；[实际进度与限制](workflow-small-change-20261122/progress.md)。
-- 新任务按当前项目目标选用工作流；以下记录保留历史验收或已有部署，不自动排入当前队列。
-
-## Previous work and existing deployments (2026-10-12)
-
-- Mesh omissions: [plan](mesh-omissions-20261012/task_plan.md), [acceptance](mesh-omissions-20261012/progress.md). Canonical CapMesh entry, current-state sources, research revision and local callback recovery.
-- Current overview: [Paperclip-based CM](paperclip-based-cm/progress.md). Dated entries below retain their original acceptance scope; later Feishu conversation acceptance is in [2026-10-07 progress](feishu-native-conversation-20261006/progress.md).
-
-- Codex original-chat callback (2026-10-11): [usage](../docs/codex-callback.md), [plan](codex-callback-bridge/task_plan.md), [status](codex-callback-bridge/progress.md). Reuse codex_callback; local adapter verification and actual CM completion delivery have separate acceptance boundaries.
-
-The dated entries below retain their original scope; current work is selected above and in `PROJECT.md`.
-
-- Opt-in decision consultation v1: [usage](../docs/decision-consultation-v1.md), [plan](decision-consultation-v1/task_plan.md), [acceptance](decision-consultation-v1/progress.md). Native Paperclip lifecycle; no mandatory debate or automatic implementation approval.
-
-- Fleet cutover accepted (2026-10-01): [Fleet Paperclip + AGY rollout](fleet-paperclip-agy-20261001/task_plan.md), [status](fleet-paperclip-agy-20261001/progress.md) — 8 default CLIs and AGY program updates, 63 native schedules; per-host AGY login deferred, six Feishu bindings pending. Supersedes the previous next-day timing.
-
-- Selected server (2026-10-01): [436 Paperclip migration](436-paperclip-feishu/task_plan.md), [status](436-paperclip-feishu/progress.md), [commands](../docs/paperclip-436.md) — default CLI/listener switched; post-body repair deployed, real-message retest pending. Telegram stopped with identity/config retained; independent cron preserved.
-- Historical migration review: [TraceMesh review / earlier batch handoff](436-paperclip-feishu/migration-review-20261001.md) — publication/website outcomes and concrete handoff friction; its next-day timing was superseded by the accepted fleet rollout above.
-
-- Cross-repository closeout: [CLI](../docs/closeout.md), [status](cli-closeout/progress.md) — one CLI, check/sync, no runtime Agent; declared committed-state references only.
-
-- Existing deployment plan: [Paperclip-based CM](paperclip-based-cm/task_plan.md), [status](paperclip-based-cm/progress.md) — real CLI dispatch/idle/event-wake/review and local Feishu text delivery verified; 436 thin integration and default-entry cutover landed. The repaired post path, fleet rollout, group/recovery semantics retain their own acceptance boundaries.
-- Historical canary report: [Feishu + greenrise](paperclip-feishu-canary/task_plan.md), [status](paperclip-feishu-canary/progress.md) — local existing-bot text delivery and 4GB deployment/restart evidence preserved. Its stopped candidate/HTTPS/cron blockers describe the earlier trial; current greenrise headless takeover and 12 schedules are accepted in the fleet status above.
-- Repository closeout policy: [Closeout policy](repository-closeout-policy/task_plan.md), [status](repository-closeout-policy/progress.md) — routine commit/push default convention landed across shared specifications.
-- Preserved Orca candidate: [Orca bridge candidate status](../docs/orca-bridge-status.md) — superseded as the default direction on 2026-09-30; implementation and canary evidence retained locally, unfinished acceptance is not marked complete.
-- Historical full-TS queue: [Bounded delivery](bounded-delivery/task_plan.md), [status](bounded-delivery/progress.md) — direction superseded, code and evidence retained. Do not resume its old next-card list.
-- Preserved mixed implementation: [Runtime convergence](runtime-convergence/task_plan.md) — reuse code, CM-R/CM-A IDs and evidence; its old next-step list does not dispatch work.
-- Release alignment: [plan](release-alignment/task_plan.md), [status](release-alignment/progress.md) — dated release evidence, not a current running-version claim.
-- Terminal product acceptance: [Terminal Product v1](terminal-product-v1/task_plan.md) — historical UX requirements; select only bridge-relevant criteria, not a second active implementation line.
-- Safety evidence/backlog: [A.1](execution-tool-grants-enforcement-closure/task_plan.md) — not established by native adoption or by choosing Orca; source restrictions must be re-proven on the new path.
-- Completed delivery: [Native session adoption](native-session-adoption/task_plan.md) — v0.42.2.
-
-## Structure
-
-```text
-plans/
-  README.md
-  _program/
-    canonical plan file
-    canonical findings file
-    canonical progress file
-  _line_template/
-    plan template
-    findings template
-    progress template
-  tasks/
-    README.md
-    _template/
-      task_brief.md
-      acceptance.yaml
-      deliverables.yaml
-      worker result file
-      evidence.yaml
-      proposed progress update
-      proposed findings update
-      proposed plan delta
-      logs/README.md
-      artifacts/README.md
-  eval/
-    exception_triggers.yaml
-    review_outcomes.yaml
-    scorecard.yaml
-    evidence_schema.yaml
-```
-
-## Ground Rules
-
-- `PROJECT.md` is canonical for project intent and current priority.
-- An active `plans/<task>/` directory is canonical only for that task's execution state.
-- Product lines get their own sibling directories copied from `_line_template/`.
-- `tasks/<task-id>/` is task-local evidence space, not canonical truth.
-- Background workers may write only task-local outputs and proposed updates.
-- Canonical files are promoted only by the controller after adjudication.
-
-## Standard Progression
-
-Every meaningful cut should move through:
-
-`design -> red -> green -> live -> checkpoint`
-
-If the problem changes:
-
-- `split_into_new_scope`
-
-If the line must end:
-
-- `stopline`
-
-If the line is valid but should not continue now:
-
-- `deferred_with_reason`
-
-## Frontstage vs Runtime
-
-- Frontstage history: visible user interaction only
-- Runtime/event surface: task lifecycle, retries, heartbeats, worker activity, recovery, diagnostics
-
-Do not mix them.
-
-- Historical combined direction and reusable evidence: [runtime-convergence](runtime-convergence/task_plan.md). Current selection comes from `PROJECT.md` and the current work section above.
+旧 Paperclip、Orca、Runtime、面板与迁移计划已经退出工作树。原计划和证据在 [清理前提交](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8/plans) 可追溯，不再复制一份归档。

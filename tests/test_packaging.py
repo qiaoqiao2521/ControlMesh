@@ -1,39 +1,46 @@
-from __future__ import annotations
+"""Exercise the source entry point without any installed third-party packages."""
 
-import shutil
-import subprocess
-import tarfile
-import tomllib
-import zipfile
 from pathlib import Path
+import subprocess
+import sys
+import unittest
 
 
-def test_distribution_artifacts_include_controlmesh_runtime(tmp_path: Path) -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    out_dir = tmp_path / "dist"
-    uv_bin = shutil.which("uv")
-    assert uv_bin is not None
-    project_version = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))["project"][
-        "version"
-    ]
+ROOT = Path(__file__).resolve().parents[1]
 
-    subprocess.run(
-        [uv_bin, "build", "--out-dir", str(out_dir)],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
 
-    sdist_path = out_dir / f"controlmesh-{project_version}.tar.gz"
-    wheel_path = out_dir / f"controlmesh-{project_version}-py3-none-any.whl"
-    assert sdist_path.exists()
-    assert wheel_path.exists()
+class EntrypointTests(unittest.TestCase):
+    def invoke(self, *arguments: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, "-B", "-S", "-m", "controlmesh", *arguments],
+            cwd=ROOT, capture_output=True, text=True, timeout=10, check=False,
+        )
 
-    with tarfile.open(sdist_path) as sdist:
-        sdist_hits = [name for name in sdist.getnames() if "controlmesh_runtime/" in name]
-    with zipfile.ZipFile(wheel_path) as wheel:
-        wheel_hits = [name for name in wheel.namelist() if name.startswith("controlmesh_runtime/")]
+    def test_default_entrypoint_is_usable_without_runtime_dependencies(self):
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("run", result.stdout)
+        self.assertIn("workflow", result.stdout)
+        self.assertNotIn("Telegram", result.stdout)
 
-    assert sdist_hits
-    assert wheel_hits
+    def test_each_retained_command_has_independent_help(self):
+        for arguments in (("run", "--help"), ("workflow", "--help"), ("closeout", "--help"), ("--version",)):
+            with self.subTest(arguments=arguments):
+                result = self.invoke(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(result.stdout.strip())
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_retired_bot_command_does_not_start_an_old_runtime(self):
+        result = self.invoke("bot")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("invalid choice", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_unknown_global_option_is_not_silently_ignored(self):
+        result = self.invoke("--missing-option")
+        self.assertEqual(result.returncode, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

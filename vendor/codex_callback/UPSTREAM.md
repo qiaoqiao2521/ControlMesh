@@ -47,7 +47,7 @@ Its SHA256 is `ced20a085f76bccc774f091d18a57ae152139a32e0e128a02b5f7ff0712328f8`
 Patched `runtime/codex_callback/delivery.py` SHA256:
 `4334bd5e4b4ebcb17e7a8619035d0c7718d8695623e2b95fcd05632047457636`.
 
-Local [race tests](../../tests/paperclip_adapters/test_codex_callback_delivery.py) SHA256:
+Local [race tests](../../tests/callback/test_codex_callback_delivery.py) SHA256:
 `62172b782bc8e8faeb77e13cece6534e289c593c2728b90bcff4d2a371e239dc`.
 
 ## Verification
@@ -55,7 +55,7 @@ Local [race tests](../../tests/paperclip_adapters/test_codex_callback_delivery.p
 Run from the repository root:
 
 ```sh
-env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/tests:$PWD/tests/paperclip_adapters" \
+env PYTHONPATH="$PWD/vendor/codex_callback/runtime:$PWD/vendor/codex_callback/tests:$PWD/tests/callback" \
   python3 -B -S -m unittest test_callback.DeliveryTests test_codex_callback_delivery.DeliveryRaceTests -v
 ```
 
