@@ -8,7 +8,7 @@
 
 ```sh
 cm run --cwd /absolute/project \
-  --task /absolute/task.md \
+  --task task.md \
   --report /absolute/private-output/run-001.json \
   --verify 'python3 check_result.py' \
   --artifact result.txt \
@@ -22,7 +22,7 @@ cm run --cwd /absolute/project \
 | --- | --- |
 | `--cwd` | 执行与所有检查使用的工作目录 |
 | `--report` | 新报告路径；父目录须先存在，已有文件不能覆盖 |
-| `--task` | 可选的任务文件，记录任务身份；不自动把正文传给命令 |
+| `--task` | 可选的工作目录内任务文件，记录任务身份；不自动把正文传给命令 |
 | `--verify` | 可重复的检查命令串；必须根据任务选择能观察真实结果的检查 |
 | `--artifact` | 可重复的、相对工作目录的产物路径；记录存在性和内容摘要 |
 | `--timeout` | 执行与全部检查共用的秒数预算，默认 900 |

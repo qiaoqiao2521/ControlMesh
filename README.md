@@ -8,7 +8,7 @@ CM 在现有 Agent / CLI 外加一层可检查的任务执行：运行明确的�
 
 ```sh
 cm run --cwd /absolute/project \
-  --task /absolute/task.md \
+  --task task.md \
   --report /absolute/private-output/run-001.json \
   --verify 'python3 check_result.py' \
   --artifact result.txt \

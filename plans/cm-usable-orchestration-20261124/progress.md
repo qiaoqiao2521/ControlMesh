@@ -32,7 +32,7 @@ All of the following were run against this change, not inherited from historical
 | Fresh-venv wheel install with `--no-index --no-deps` | Passed; 0 production dependencies, 4 actual installed commands |
 | Installed wheel: correct worker plus explicit verification | `completed`, exit 0 |
 | Installed wheel: exit-zero worker with incorrect artifact | `needs_repair`, exit 1 |
-| Final wheel size | 19,511 bytes |
+| Verified implementation wheel size | 19,511 bytes; subsequent documentation-only corrections do not change runtime code |
 | Current Markdown links | 43 files scanned, 0 missing local file targets |
 | GitHub workflow syntax and expressions | actionlint 1.7.12 passed; downloaded binary checksum verified |
 | Workflow security check at the CI threshold | zizmor offline, medium severity / medium confidence: no findings |
@@ -57,3 +57,11 @@ The fix assigns each command a short-lived dedicated supervisor. Independent bla
 - Previous-report comparison covers recorded outcomes and artifact summaries, not complete logs or verification-source semantics. It gives advice and never reruns a paid command itself.
 - Callback queue tests do not prove that the user's current Codex thread/socket is reachable. DSH store tests do not prove its SDK or real-model integration. No live external CLI authentication, quota, model, server, deployment or production data was exercised.
 - This is a source delivery. Install from the current checkout for this entry; an older PyPI package does not contain it.
+
+## Remote delivery verification
+
+The implementation was published directly to `main` as [41be4ed](https://github.com/qiaoqiao2521/ControlMesh/commit/41be4edfb1063be852335eddb066021d112d15cc), using a non-forced expected-parent update. Its remote tree exactly matched the locally verified index, and a fresh Git fetch confirmed the same commit with a clean worktree.
+
+At read-back, GitHub showed successful Dependabot checks for that commit, but no `CI` or `Workflow checks` run. The public workflow listing described the workflows as active; the browser's workflow page returned 404 and the repository page had no Actions navigation. The cause was not established, and repository-level settings were not changed. Local verification above is complete; remote product CI is not claimed as passed.
+
+The documentation example uses `--task task.md` relative to `--cwd`, matching the enforced requirement that the task file remain inside the selected project.
