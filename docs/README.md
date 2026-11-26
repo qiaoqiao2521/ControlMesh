@@ -1,18 +1,16 @@
 # 文档索引
 
-先读项目当前 [README](../README.md)；仅按本次问题选择下列说明。
+默认产品是 T3 Code。先读 [README](../README.md)，再按问题选读；以下不是必读清单。
 
-| 问题 | 文档 |
+| 需要 | 入口 |
 | --- | --- |
-| 怎样安装、从源码运行 | [installation](installation.md) |
-| 怎样执行现成命令并验收 | [run](run.md) |
-| 模块各负责什么 | [ARCHITECTURE](ARCHITECTURE.md) |
-| 为什么删除旧平台、保留哪些边界 | [DECISIONS](DECISIONS.md) |
-| 怎样开发和验证 | [developer_quickstart](developer_quickstart.md) |
-| 怎样调用其他已配置 CLI | [agent-link-subagents](agent-link-subagents.md) |
-| 换执行者时怎样交接 | [small-change](workflows/small-change.md) |
-| 怎样同步已提交的状态引用 | [closeout](closeout.md) |
-| 外部任务结束后怎样接回原线程 | [codex-callback](codex-callback.md) |
-| 当前哪些结果已验收 | [本轮进度](../plans/cm-usable-orchestration-20261124/progress.md) |
+| 安装并启动 T3、操作原生线程 | [安装与运行](installation.md) |
+| 检查已有产物、核对是否推送 | [独立验收](verify.md) |
+| 了解 T3、CM、SpecMesh、TraceMesh 的职责 | [架构](ARCHITECTURE.md) |
+| 了解精简取舍与保留约束 | [决策](DECISIONS.md) |
+| 开发与执行必要检查 | [开发入口](developer_quickstart.md) |
+| 查看本轮实际验收和未覆盖项 | [进度](../plans/t3-primary-20261126/progress.md) |
 
-旧 Runtime、Paperclip、Orca、传输配置、发布说明和迁移计划已退出工作树。需要调查历史时，从 [清理前 docs](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8/docs) 或 [清理前 plans](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8/plans) 读取选定文件；它们不构成当前待办。
+只有既有任务需要时才使用兼容工具：[外部 CLI](agent-link-subagents.md)、[一次命令执行](run.md)、[SpecMesh 交接](workflows/small-change.md)、[跨仓段落同步](closeout.md)。
+
+已退役组件的固定源码、许可和历史证据见 [历史索引](retired-components.md)。

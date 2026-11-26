@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/pingdotgg/t3code",
+  "version": "0.1.12",
+  "tag": "v0.1.12",
+  "commit": "ca81b7b97a1c4b91e5ac25768d0f6629f37732fd",
+  "package": "t3",
+  "license": "MIT",
+  "distribution": "Unmodified upstream npm launcher and official runtime; no forked UI or copied provider implementation.",
+  "contracts": [
+    "apps/server/src/cli/thread.ts",
+    "packages/contracts/src/t3ProjectFile.ts",
+    "packages/contracts/src/milestones.ts",
+    "scripts/npm-launcher/t3.mjs"
+  ]
+}

@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "controlmesh"
-version = "0.44.0"
-description = "Small, explicit task execution, verification and handoff tools for existing agent harnesses."
+version = "0.45.0"
+description = "Thin T3 Code integration and independent artifact verification."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -36,6 +36,7 @@ Issues = "https://github.com/qiaoqiao2521/ControlMesh/issues"
 [project.scripts]
 controlmesh = "controlmesh.__main__:main"
 cm = "controlmesh.__main__:main"
+cm-verify = "controlmesh.verify:main"
 cm-closeout = "controlmesh.closeout:main"
 cm-workflow = "controlmesh.workflow:main"
 

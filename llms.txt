@@ -1,25 +1,28 @@
-# ControlMesh
+# ControlMesh: T3 Code workspace
 
-CM runs an explicitly supplied command, checks its real result, and writes a bounded execution report. The current host Agent owns task choice, authorization, repair and delivery. Each CLI keeps its native tools, model, login and session.
+The default application is the unmodified, pinned T3 Code Server/Web. `npm start` launches it; `cm` and `cm t3 ...` transparently use the selected runtime. T3 owns threads, providers, Git, remote connections and durable runtime state. CM adds independent verification, not another agent loop or memory service.
 
 ## Read progressively
 
 - [Project intent](PROJECT.md)
 - [Agent instructions](AGENTS.md)
-- [Run and verify](docs/run.md)
+- [Install and operate T3](docs/installation.md)
+- [Verify existing results and remote delivery](docs/verify.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Decisions](docs/DECISIONS.md)
-- [Current acceptance](plans/cm-usable-orchestration-20261124/progress.md)
+- [Current decisions](docs/DECISIONS.md)
+- [Actual acceptance and limitations](plans/t3-primary-20261126/progress.md)
 
-## Optional capabilities
+## Explicit compatibility only
 
-- [CLI child tasks](docs/agent-link-subagents.md)
+- [Existing external CLI tasks](docs/agent-link-subagents.md)
+- [Execute one external command](docs/run.md)
 - [SpecMesh handoff](docs/workflows/small-change.md)
-- [Committed-state synchronization](docs/closeout.md)
-- [Codex completion callback](docs/codex-callback.md)
+- [Committed-reference synchronization](docs/closeout.md)
 
-Memory belongs to [AgentTraceMesh's optional plugin](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md). CM does not own memory storage, recall, injection or receipt forwarding.
+A T3 turn ending is not task acceptance. `cm verify` executes selected checks, observes artifacts and binds evidence to the inspected source; optional remote proof observes the real branch. It never invokes an Agent or pushes changes. Waiting-process termination does not cancel an existing T3 thread.
 
-`cm run` does not automatically pass the task file to the worker, retry commands, choose a model, or start a background scheduler. An artifact list is not a sandbox. A success report covers only the explicitly executed checks.
+SpecMesh supplies project intent and constraints. Memory storage, recall, maintenance and host injection belong entirely to [AgentTraceMesh's optional plugin](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md), alongside historical compression, purification and gap retrieval. Hosts use that independent plugin directly; CM has no context proxy, memory injection parameters or receipt forwarding. Plugin source, tests and maintenance live in AgentTraceMesh. The move retains existing data directories, companion identities and record formats; it does not replace a user's installed plugin.
 
-Paperclip / Orca integrations and the old Python / TypeScript runtime have been retired from the current repository. This does not change running servers or delete private state. Historical implementations are available at [baseline 851d78b](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8).
+Ordinary tasks do not require all Mesh tools, handoff bundles or extra approvals. T3 project actions require import and are not automatic per-turn hooks.
+
+Companion memory is maintained in AgentTraceMesh. Its former CM source, along with the retired callback and dispatch skill, remains traceable through [fixed history links](docs/retired-components.md). Source retirement does not migrate running services or delete personal state.

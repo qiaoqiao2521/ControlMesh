@@ -1,0 +1,17 @@
+{
+  "name": "controlmesh-t3-workspace",
+  "version": "0.45.0",
+  "private": true,
+  "description": "T3 Code is the application; ControlMesh supplies optional verification and context adapters.",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "t3",
+    "serve": "t3 serve",
+    "t3": "t3",
+    "status": "t3 status --json",
+    "check:t3": "node scripts/check_t3.mjs",
+    "verify": "python3 -B -S -m controlmesh.verify"
+  },
+  "dependencies": { "t3": "0.1.12" }
+}

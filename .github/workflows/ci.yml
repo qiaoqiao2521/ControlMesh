@@ -46,7 +46,6 @@ jobs:
         python-version: ["3.11", "3.12"]
     env:
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-      PYTHONPATH: ${{ github.workspace }}/vendor/codex_callback/runtime
       CM_SPECMESH_TEST_ROOT: ${{ github.workspace }}/.ci-specmesh-workflow
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -72,8 +71,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv sync --frozen --extra dev
-      - name: Retained tools and callback regressions
-        run: uv run --frozen pytest -q tests vendor/codex_callback/tests/test_callback.py::DeliveryTests
+      - name: Integration and verification regressions
+        run: uv run --frozen pytest -q tests
 
   build:
     name: Build and installed command smoke
@@ -95,10 +94,28 @@ jobs:
       - name: Install wheel without dependencies and run real tasks
         run: python scripts/check_package.py
 
+  t3-runtime:
+    name: Pinned T3 Code runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install the locked upstream runtime
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Start and check T3 Code with isolated state
+        run: npm run check:t3
+
   ci-success:
     name: CI success
     if: ${{ always() && !cancelled() }}
-    needs: [ruff, test, build]
+    needs: [ruff, test, build, t3-runtime]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -115,5 +132,5 @@ jobs:
           if not gates or failures:
               print(f"Required CI gates did not pass: {failures or 'no results'}")
               sys.exit(1)
-          print("All retained ControlMesh gates passed.")
+          print("T3 Code runtime and ControlMesh checks passed.")
           PY

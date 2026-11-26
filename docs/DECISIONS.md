@@ -1,47 +1,37 @@
 # Decisions
 
-只保留当前仍影响使用的决定。完整旧记录见 [清理前 DECISIONS.md](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/docs/DECISIONS.md)；历史待办不自动恢复为当前计划。
+只保留当前影响使用的决定。历史方案与当时的验收见 [0.44.0 决策快照](https://github.com/qiaoqiao2521/ControlMesh/blob/59014053939707b98a9fea3510400fdf02d468f5/docs/DECISIONS.md)，历史待办不自动成为当前要求。
+
+## 2026-11-26 — 以 T3 Code 为主体
+
+用户明确要求以 T3 Code 为主体开始改造。默认产品采用未修改的上游 Server/Web，锁定 `t3@0.1.12` 与提交 `ca81b7b97a1c4b91e5ac25768d0f6629f37732fd`；`npm start`、无参数 `cm` 启动 T3。保持上游界面、会话、Git、持久状态和权限边界，不复制完整源码或再建 CM 控制台。
+
+CM 的自定义范围收缩为透明接入与独立验收。`cm verify` 只核验已有结果，区分检查通过、当前源码证据和远端提交确认；退出 0、完成通知或 T3 回合结束均不能替代业务验收。主 Agent 沿用已有授权接续，报告不增加审批步骤。
+
+`cm run`、`cm-workflow`、`cm-closeout` 保留为显式兼容工具，普通任务不强制经过它们。`t3.json` 动作需要导入，不作为每轮完成钩子；本轮没有新增无限重试或自动唤醒平台。
+
+DSH 陪伴插件由 TraceMesh 独立维护，从 CM 源码和 CI 移出；删除 Codex 专有回调运行时、依赖旧回调的派发 Skill 和 DSH API 启动器。来源、许可与当时记录通过 [固定历史链接](retired-components.md) 保留，不新建归档副本，不删除个人数据，不操作旧服务器。
 
 ## 2026-11-26 — 记忆直接归 TraceMesh，并作为可选插件交付
 
 用户纠正此前的“TraceMesh 提纯、CM 对接”方向：记忆直接迁移到 TraceMesh，CM 以后不负责。
 
-把现有 DSH Companion Memory 的源码、测试、许可及研发记录迁至 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)，从 CM 删除插件目录和专属 CI。插件沿用已有 DSH 数据目录、companion 身份和记录格式，保留显式选择性旧文件导入；仓库迁移不会操作用户运行数据。
+现有 DSH Companion Memory 的源码、测试、许可及研发记录迁至 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)，从 CM 删除插件目录和专属 CI。插件沿用已有 DSH 数据目录、companion 身份和记录格式，保留显式选择性旧文件导入；仓库迁移不会操作用户运行数据。
 
-此前尚未推送的 `cm context`、`cm run --context` 和执行报告携带记忆回执方案已撤回。CM 维持显式执行与验收，宿主直接使用 TraceMesh 的独立能力。源码、数据兼容和部署分别记录；本轮不表示已更换用户机器上的插件安装。
+此前尚未推送的 `cm context`、`cm run --context` 和执行报告携带记忆回执方案已撤回。记忆存储、召回、维护和宿主注入完全由 TraceMesh 负责，宿主直接使用其独立能力；CM 不设记忆代理、注入参数或回执转发。源码、数据兼容和部署分别记录，本轮不表示已更换用户机器上的插件安装。
 
-## 2026-11-24 — 退役旧平台，交付一次执行与验收
+## 2026-11-26 — 项目材料与历史证据各归其位
 
-用户确认现有方案仍未形成日常可用入口，允许删除旧 Paperclip 路线，并授权按本轮方案修改与推送。
+T3 保存原生运行状态；SpecMesh 保存项目意图、约束和职责；TraceMesh 独立负责记忆、历史压缩、提纯、缺口检索与交接证据。本轮不建立另一份 CM 记忆库，不复制整段会话，不强制每个任务同时启用全部 Mesh。
 
-决定：默认入口改为 `cm run`。组合一次显式命令、现有检查、产物核对和接续报告，让当前宿主根据真实结果继续修复或交付。无检查保留未验收状态，完成通知和 worker 自报成功不替代实际结果。
+需要并行时采用 T3 或执行器原生分工。普通小修改使用原任务记录，真正交接时才导出所需材料；材料有效仍不等于任务完成。
 
-删除：旧 Python / TS Runtime、Paperclip / Orca 专有接线、旧面板及对应部署、发布和迁移入口。它们通过 Git 基线 `851d78b` 保留来源，不复制到新的 archive 目录。
+## 延续的执行器选择约束
 
-当时保留：独立 SpecMesh 的 prepare/check、跨仓 closeout、agent-link 的已确认选择规则、可选 codex_callback 及其来源许可、独立 DSH 陪伴记忆；记忆归属已由 2026-11-26 决定更新。源码删除不停止服务器、不改生产配置、不删除私有数据；现有部署状态本轮不作推断。
+T3 使用已配置、确实可用的执行器。需要 T3 之外的 CLI 时，保留 [Qoder 等显式兼容路径](agent-link-subagents.md)，不恢复通用额度路由或定时探测。
 
-接续：报告给出建议而非批准或强制停止。当前宿主可依据已有授权自主处理失败；脚本不再调模型、不自动重试、不创建后台任务库。普通小任务无需额外工作流文件或机器交接包。
+AGY 仅在用户显式点名时人工前台使用，不自动探测、派发或作为降级候选。CBC 仅显式指定；ZCode 沿用 edit 配置；DSH 派发暂停。上游支持某执行器不代表本项目自动启用它。
 
-研究借鉴限定为工程取舍：按任务决定是否协作、限制材料读取范围、保留可核验产物和来源。参考 [Kim 等，Nature Machine Intelligence 2026](https://www.nature.com/articles/s42256-026-01268-y) 与 [ScaleMAS 2026 预印本](https://arxiv.org/abs/2610.16120)。本轮没有复现这些论文，也不承诺论文中的收益；任务判断与报告由具体实现和实际验收负责。
+## 验证与交付范围
 
-验收：[本轮计划](../plans/cm-usable-orchestration-20261124/task_plan.md) 与 [进度](../plans/cm-usable-orchestration-20261124/progress.md)。以后只为真实任务复现的缺口补能力，不按厂商数量或框架功能表扩张。
-
-## 2026-11-22 — 把开发工作流作为 CM 核心
-
-保留的原则：需求、选定依据、修改范围、真实验收与接续由现有项目记录表达。SpecMesh 管当前事实，TraceMesh 提供历史证据，CapMesh 记录能力取舍，各宿主管工具、权限与原生会话。
-
-首次实现的 `cm-workflow prepare/check` 只组合独立 SpecMesh 原生接口；材料新鲜度不等于业务通过。2026-11-24 增加实际执行入口，取代旧平台仍需留在工作树的约定。原始验收见 [历史进度](../plans/workflow-small-change-20261122/progress.md)。
-
-## 2026-11-13 — AGY 退出自动派发
-
-AGY 仅在用户显式点名时人工前台使用，不自动探测、不 spawn、不作为后台或降级候选。默认外部候选仅 Qoder；CBC 仅显式指定，ZCode 沿用 edit 配置，DSH 派发暂停。脚本兼容参数的存在不构成启用授权。
-
-## 2026-10-25 — 围绕现有 CLI 做轻量适配
-
-保留的调用边界：优先宿主原生子 Agent，必要时使用 agent-link 调用边界清楚的子任务；登录、模型、网络与原生会话由各 CLI 维护。短同步返回和后台接续分别验收。详见 [agent-link](agent-link-subagents.md)。
-
-acpx / 统一 ACP、hcom 平台化接入和 Magpie 的 Codex 模型统筹不恢复为默认方向。一个工具能执行不代表有额度、会话可恢复或通知可送达。
-
-## 2026-10-23 — 陪伴记忆保持独立可选
-
-[DSH Companion Memory](https://github.com/qiaoqiao2521/AgentTraceMesh/tree/main/plugins/dsh-companion-memory) 保存个人陪伴材料，默认不向后台子 Agent 提供私人记忆。保留选择性导入旧文件的能力，不恢复 CM 通用记忆服务。代码测试与真实模型长期记忆质量分别验收。2026-11-26 起由 TraceMesh 独立维护。
+云端源码与实际本地运行分别验证；真实模型登录、飞书往返、既有生产服务迁移分别报告。当前任务的 [计划](../plans/t3-primary-20261126/task_plan.md) 与 [进度](../plans/t3-primary-20261126/progress.md) 是本轮证据入口。

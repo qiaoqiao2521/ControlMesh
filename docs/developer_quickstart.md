@@ -1,28 +1,33 @@
 # 开发入口
 
-先读 [AGENTS.md](../AGENTS.md)、[PROJECT.md](../PROJECT.md) 和当前任务记录；按行为只读相关实现。
+先读 [AGENTS.md](../AGENTS.md)、[PROJECT.md](../PROJECT.md) 和有关任务记录，再读拥有行为的模块。
 
-| 行为 | 实现 | 验证 |
+| 行为 | 实现 | 检查 |
 | --- | --- | --- |
-| 执行与验收报告 | `controlmesh/execution.py` | `tests/execution/` |
-| SpecMesh 材料接口 | `controlmesh/workflow.py` | `tests/workflow/` |
-| 跨仓状态引用 | `controlmesh/closeout.py` | `tests/test_closeout.py` |
-| 可选通知竞态 | `vendor/codex_callback/` | `tests/callback/` 与上游测试 |
+| 锁定的原生 T3 Server/Web | `package.json`、`package-lock.json`、`t3-upstream.json` | `npm run check:t3` |
+| T3 透明参数与进程转交 | `controlmesh/t3.py` | `tests/test_t3.py` |
+| 独立产物与远端验收 | `controlmesh/verify.py` | `tests/test_verify.py` |
+| 安装后的命令 | `controlmesh/__main__.py`、`pyproject.toml` | `tests/test_packaging.py`、`scripts/check_package.py` |
+| 兼容外部命令执行 | `controlmesh/execution.py` | `tests/execution/` |
+| 可选 SpecMesh 交接 | `controlmesh/workflow.py` | `tests/workflow/` |
+| 可选跨仓引用同步 | `controlmesh/closeout.py` | `tests/test_closeout.py` |
 
-核心入口无需加载第三方运行时：
+按改动范围选择检查，沿用 CI 的固定依赖：
 
 ```sh
-python3 -B -S -m controlmesh --help
-python3 -B -S -m unittest discover -s tests/execution -v
-python3 -B -S -m unittest discover -s tests/workflow -v
+npm ci --ignore-scripts --no-audit --no-fund
+npm run check:t3
+uv sync --frozen --extra dev
+uv run --frozen ruff check .
+uv run --frozen pytest -q tests
+uv build
+python3 scripts/check_package.py
 ```
 
-SpecMesh 真实接口测试需要显式设置 `CM_SPECMESH_TEST_ROOT` 为独立 checkout；未配置时该集成类跳过，不能说已验通。配置错误须报告失败，不能把它当作无依赖而跳过。
+T3 smoke 使用独立测试状态，验证真实运行时启动，不调用付费模型；首次运行可能下载官方二进制。标准库路径可用 `python3 -B -S -m unittest tests.test_t3 tests.test_verify tests.test_packaging -v` 检查。依赖安装不改变用户的模型或登录配置。
 
-`cm-closeout` 的测试使用 pytest，见 [用法与验证](closeout.md)。可选通知测试命令和来源见 [UPSTREAM.md](../vendor/codex_callback/UPSTREAM.md)。这些定向检查不需要真实厂商调用、凭据或运行服务。
+SpecMesh 接口测试需要 `CM_SPECMESH_TEST_ROOT` 指向明确的独立 checkout；未配置的跳过不能称为真实接口验通。当前 CI 固定该独立来源，普通任务不必为无关模块重复检查。
 
-记忆源码和测试由 [AgentTraceMesh 插件](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md) 维护；CM 不再保留记忆测试任务或宿主适配入口。
+记忆源码、测试和宿主插件由 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md) 独立维护；CM 不保留记忆测试任务、`context` 代理、注入参数或回执转发。需要修改记忆行为时，直接在该仓库的任务范围内处理。
 
-本地验证结果、跳过原因和未覆盖项写入原任务的进度。需要调用真实 CLI、测试通知或部署时单独核验本轮条件，不能把 mock、进程退出或本地文件结果扩大成全路径成功。
-
-旧平台源代码已从工作树移除；只在调查历史时读取 [851d78b](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8)。不恢复旧迁移测试矩阵作为新功能的默认门槛。
+`npm run check:t3`、适配测试和产物验证各有范围，不能据此声称真实模型、飞书或生产服务已迁移。实际结果、跳过和未覆盖项写入 [本轮进度](../plans/t3-primary-20261126/progress.md)。历史源码只按需从 [退役索引](retired-components.md) 读取。

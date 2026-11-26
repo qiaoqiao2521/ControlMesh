@@ -2,45 +2,32 @@
 
 ## 当前方向（2026-11-26）
 
-用户需要能直接完成实际任务的编排入口，并已允许清理旧 Paperclip 路线。CM 当前保留一次命令执行、独立验收、产物核对和失败接续报告。任务选择、理解与最终交付由当前主 Agent 负责，各 CLI 沿用自己的工具、权限、登录和会话。
+用户明确要求以 **T3 Code 为主体** 改造和精简。默认产品入口是固定发行版的原生 T3 Server/Web；CM 保留必要接入、独立验收和兼容工具。不得把 `cm run` 改名后继续充当第二套执行平台。
 
-2026-11-26 用户明确纠正：记忆直接迁移到 TraceMesh 并插件化，CM 此后不负责记忆。原 DSH Companion Memory 的源码、测试和研发记录已移至 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)；CM 不增加记忆对接、上下文调用入口或回执转发。迁移范围与验证见 [TraceMesh 进度](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/plans/memory-plugin-migration-20261126/progress.md)。
+T3 拥有会话、provider、任务、工作区、Git、权限和恢复。记忆直接归 [AgentTraceMesh 独立插件](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)，包括存储、压缩、提纯、召回和宿主注入；SpecMesh 保存经核对的项目意图、约束和索引。CM 不负责记忆接入、上下文调用或回执转发，不复制聊天、运行状态或记忆目录。
 
-核心入口是 `cm run`：给它现成执行命令、已有检查命令和产物清单，得到一份记录真实状态的 JSON。无检查时标为未验收；失败时给出下一步建议，宿主可在已有授权范围内继续修复。它不自动重新调用模型、不长期轮询、不维护另一套任务服务。
+## 当前入口
 
-使用说明见 [执行与验收](docs/run.md)，实际实现、测试和未覆盖项集中在 [本轮计划](plans/cm-usable-orchestration-20261124/task_plan.md) 与 [进度](plans/cm-usable-orchestration-20261124/progress.md)。
-
-## 保留能力
-
-| 能力 | 范围 |
+| 入口 | 职责 |
 | --- | --- |
-| `cm run` | 一次显式命令、检查、产物和报告；不管理厂商原生会话 |
-| `cm-workflow prepare/check` | 真正交接时组合独立 SpecMesh 的材料导出与核验 |
-| `cm-closeout check/sync` | 同步明确配置的、已提交的跨仓状态段落 |
-| agent-link 说明与额度检查脚本 | 选用既有 CLI；当前默认外部候选 Qoder，AGY 不自动派发 |
-| `vendor/codex_callback` | 可选的原 Codex 线程通知，保留上游来源与局部修复 |
+| `npm start` / `npm run serve` | 真正运行未修改的上游 T3 应用 |
+| `cm` / `cm t3 ...` | 透明启动固定 T3，不另建会话、调度或自动重试 |
+| `cm verify` | 核验现有产物、已有检查、当前源码和可选远端交付 |
+| TraceMesh 插件（独立仓库） | 由宿主按需直接使用，CM 不提供记忆代理入口 |
+| `cm run` | 独立外部命令的兼容入口，不是默认产品流程 |
+| `cm-workflow` / `cm-closeout` | 真实交接与显式引用同步，普通任务无需使用 |
 
-SpecMesh 管当前项目意图、约束、进度和代码职责；TraceMesh 保存与检索原始历史，并维护独立记忆插件；CapMesh 记录能力取舍。宿主按本次任务选择需要的能力，普通任务不要求同时启用所有 Mesh。
+固定上游版本和来源见 `t3-upstream.json`。云端环境、执行器登录与飞书接入，必须分别依据实际连接验收；源码改变不等于生产迁移完成。
 
-## 已退役的仓库内容
+## 取舍
 
-旧 Python / TS Runtime、Paperclip / Orca 专有接线、旧面板与平台迁移清单从当前源码删除。旧源码、历史发布和部署证据可从 [清理前提交](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8) 查阅，不复制为新归档目录。
-
-这次变更只清理仓库，不停止、重启或迁移服务器，也不读写凭据、个人记忆、历史任务数据或原生会话。当前服务器是否仍使用旧版本没有在这次源码工作中验收。
-
-## 约束与成功标准
-
-- 默认走当前宿主；只在可拆分、可验收的具体任务上增加协作。
-- 执行命令使用调用方权限。任务文件与产物清单不提供操作系统隔离，不能替代宿主的授权。
-- 真实产物和行为决定验收；报告完成仅表示本轮显式检查通过，不证明未覆盖需求。
-- 不建设调度数据库、后台平台、统一认证、模型代理、额度路由或跨厂商会话迁移。
-- 不恢复 AGY 自动探测与派发；不因旧配置仍存在而重新启用暂停的 CLI。
-- 当前源码验证与真实厂商模型、跨会话恢复、部署和通知连接分别报告。
-
-有效性的判断是完成实际任务时少了多少重复解释、手工协调和返工，同时保留必要检查。研究中的按需协作、有限信息交接和任务匹配只作为工程取舍依据，不宣称复现论文或得到相同收益。
+- 保留原生多 Agent、远程访问、断线恢复、检查点和工作区隔离；最终交付到 main。
+- 以当前授权持续推进，具体错误驱动修复或换方法，不增加重复审批。
+- 回合结束、退出 0、历史成功、文件存在都不单独等于任务完成。
+- 不重建模型代理、统一认证、额度路由、调度数据库、记忆平台或固定多角色流程。
+- 不恢复 AGY 自动探测/派发、暂停的 DSH 执行通道或未选用的消息渠道；保留 Qoder 明确选用的外部能力边界。
+- DSH 陪伴插件源码、测试和研发记录迁至 TraceMesh；专有 callback 与旧派发 Skill 从当前 CM 源码退役，私人数据不在此次清理范围。
 
 ## Current
 
-2026-11-26：记忆插件迁出 CM，相关安装入口、研发记录与 CI 验收归 TraceMesh。CM 核心执行接口保持 0.44.0；本次没有新增记忆模块或运行依赖。
-
-2026-11-24：已完成 0.44.0 的执行验收入口、旧平台源码退役、零运行时依赖打包和当前 CI 对齐。本地完整检查通过 111 项测试及 20 项子测试，安装后的真实正确／错误产物均按预期判定；具体边界见本轮 [progress.md](plans/cm-usable-orchestration-20261124/progress.md)。远端提交和 CI 状态以对应 GitHub 检查为准。
+实现与证据集中在 [本轮计划](plans/t3-primary-20261126/task_plan.md)、[发现](plans/t3-primary-20261126/findings.md) 与 [进度](plans/t3-primary-20261126/progress.md)。本轮已整合 main 的记忆归属迁移提交 `2c49512`；迁移范围与验收见 [TraceMesh 进度](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/plans/memory-plugin-migration-20261126/progress.md)。T3 主体改造沿用这一边界。

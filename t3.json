@@ -1,0 +1,16 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "defaultThreadEnvMode": "worktree",
+  "scripts": [
+    {
+      "name": "Check CM adapters",
+      "command": "python3 -B -S -m unittest tests.test_t3 tests.test_verify tests.test_packaging -v",
+      "icon": "test"
+    },
+    {
+      "name": "Check T3 runtime",
+      "command": "npm run check:t3",
+      "icon": "test"
+    }
+  ]
+}
