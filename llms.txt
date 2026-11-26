@@ -17,7 +17,8 @@ CM runs an explicitly supplied command, checks its real result, and writes a bou
 - [SpecMesh handoff](docs/workflows/small-change.md)
 - [Committed-state synchronization](docs/closeout.md)
 - [Codex completion callback](docs/codex-callback.md)
-- [DSH companion memory](plugins/dsh-companion-memory/README.md)
+
+Memory belongs to [AgentTraceMesh's optional plugin](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md). CM does not own memory storage, recall, injection or receipt forwarding.
 
 `cm run` does not automatically pass the task file to the worker, retry commands, choose a model, or start a background scheduler. An artifact list is not a sandbox. A success report covers only the explicitly executed checks.
 

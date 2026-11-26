@@ -11,9 +11,8 @@
 | `controlmesh.closeout` | 读取已提交段落、检查并同步显式目标管理区 | 不自动判定业务状态、不提交或推送 |
 | 当前宿主与所选 CLI | 工具、登录、模型、权限、原生会话、任务判断 | 一个 CLI 成功不代表其他 CLI 可用 |
 | 可选 `vendor/codex_callback` | 已绑定原 Codex 线程的作业完成通知与回执 | 送达不等于产物通过；历史连通不等于今天连通 |
-| 可选 DSH 插件 | 个人陪伴记忆保存与召回 | 不充当项目权威或通用运行时 |
 
-`cm` 与 `python3 -m controlmesh` 是核心入口。标准库工具可在 `python3 -S` 下运行；可选插件和外部工具的依赖单独安装。
+`cm` 与 `python3 -m controlmesh` 是核心入口。标准库工具可在 `python3 -S` 下运行；外部工具的依赖单独安装。
 
 ## 执行报告边界
 
@@ -27,7 +26,9 @@
 
 ## 项目连续性
 
-SpecMesh 保存当前任务意图、约束和代码职责；TraceMesh 检索原始历史证据；CapMesh 保存能力取舍。按本次任务选择材料，避免让每位 worker 重读整段历史。需要交接时生成并核验材料，正常本机小任务直接使用原记录。
+SpecMesh 保存当前任务意图、约束和代码职责；TraceMesh 检索历史证据并独立维护记忆插件；CapMesh 保存能力取舍。宿主按本次任务选择材料，避免让每位 worker 重读整段历史。需要交接时生成并核验材料，正常本机小任务直接使用原记录。
+
+2026-11-26 起，记忆存储、召回、维护和宿主注入直接归 [TraceMesh 插件](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)。CM 没有记忆调用入口、注入参数或回执转发。DSH 插件按需安装到原生宿主，与 CM 的 Python 包和 CI 无依赖关系。
 
 ## 退役边界
 

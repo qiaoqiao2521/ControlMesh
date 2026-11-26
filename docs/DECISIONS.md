@@ -2,6 +2,14 @@
 
 只保留当前仍影响使用的决定。完整旧记录见 [清理前 DECISIONS.md](https://github.com/qiaoqiao2521/ControlMesh/blob/851d78b8989d07281d0082a5105f878a99f589c8/docs/DECISIONS.md)；历史待办不自动恢复为当前计划。
 
+## 2026-11-26 — 记忆直接归 TraceMesh，并作为可选插件交付
+
+用户纠正此前的“TraceMesh 提纯、CM 对接”方向：记忆直接迁移到 TraceMesh，CM 以后不负责。
+
+把现有 DSH Companion Memory 的源码、测试、许可及研发记录迁至 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)，从 CM 删除插件目录和专属 CI。插件沿用已有 DSH 数据目录、companion 身份和记录格式，保留显式选择性旧文件导入；仓库迁移不会操作用户运行数据。
+
+此前尚未推送的 `cm context`、`cm run --context` 和执行报告携带记忆回执方案已撤回。CM 维持显式执行与验收，宿主直接使用 TraceMesh 的独立能力。源码、数据兼容和部署分别记录；本轮不表示已更换用户机器上的插件安装。
+
 ## 2026-11-24 — 退役旧平台，交付一次执行与验收
 
 用户确认现有方案仍未形成日常可用入口，允许删除旧 Paperclip 路线，并授权按本轮方案修改与推送。
@@ -10,7 +18,7 @@
 
 删除：旧 Python / TS Runtime、Paperclip / Orca 专有接线、旧面板及对应部署、发布和迁移入口。它们通过 Git 基线 `851d78b` 保留来源，不复制到新的 archive 目录。
 
-保留：独立 SpecMesh 的 prepare/check、跨仓 closeout、agent-link 的已确认选择规则、可选 codex_callback 及其来源许可、独立 DSH 陪伴记忆。源码删除不停止服务器、不改生产配置、不删除私有数据；现有部署状态本轮不作推断。
+当时保留：独立 SpecMesh 的 prepare/check、跨仓 closeout、agent-link 的已确认选择规则、可选 codex_callback 及其来源许可、独立 DSH 陪伴记忆；记忆归属已由 2026-11-26 决定更新。源码删除不停止服务器、不改生产配置、不删除私有数据；现有部署状态本轮不作推断。
 
 接续：报告给出建议而非批准或强制停止。当前宿主可依据已有授权自主处理失败；脚本不再调模型、不自动重试、不创建后台任务库。普通小任务无需额外工作流文件或机器交接包。
 
@@ -36,4 +44,4 @@ acpx / 统一 ACP、hcom 平台化接入和 Magpie 的 Codex 模型统筹不恢�
 
 ## 2026-10-23 — 陪伴记忆保持独立可选
 
-[DSH Companion Memory](../plugins/dsh-companion-memory/README.md) 保存个人陪伴材料，默认不向后台子 Agent 提供私人记忆。保留选择性导入旧文件的能力，不恢复 CM 通用记忆服务。代码测试与真实模型长期记忆质量分别验收。
+[DSH Companion Memory](https://github.com/qiaoqiao2521/AgentTraceMesh/tree/main/plugins/dsh-companion-memory) 保存个人陪伴材料，默认不向后台子 Agent 提供私人记忆。保留选择性导入旧文件的能力，不恢复 CM 通用记忆服务。代码测试与真实模型长期记忆质量分别验收。2026-11-26 起由 TraceMesh 独立维护。

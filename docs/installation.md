@@ -33,6 +33,7 @@ python3 -S -m controlmesh.closeout --help
 - 跨会话材料核验使用显式指定的独立 SpecMesh checkout，见 [交接](workflows/small-change.md)。
 - 外部 CLI 可复用已配置的 agent-link，见 [选择规则](agent-link-subagents.md)。
 - `vendor/codex_callback` 只随源码保留，未默认打包。真实通知还依赖可达的原 Codex 线程和控制通道，见 [callback](codex-callback.md)。
-- DSH 陪伴记忆按 [插件说明](../plugins/dsh-companion-memory/README.md) 独立安装。
+
+记忆插件由 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md) 独立提供，安装来源已移出 CM。切换插件代码时沿用原数据目录与 companion 身份，具体方法见该仓库说明。
 
 旧配置、登录态、任务数据和服务器不由此安装流程迁移。已有旧版本用户在独立 checkout / 环境验证当前入口后，再按自己明确的部署任务处理服务。

@@ -1,8 +1,10 @@
 # ControlMesh Project Context
 
-## 当前方向（2026-11-24）
+## 当前方向（2026-11-26）
 
 用户需要能直接完成实际任务的编排入口，并已允许清理旧 Paperclip 路线。CM 当前保留一次命令执行、独立验收、产物核对和失败接续报告。任务选择、理解与最终交付由当前主 Agent 负责，各 CLI 沿用自己的工具、权限、登录和会话。
+
+2026-11-26 用户明确纠正：记忆直接迁移到 TraceMesh 并插件化，CM 此后不负责记忆。原 DSH Companion Memory 的源码、测试和研发记录已移至 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)；CM 不增加记忆对接、上下文调用入口或回执转发。迁移范围与验证见 [TraceMesh 进度](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/plans/memory-plugin-migration-20261126/progress.md)。
 
 核心入口是 `cm run`：给它现成执行命令、已有检查命令和产物清单，得到一份记录真实状态的 JSON。无检查时标为未验收；失败时给出下一步建议，宿主可在已有授权范围内继续修复。它不自动重新调用模型、不长期轮询、不维护另一套任务服务。
 
@@ -17,9 +19,8 @@
 | `cm-closeout check/sync` | 同步明确配置的、已提交的跨仓状态段落 |
 | agent-link 说明与额度检查脚本 | 选用既有 CLI；当前默认外部候选 Qoder，AGY 不自动派发 |
 | `vendor/codex_callback` | 可选的原 Codex 线程通知，保留上游来源与局部修复 |
-| DSH Companion Memory | 独立可选的个人陪伴插件，与编排核心分开安装和验收 |
 
-SpecMesh 管当前项目意图、约束、进度和代码职责；TraceMesh 保存与检索原始历史；CapMesh 记录能力取舍。CM 组合本次任务需要的能力，普通任务不要求同时启用所有 Mesh。
+SpecMesh 管当前项目意图、约束、进度和代码职责；TraceMesh 保存与检索原始历史，并维护独立记忆插件；CapMesh 记录能力取舍。宿主按本次任务选择需要的能力，普通任务不要求同时启用所有 Mesh。
 
 ## 已退役的仓库内容
 
@@ -39,5 +40,7 @@ SpecMesh 管当前项目意图、约束、进度和代码职责；TraceMesh 保�
 有效性的判断是完成实际任务时少了多少重复解释、手工协调和返工，同时保留必要检查。研究中的按需协作、有限信息交接和任务匹配只作为工程取舍依据，不宣称复现论文或得到相同收益。
 
 ## Current
+
+2026-11-26：记忆插件迁出 CM，相关安装入口、研发记录与 CI 验收归 TraceMesh。CM 核心执行接口保持 0.44.0；本次没有新增记忆模块或运行依赖。
 
 2026-11-24：已完成 0.44.0 的执行验收入口、旧平台源码退役、零运行时依赖打包和当前 CI 对齐。本地完整检查通过 111 项测试及 20 项子测试，安装后的真实正确／错误产物均按预期判定；具体边界见本轮 [progress.md](plans/cm-usable-orchestration-20261124/progress.md)。远端提交和 CI 状态以对应 GitHub 检查为准。

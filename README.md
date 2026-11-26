@@ -31,11 +31,12 @@ cm run --cwd /absolute/project \
 | 真正换执行者或跨会话交接 | [`cm-workflow prepare/check`](docs/workflows/small-change.md)，复用独立 SpecMesh |
 | 同步已确认的跨仓状态引用 | [`cm-closeout check/sync`](docs/closeout.md) |
 | 外部作业结束后接回原 Codex 线程 | [可选 callback](docs/codex-callback.md)，需独立核验当前通道 |
-| DSH 个人陪伴记忆 | [可选插件](plugins/dsh-companion-memory/README.md)，不进入默认任务执行 |
 
 普通任务无需建立交接包、额度服务或后台服务。AGY 不参与自动探测和派发；其他 CLI 的当前限制见 [agent-link](docs/agent-link-subagents.md#当前派发范围)。
 
 ## 当前范围
+
+记忆能力已迁至 [AgentTraceMesh 的独立插件](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)。存储、召回和宿主注入由 TraceMesh 插件维护；CM 只负责显式任务的执行与验收。
 
 0.44.0 删除了仓库中的旧 Python / TS Runtime、Paperclip / Orca 专有集成及旧平台入口。此次源码清理不操作任何服务器，不删除本机运行数据、凭据或原生会话。旧实现可从 [清理前提交 `851d78b`](https://github.com/qiaoqiao2521/ControlMesh/tree/851d78b8989d07281d0082a5105f878a99f589c8) 追溯。
 

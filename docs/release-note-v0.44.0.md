@@ -20,7 +20,7 @@
 - `cm-closeout check/sync`：同步明确配置的已提交状态段落；示例已改为当前任务来源，用户本地旧配置不自动迁移。
 - agent-link 说明、可用性检查和独立 CLI 适配；AGY 不自动探测或派发，默认外部候选为 Qoder。
 - 独立 `vendor/codex_callback` 及来源许可；随源码保留，不默认打包，也不保证当前 App 通道可达。
-- 独立可选的 DSH Companion Memory 插件。
+- 当时保留独立可选的 DSH Companion Memory 插件；2026-11-26 已迁至 [AgentTraceMesh](https://github.com/qiaoqiao2521/AgentTraceMesh/blob/main/docs/memory-plugin.md)，当前 CM 源码不再提供。
 
 ## 验证与交付边界
 
